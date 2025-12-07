@@ -1,22 +1,62 @@
-/model_dir/tau.npy
-/tvci.egg-info/
-/types.jsonl
-/nodes.jsonl
-/model_dir/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Poetry
+poetry.lock
+
+# IDE
+.vscode/
 .idea/
-/edges.jsonl
-/model_output/ann_index.ann
-/model_output/embeddings.npy
-/model_output/fusion_pca_components.npy
-/model_output/fusion_pca_mean.npy
-/model_output/mean_norm.npy
-/model_output/metadata.json
-/model_output/node_subtokens.json
-/model_output/node_types.json
-/model_output/subtoken_map.json
-/model_output/svd_components.npy
-/model_output/svd_components_types.npy
-/model_output/tau.npy
-/model_output/type_token_map.json
-/model_output/word2vec.kv
+*.swp
+*.swo
+*~
+
+# Model outputs
+model_output/
+*.npy
+*.ann
+*.kv
+
+# Data files
+*.jsonl
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
 /train_output.txt

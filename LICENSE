@@ -1,0 +1,56 @@
+TriCoder License
+
+Copyright (c) 2024 Jiri Otoupal
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software for NON-COMMERCIAL purposes, subject to the following conditions:
+
+1. NON-COMMERCIAL USE ONLY: The Software may be used, copied, modified, and
+   distributed only for non-commercial purposes. Non-commercial purposes
+   include personal use, educational use, research, and open-source projects
+   that are not part of a commercial product or service.
+
+2. COMMERCIAL USE RESTRICTION: Any use of the Software in connection with a
+   commercial product, service, or project (including but not limited to:
+   paid software, SaaS products, commercial consulting services, internal
+   tools for commercial entities, or any use that generates revenue) requires
+   a separate commercial license. To obtain a commercial license, please
+   contact the copyright holder.
+
+3. The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software used for non-commercial
+   purposes.
+
+4. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+5. For commercial licensing inquiries, please contact:
+   j.f.otoupal@gmail.com
+   
+   Commercial licenses are available for use in paid products, SaaS services,
+   commercial consulting, enterprise deployments, and any revenue-generating
+   projects. See LICENSE_COMMERCIAL.md for details.
+
+---
+
+COMMERCIAL LICENSE TERMS:
+
+Commercial licenses are available for organizations and individuals who wish
+to use TriCoder in commercial products, services, or projects. Commercial
+licenses include:
+
+- Right to use TriCoder in commercial products and services
+- Priority support and updates
+- Custom licensing terms for enterprise use
+- No requirement to open-source derivative works
+
+To purchase a commercial license, please contact the copyright holder at
+j.f.otoupal@gmail.com with details about your intended use case.
+
