@@ -6,7 +6,7 @@ import click
 from rich.console import Console
 
 from .model import SymbolModel
-from .train import main as train_main
+from .train import train_model
 
 console = Console()
 
@@ -47,8 +47,8 @@ def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim
     """Train TriCoder model on codebase symbols and relationships."""
     # Handle optional types file - only use if it exists
     types_path = types if types and os.path.exists(types) else None
-    
-    train_main(
+
+    train_model(
         nodes_path=nodes,
         edges_path=edges,
         types_path=types_path,
