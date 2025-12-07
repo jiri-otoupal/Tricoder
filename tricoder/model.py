@@ -287,6 +287,7 @@ class SymbolModel:
         
         # Normalize keywords (case-insensitive)
         keywords_lower = keywords.lower().strip()
+        keyword_words = keywords_lower.split()
         
         # Find matching symbols
         matches = []
@@ -297,19 +298,42 @@ class SymbolModel:
             name = meta.get('name', '').lower()
             kind = meta.get('kind', '').lower()
             
-            # Check if keywords match name or kind
-            if keywords_lower in name or keywords_lower in kind:
-                # Calculate a simple relevance score
-                score = 0.0
-                if keywords_lower == name:
+            # Calculate a simple relevance score
+            score = 0.0
+            
+            # Check exact phrase match first (highest priority)
+            if keywords_lower == name:
+                score = 1.0  # Exact name match
+            elif name.startswith(keywords_lower):
+                score = 0.8  # Name starts with keywords
+            elif keywords_lower in name:
+                score = 0.6  # Keywords contained in name
+            # For multi-word queries, check if all words appear in name
+            elif len(keyword_words) > 1:
+                # Check if all words appear in the name
+                all_words_in_name = all(word in name for word in keyword_words)
+                if all_words_in_name:
+                    # Count how many words match
+                    matching_words = sum(1 for word in keyword_words if word in name)
+                    score = 0.5 + (0.2 * matching_words / len(keyword_words))  # 0.5-0.7 range
+                # Also check if all words appear in kind
+                elif all(word in kind for word in keyword_words):
+                    score = 0.3
+            # Single word queries
+            elif len(keyword_words) == 1:
+                word = keyword_words[0]
+                if word == name:
                     score = 1.0  # Exact name match
-                elif name.startswith(keywords_lower):
-                    score = 0.8  # Name starts with keywords
-                elif keywords_lower in name:
-                    score = 0.6  # Keywords contained in name
-                elif keywords_lower == kind:
+                elif name.startswith(word):
+                    score = 0.8  # Name starts with word
+                elif word in name:
+                    score = 0.6  # Word contained in name
+                elif word == kind:
                     score = 0.4  # Kind match
-                
+                elif word in kind:
+                    score = 0.2  # Word in kind
+            
+            if score > 0:
                 matches.append({
                     'symbol': node_id,
                     'score': score,
