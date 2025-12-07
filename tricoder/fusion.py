@@ -124,6 +124,7 @@ def iterative_embedding_smoothing(embeddings: np.ndarray,
                                   random_state: int = 42) -> np.ndarray:
     """
     Apply iterative embedding smoothing (diffusion) to embeddings.
+    Optimized with vectorized operations.
     
     Args:
         embeddings: input embeddings (num_nodes, dim)
@@ -141,32 +142,27 @@ def iterative_embedding_smoothing(embeddings: np.ndarray,
     # Build neighbor graph
     adj = build_neighbor_graph(edges, num_nodes)
 
-    # Store original embeddings before normalization
-    original_embeddings = embeddings.copy()
-
-    # Iterative smoothing
+    # Iterative smoothing with vectorized operations
     smoothed = embeddings.copy()
 
     for iteration in range(num_iterations):
-        new_smoothed = np.zeros_like(smoothed)
-
-        for i in range(num_nodes):
-            # Get neighbors
-            neighbors = adj[i].nonzero()[1]
-
-            if len(neighbors) > 0:
-                # Average of neighbor embeddings
-                neighbor_emb = smoothed[neighbors].mean(axis=0)
-
-                # Weighted combination: beta * neighbor_avg + (1-beta) * current
-                new_smoothed[i] = beta * neighbor_emb + (1 - beta) * smoothed[i]
-            else:
-                # No neighbors, keep current embedding
-                new_smoothed[i] = smoothed[i]
+        # Vectorized neighbor averaging using sparse matrix multiplication
+        # adj @ smoothed computes sum of neighbor embeddings for each node
+        neighbor_sums = adj.dot(smoothed)
+        
+        # Get degree of each node (number of neighbors)
+        degrees = np.array(adj.sum(axis=1)).flatten()
+        degrees = np.maximum(degrees, 1.0)  # Avoid division by zero
+        
+        # Compute average neighbor embeddings
+        neighbor_avg = neighbor_sums / degrees[:, np.newaxis]
+        
+        # Weighted combination: beta * neighbor_avg + (1-beta) * current
+        smoothed = beta * neighbor_avg + (1 - beta) * smoothed
 
         # L2-normalize
-        norms = np.linalg.norm(new_smoothed, axis=1, keepdims=True)
+        norms = np.linalg.norm(smoothed, axis=1, keepdims=True)
         norms = np.maximum(norms, 1e-10)
-        smoothed = new_smoothed / norms
+        smoothed = smoothed / norms
 
     return smoothed

@@ -277,8 +277,9 @@ def reduce_dimensions_ppmi(ppmi: sparse.csr_matrix, dim: int, random_state: int 
     num_features = ppmi.shape[1]
     actual_dim = min(dim, num_features)
 
-    # TruncatedSVD doesn't support n_jobs, but sklearn uses threading internally
-    svd = TruncatedSVD(n_components=actual_dim, random_state=random_state, n_iter=10)
+    # Use fewer iterations for faster SVD (n_iter=5 instead of 10)
+    # Randomized SVD converges quickly, so fewer iterations often suffice
+    svd = TruncatedSVD(n_components=actual_dim, random_state=random_state, n_iter=5)
     embeddings = svd.fit_transform(ppmi)
 
     # Pad embeddings if needed to match requested dimension

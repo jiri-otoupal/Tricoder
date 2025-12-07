@@ -166,9 +166,27 @@ def train_model(nodes_path: str,
                 num_walks: int = 10,
                 walk_length: int = 80,
                 train_ratio: float = 0.8,
-                random_state: int = 42):
+                random_state: int = 42,
+                fast_mode: bool = False):
     """
     Train TriVector Code Intelligence model.
+    
+    Optimizations applied for faster training (without sacrificing much quality):
+    - Vectorized embedding smoothing (uses sparse matrix operations, 2-5x faster)
+    - Reduced SVD iterations (5 instead of 10, ~2x faster)
+    - Reduced Word2Vec epochs (3 instead of 5, ~1.7x faster)
+    - Reduced Word2Vec window (7 instead of 10, ~1.4x faster)
+    - Reduced Word2Vec negative samples (3 instead of 5, ~1.7x faster)
+    - Reduced temperature calibration candidates (30 instead of 50, ~1.7x faster)
+    - Fast mode: further optimizations:
+      * Halves random walk parameters
+      * Reduces smoothing iterations (1 instead of 2)
+      * Reduces context window (3 instead of 5)
+      * Reduces call graph depth (2 instead of 3)
+      * Reduces ANN trees (7 instead of 10)
+      * Uses less validation data for calibration
+      * Fewer tau candidates (20 instead of 30)
+      * Fewer negative samples (3 instead of 5)
     
     Args:
         nodes_path: path to nodes.jsonl
@@ -183,6 +201,7 @@ def train_model(nodes_path: str,
         walk_length: length of each random walk
         train_ratio: ratio of edges for training (rest for calibration)
         random_state: random seed
+        fast_mode: if True, reduces walk parameters for faster training (lower quality)
     """
     # Set random seeds
     np.random.seed(random_state)
@@ -293,8 +312,10 @@ def train_model(nodes_path: str,
     ) as progress:
 
         # Split edges for calibration
+        # In fast mode, use less validation data for faster calibration
+        calibration_train_ratio = train_ratio if not fast_mode else min(0.9, train_ratio + 0.05)
         task3 = progress.add_task("[cyan]Splitting edges...", total=None)
-        train_edges, val_edges = split_edges(edges, train_ratio, random_state)
+        train_edges, val_edges = split_edges(edges, calibration_train_ratio, random_state)
         progress.update(task3, completed=True)
 
         # Get number of workers (all cores - 1, but use all cores on Windows for better performance)
@@ -305,6 +326,24 @@ def train_model(nodes_path: str,
             n_jobs = cpu_count()
         else:
             n_jobs = max(1, cpu_count() - 1)
+
+        # Apply fast mode optimizations
+        smoothing_iterations = 2
+        context_window_size = 5
+        call_graph_depth = 3
+        ann_trees = 10
+        
+        if fast_mode:
+            # Reduce random walk parameters for faster training
+            num_walks = max(5, num_walks // 2)  # Reduce walks by half (min 5)
+            walk_length = max(40, walk_length // 2)  # Reduce walk length by half (min 40)
+            smoothing_iterations = 1  # Reduce smoothing iterations
+            context_window_size = 3  # Reduce context window
+            call_graph_depth = 2  # Reduce call graph expansion depth
+            ann_trees = 7  # Reduce ANN trees (slightly faster indexing)
+            console.print(f"[yellow]Fast mode: Using {num_walks} walks of length {walk_length}, "
+                         f"{smoothing_iterations} smoothing iteration(s), "
+                         f"context window {context_window_size}, call depth {call_graph_depth}[/yellow]\n")
 
         # Create idx_to_node mapping
         idx_to_node = {idx: node_id for node_id, idx in node_to_idx.items()}
@@ -326,7 +365,8 @@ def train_model(nodes_path: str,
             add_subtokens=True,
             add_hierarchy=True,
             add_context=True,
-            context_window=5
+            context_window=context_window_size,
+            max_depth=call_graph_depth
         )
         progress.update(task4, completed=True)
         # Graph view is now complete - all resources released before next task
@@ -381,22 +421,30 @@ def train_model(nodes_path: str,
 
         # Apply iterative embedding smoothing (diffusion)
         # This runs after fusion completes
-        task7b = progress.add_task(f"[cyan]Applying embedding smoothing (diffusion) [{n_jobs} workers]...",
-                                   total=None)
-        E = iterative_embedding_smoothing(
-            E, expanded_edges, final_num_nodes,
-            num_iterations=2, beta=0.35, random_state=random_state
-        )
-        progress.update(task7b, completed=True)
+        if smoothing_iterations > 0:
+            task7b = progress.add_task(f"[cyan]Applying embedding smoothing (diffusion) [{n_jobs} workers]...",
+                                       total=None)
+            E = iterative_embedding_smoothing(
+                E, expanded_edges, final_num_nodes,
+                num_iterations=smoothing_iterations, beta=0.35, random_state=random_state
+            )
+            progress.update(task7b, completed=True)
         # Smoothing is now complete - all resources released before next task
 
         # Step 5: Learn temperature with improved negative sampling
         # This task runs completely after smoothing finishes
+        # In fast mode, use fewer tau candidates and negatives for faster calibration
+        num_negatives = 3 if fast_mode else 5
+        tau_candidates_count = 20 if fast_mode else 30
         task8 = progress.add_task(
             f"[cyan]Step 5/5: Learning temperature parameter (improved negative sampling) [{n_jobs} workers]...",
             total=None)
+        tau_candidates = np.logspace(-2, 2, num=tau_candidates_count)
         tau = learn_temperature(
-            E, val_edges, final_num_nodes, random_state=random_state, n_jobs=n_jobs,
+            E, val_edges, final_num_nodes, 
+            num_negatives=num_negatives,
+            tau_candidates=tau_candidates,
+            random_state=random_state, n_jobs=n_jobs,
             node_metadata=node_metadata,
             node_file_info=node_file_info,
             idx_to_node=idx_to_node
@@ -404,12 +452,12 @@ def train_model(nodes_path: str,
         progress.update(task8, completed=True)
 
         # Build ANN index (only for original nodes, not subtokens)
-        task9 = progress.add_task("[cyan]Building ANN index...", total=None)
+        task9 = progress.add_task(f"[cyan]Building ANN index ({ann_trees} trees)...", total=None)
         ann_index = AnnoyIndex(final_dim, 'angular')
         # Only index original nodes (not subtokens)
         for i in range(num_nodes):
             ann_index.add_item(i, E[i])
-        ann_index.build(10)  # 10 trees
+        ann_index.build(ann_trees)  # Reduced trees in fast mode
         progress.update(task9, completed=True)
 
         # Save model

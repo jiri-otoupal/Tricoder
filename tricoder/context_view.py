@@ -154,20 +154,22 @@ def generate_random_walks(edges: List[Tuple[int, int, str, float]],
     return walks
 
 
-def train_word2vec(walks: List[List[str]], dim: int, window: int = 10,
-                   negative: int = 5, epochs: int = 5, random_state: int = 42,
-                   n_jobs: int = -1) -> KeyedVectors:
+def train_word2vec(walks: List[List[str]], dim: int, window: int = 7,
+                   negative: int = 3, epochs: int = 3, random_state: int = 42,
+                   n_jobs: int = -1, batch_words: int = 10000) -> KeyedVectors:
     """
     Train Word2Vec SkipGram model on random walks with multiprocessing.
+    Optimized defaults: window=7 (was 10), negative=3 (was 5) for faster training.
     
     Args:
         walks: list of walks (each walk is a list of node ID strings)
         dim: embedding dimensionality
-        window: context window size
-        negative: number of negative samples
+        window: context window size (reduced default: 7)
+        negative: number of negative samples (reduced default: 3)
         epochs: number of training epochs
         random_state: random seed
         n_jobs: number of parallel workers (-1 for all cores - 1)
+        batch_words: words per batch (larger = faster but more memory)
     
     Returns:
         Trained KeyedVectors model
@@ -187,7 +189,8 @@ def train_word2vec(walks: List[List[str]], dim: int, window: int = 10,
         sg=1,  # SkipGram
         negative=negative,
         epochs=epochs,
-        seed=random_state
+        seed=random_state,
+        batch_words=batch_words  # Larger batches for faster training
     )
 
     return model.wv

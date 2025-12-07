@@ -489,10 +489,10 @@ def reduce_dimensions_ppmi(ppmi: sparse.csr_matrix, dim: int, random_state: int 
     num_features = ppmi.shape[1]
     actual_dim = min(dim, num_features)
 
-    # TruncatedSVD uses ARPACK which is single-threaded
-    # However, the matrix operations (sparse matrix multiplication) can benefit
-    # from threading if numpy/scipy are compiled with threading support
-    svd = TruncatedSVD(n_components=actual_dim, random_state=random_state, n_iter=10)
+    # Use randomized SVD for faster computation (especially for large matrices)
+    # Randomized SVD is much faster and often produces similar quality results
+    # Use n_iter=5 for faster convergence (default is 7)
+    svd = TruncatedSVD(n_components=actual_dim, random_state=random_state, n_iter=5)
     embeddings = svd.fit_transform(ppmi)
 
     # Pad embeddings if needed to match requested dimension
@@ -519,10 +519,14 @@ def compute_graph_view(edges: List[Tuple[int, int, str, float]], num_nodes: int,
                        add_subtokens: bool = True,
                        add_hierarchy: bool = True,
                        add_context: bool = True,
-                       context_window: int = 5) -> Tuple[
+                       context_window: int = 5,
+                       max_depth: int = 3) -> Tuple[
     np.ndarray, np.ndarray, int, Dict[str, int], List[Tuple[int, int, str, float]]]:
     """
     Compute graph view embeddings with all enhancements.
+    
+    Args:
+        max_depth: maximum depth for call graph expansion (default 3, use 2 for faster)
     
     Returns:
         embeddings: node embeddings from graph view
@@ -537,7 +541,7 @@ def compute_graph_view(edges: List[Tuple[int, int, str, float]], num_nodes: int,
 
     # Step 1: Expand call graph (depth 2-3)
     if expand_calls:
-        expanded_edges = expand_call_graph(expanded_edges, current_num_nodes, max_depth=3)
+        expanded_edges = expand_call_graph(expanded_edges, current_num_nodes, max_depth=max_depth)
 
     # Step 2: Add context window co-occurrence (must be before PPMI)
     if add_context and node_metadata is not None:

@@ -47,8 +47,10 @@ def cli():
               help='Fraction of edges used for training (rest used for temperature calibration).')
 @click.option('--random-state', default=42, type=int, show_default=True,
               help='Random seed for reproducibility.')
+@click.option('--fast', is_flag=True, default=False,
+              help='Enable fast mode: reduces walk parameters by half for faster training (slightly lower quality).')
 def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim,
-          num_walks, walk_length, train_ratio, random_state):
+          num_walks, walk_length, train_ratio, random_state, fast):
     """Train TriCoder model on codebase symbols and relationships."""
     # Handle optional types file - only use if it exists
     types_path = types if types and os.path.exists(types) else None
@@ -65,7 +67,8 @@ def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim
         num_walks=num_walks,
         walk_length=walk_length,
         train_ratio=train_ratio,
-        random_state=random_state
+        random_state=random_state,
+        fast_mode=fast
     )
 
     # Save git metadata after training
