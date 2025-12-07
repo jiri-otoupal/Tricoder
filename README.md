@@ -103,8 +103,6 @@ For commercial licensing inquiries, please contact: **j.f.otoupal@gmail.com**
 
 See [LICENSE](LICENSE) for full terms and [LICENSE_COMMERCIAL.md](LICENSE_COMMERCIAL.md) for commercial license information.
 
-----
-
 <hr>
 Did I made your life less painfull ? 
 <br>
