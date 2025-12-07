@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Command-line interface for TriCoder."""
 import os
+import shlex
 
 import click
 from rich.console import Console
@@ -82,9 +83,10 @@ def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim
 @cli.command(name='query')
 @click.option('--model-dir', '-m', required=True, help='Path to model directory')
 @click.option('--symbol', '-s', help='Symbol ID to query')
+@click.option('--keywords', '-w', help='Keywords to search for (use quotes for multi-word: "my function")')
 @click.option('--top-k', '-k', default=10, help='Number of results to return')
 @click.option('--interactive', '-i', is_flag=True, help='Interactive mode')
-def query(model_dir, symbol, top_k, interactive):
+def query(model_dir, symbol, keywords, top_k, interactive):
     """Query the TriCoder model for similar symbols."""
     console.print(f"[bold green]Loading model from {model_dir}...[/bold green]")
 
@@ -100,8 +102,12 @@ def query(model_dir, symbol, top_k, interactive):
         interactive_mode(model)
     elif symbol:
         display_results(model, symbol, top_k)
+    elif keywords:
+        # Parse keywords (handle quoted strings)
+        keywords_parsed = parse_keywords(keywords)
+        search_and_display_results(model, keywords_parsed, top_k)
     else:
-        console.print("[bold yellow]Please provide --symbol or use --interactive mode[/bold yellow]")
+        console.print("[bold yellow]Please provide --symbol, --keywords, or use --interactive mode[/bold yellow]")
 
 
 def display_results(model, symbol_id, top_k):
@@ -142,21 +148,78 @@ def display_results(model, symbol_id, top_k):
     console.print()
 
 
+def parse_keywords(keywords_str: str) -> str:
+    """
+    Parse keywords string, handling quoted strings.
+    
+    Args:
+        keywords_str: Input string that may contain quoted keywords
+    
+    Returns:
+        Parsed keywords string
+    """
+    try:
+        # Use shlex to properly parse quoted strings
+        parts = shlex.split(keywords_str)
+        return ' '.join(parts)
+    except ValueError:
+        # If parsing fails, return as-is (handles unclosed quotes)
+        return keywords_str.strip()
+
+
+def search_and_display_results(model, keywords: str, top_k: int):
+    """Search for symbols by keywords and display results."""
+    matches = model.search_by_keywords(keywords, top_k)
+    
+    if not matches:
+        console.print(f"[bold yellow]No symbols found matching keywords: {keywords}[/bold yellow]")
+        return
+    
+    console.print(f"\n[bold cyan]Search Results for:[/bold cyan] \"{keywords}\"")
+    console.print(f"[bold cyan]Found {len(matches)} matching symbol(s):[/bold cyan]\n")
+    
+    for idx, match in enumerate(matches, 1):
+        meta = match.get('meta', {})
+        meta_dict = meta.get('meta', {}) if isinstance(meta.get('meta'), dict) else {}
+        file_path = meta_dict.get('file', '') if meta_dict.get('file') else ''
+        
+        console.print(f"[dim]{idx}.[/dim] [cyan]{match['symbol']:15}[/cyan] "
+                      f"[green]Relevance: {match['score']:6.4f}[/green] "
+                      f"[blue]{meta.get('kind', 'unknown'):10}[/blue] "
+                      f"[white]{meta.get('name', ''):30}[/white]")
+        if file_path:
+            console.print(f"     [dim]→ {file_path}[/dim]")
+    
+    console.print()
+    
+    # If there are matches, ask if user wants to query the first one
+    if matches:
+        first_match = matches[0]
+        console.print(f"[dim]Tip: Query similar symbols with: --symbol {first_match['symbol']}[/dim]\n")
+
+
 def interactive_mode(model):
     """Interactive query mode."""
-    console.print("[bold green]Entering interactive mode. Type 'quit' or 'exit' to quit.[/bold green]\n")
+    console.print("[bold green]Entering interactive mode. Type 'quit' or 'exit' to quit.[/bold green]")
+    console.print("[dim]You can search by symbol ID or keywords (use quotes for multi-word)[/dim]\n")
 
     while True:
         try:
-            symbol_id = click.prompt("\n[bold cyan]Enter symbol ID[/bold cyan]", type=str)
+            query_input = click.prompt("\n[bold cyan]Enter symbol ID or keywords[/bold cyan]", type=str)
 
-            if symbol_id.lower() in ['quit', 'exit', 'q']:
+            if query_input.lower() in ['quit', 'exit', 'q']:
                 console.print("[bold yellow]Goodbye![/bold yellow]")
                 break
 
             top_k = click.prompt("Number of results", default=10, type=int)
 
-            display_results(model, symbol_id, top_k)
+            # Check if it looks like a symbol ID (starts with 'sym_') or try as keywords
+            if query_input.startswith('sym_') and query_input in model.node_map:
+                display_results(model, query_input, top_k)
+            else:
+                # Try as keywords
+                keywords_parsed = parse_keywords(query_input)
+                search_and_display_results(model, keywords_parsed, top_k)
 
         except KeyboardInterrupt:
             console.print("\n[bold yellow]Goodbye![/bold yellow]")

@@ -270,3 +270,53 @@ class SymbolModel:
         results.sort(key=lambda x: x['hybrid_score'], reverse=True)
 
         return results
+
+    def search_by_keywords(self, keywords: str, top_k: int = 10) -> List[Dict]:
+        """
+        Search for symbols by keywords (name matching).
+        
+        Args:
+            keywords: space-separated keywords or quoted string to search for
+            top_k: number of results to return
+        
+        Returns:
+            List of matching symbol dictionaries with symbol, score, meta
+        """
+        if not self.metadata_lookup:
+            return []
+        
+        # Normalize keywords (case-insensitive)
+        keywords_lower = keywords.lower().strip()
+        
+        # Find matching symbols
+        matches = []
+        for node_id, meta in self.metadata_lookup.items():
+            if not meta:
+                continue
+            
+            name = meta.get('name', '').lower()
+            kind = meta.get('kind', '').lower()
+            
+            # Check if keywords match name or kind
+            if keywords_lower in name or keywords_lower in kind:
+                # Calculate a simple relevance score
+                score = 0.0
+                if keywords_lower == name:
+                    score = 1.0  # Exact name match
+                elif name.startswith(keywords_lower):
+                    score = 0.8  # Name starts with keywords
+                elif keywords_lower in name:
+                    score = 0.6  # Keywords contained in name
+                elif keywords_lower == kind:
+                    score = 0.4  # Kind match
+                
+                matches.append({
+                    'symbol': node_id,
+                    'score': score,
+                    'meta': meta
+                })
+        
+        # Sort by relevance score (descending)
+        matches.sort(key=lambda x: x['score'], reverse=True)
+        
+        return matches[:top_k]
