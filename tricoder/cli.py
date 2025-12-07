@@ -5,6 +5,10 @@ import os
 import click
 from rich.console import Console
 
+from .git_tracker import (
+    get_git_commit_hash, get_git_commit_timestamp, get_changed_files_for_retraining,
+    save_training_metadata, extract_files_from_jsonl, get_all_python_files
+)
 from .model import SymbolModel
 from .train import train_model
 
@@ -62,6 +66,17 @@ def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim
         train_ratio=train_ratio,
         random_state=random_state
     )
+
+    # Save git metadata after training
+    commit_hash = get_git_commit_hash()
+    commit_timestamp = get_git_commit_timestamp()
+    files_trained = extract_files_from_jsonl(nodes)
+    files_trained.update(extract_files_from_jsonl(edges))
+    if types_path and os.path.exists(types_path):
+        files_trained.update(extract_files_from_jsonl(types_path))
+
+    save_training_metadata(out, commit_hash, commit_timestamp, files_trained)
+    console.print(f"[dim]Saved training metadata (commit: {commit_hash[:8] if commit_hash else 'N/A'})[/dim]")
 
 
 @cli.command(name='query')
@@ -180,6 +195,207 @@ def extract(input_dir, include_dirs, exclude_dirs, output_nodes, output_edges, o
         output_types=output_types,
         use_gitignore=not no_gitignore
     )
+
+
+@cli.command(name='retrain')
+@click.option('--model-dir', '-m', required=True, type=click.Path(exists=True),
+              help='Path to existing model directory')
+@click.option('--codebase-dir', '-c', default='.', type=click.Path(exists=True, file_okay=False),
+              help='Path to codebase root directory (default: current directory)')
+@click.option('--output-nodes', '-n', default='nodes_retrain.jsonl',
+              help='Temporary output file for nodes (default: nodes_retrain.jsonl)')
+@click.option('--output-edges', '-d', default='edges_retrain.jsonl',
+              help='Temporary output file for edges (default: edges_retrain.jsonl)')
+@click.option('--output-types', '-t', default='types_retrain.jsonl',
+              help='Temporary output file for types (default: types_retrain.jsonl)')
+@click.option('--graph-dim', default=None, type=int, show_default=False,
+              help='Dimensionality for the graph view embeddings (uses model default if not specified).')
+@click.option('--context-dim', default=None, type=int, show_default=False,
+              help='Dimensionality for the context view embeddings (uses model default if not specified).')
+@click.option('--typed-dim', default=None, type=int, show_default=False,
+              help='Dimensionality for the typed view embeddings (uses model default if not specified).')
+@click.option('--final-dim', default=None, type=int, show_default=False,
+              help='Final dimensionality of fused embeddings (uses model default if not specified).')
+@click.option('--num-walks', default=10, type=int, show_default=True,
+              help='Number of random walks per node for context view.')
+@click.option('--walk-length', default=80, type=int, show_default=True,
+              help='Length of each random walk in the context view.')
+@click.option('--train-ratio', default=0.8, type=float, show_default=True,
+              help='Fraction of edges used for training.')
+@click.option('--random-state', default=42, type=int, show_default=True,
+              help='Random seed for reproducibility.')
+@click.option('--force', is_flag=True, default=False,
+              help='Force full retraining even if no files changed.')
+def retrain(model_dir, codebase_dir, output_nodes, output_edges, output_types,
+            graph_dim, context_dim, typed_dim, final_dim, num_walks, walk_length,
+            train_ratio, random_state, force):
+    """Retrain TriCoder model incrementally on changed files only."""
+    from .git_tracker import load_training_metadata
+    from .extract import extract_from_directory
+    import json
+
+    console.print("[bold cyan]TriCoder Incremental Retraining[/bold cyan]\n")
+
+    # Load previous training metadata
+    metadata = load_training_metadata(model_dir)
+    if not metadata and not force:
+        console.print(
+            "[bold yellow]No previous training metadata found. Use 'train' command for initial training.[/bold yellow]")
+        return
+
+    if metadata:
+        console.print(
+            f"[dim]Previous training: commit {metadata.get('commit_hash', 'N/A')[:8] if metadata.get('commit_hash') else 'N/A'}[/dim]")
+        console.print(f"[dim]Training timestamp: {metadata.get('training_timestamp', 'N/A')}[/dim]\n")
+
+    # Get changed files
+    if force:
+        console.print("[yellow]Force flag set - retraining on all files[/yellow]\n")
+        changed_files = get_all_python_files(codebase_dir)
+    else:
+        changed_files = get_changed_files_for_retraining(model_dir, codebase_dir)
+
+    if not changed_files:
+        console.print("[bold green]✓ No files changed since last training. Model is up to date![/bold green]")
+        return
+
+    console.print(f"[cyan]Found {len(changed_files)} changed file(s):[/cyan]")
+    for f in sorted(list(changed_files))[:10]:  # Show first 10
+        console.print(f"  [dim]- {f}[/dim]")
+    if len(changed_files) > 10:
+        console.print(f"  [dim]... and {len(changed_files) - 10} more[/dim]")
+    console.print()
+
+    # Extract symbols from changed files only
+    console.print("[cyan]Extracting symbols from changed files...[/cyan]")
+    extract_from_directory(
+        root_dir=codebase_dir,
+        include_dirs=[],
+        exclude_dirs=['.venv', '__pycache__', '.git', 'node_modules', '.pytest_cache'],
+        output_nodes=output_nodes,
+        output_edges=output_edges,
+        output_types=output_types,
+        use_gitignore=True
+    )
+
+    # Filter extracted data to only include changed files
+    console.print("[cyan]Filtering extracted data to changed files...[/cyan]")
+    filtered_nodes = output_nodes + '.filtered'
+    filtered_edges = output_edges + '.filtered'
+    filtered_types = output_types + '.filtered'
+
+    # Filter nodes
+    node_count = 0
+    with open(filtered_nodes, 'w') as out_f:
+        with open(output_nodes, 'r') as in_f:
+            for line in in_f:
+                if not line.strip():
+                    continue
+                try:
+                    data = json.loads(line)
+                    file_path = data.get('meta', {}).get('file', '') if isinstance(data.get('meta'),
+                                                                                   dict) else ''
+                    # Normalize path for comparison
+                    normalized_path = file_path.replace('\\', '/')
+                    if normalized_path in changed_files or any(
+                            normalized_path.endswith('/' + f) for f in changed_files):
+                        out_f.write(line)
+                        node_count += 1
+                except json.JSONDecodeError:
+                    continue
+
+    # Filter edges (include if either endpoint is in changed files)
+    edge_count = 0
+    node_ids_from_changed = set()
+    with open(filtered_nodes, 'r') as f:
+        for line in f:
+            if line.strip():
+                try:
+                    data = json.loads(line)
+                    node_ids_from_changed.add(data.get('id'))
+                except json.JSONDecodeError:
+                    continue
+
+    with open(filtered_edges, 'w') as out_f:
+        with open(output_edges, 'r') as in_f:
+            for line in in_f:
+                if not line.strip():
+                    continue
+                try:
+                    data = json.loads(line)
+                    src = data.get('src', '')
+                    dst = data.get('dst', '')
+                    # Include edge if either endpoint is from changed files
+                    if src in node_ids_from_changed or dst in node_ids_from_changed:
+                        out_f.write(line)
+                        edge_count += 1
+                except json.JSONDecodeError:
+                    continue
+
+    # Filter types
+    type_count = 0
+    if os.path.exists(output_types):
+        with open(filtered_types, 'w') as out_f:
+            with open(output_types, 'r') as in_f:
+                for line in in_f:
+                    if not line.strip():
+                        continue
+                    try:
+                        data = json.loads(line)
+                        symbol_id = data.get('symbol', '')
+                        if symbol_id in node_ids_from_changed:
+                            out_f.write(line)
+                            type_count += 1
+                    except json.JSONDecodeError:
+                        continue
+
+    console.print(
+        f"[green]✓ Extracted {node_count} nodes, {edge_count} edges, {type_count} type tokens from changed files[/green]\n")
+
+    if node_count == 0:
+        console.print("[bold yellow]No nodes found in changed files. Nothing to retrain.[/bold yellow]")
+        # Cleanup
+        for f in [output_nodes, output_edges, output_types, filtered_nodes, filtered_edges, filtered_types]:
+            if os.path.exists(f):
+                os.remove(f)
+        return
+
+    # Retrain the model
+    console.print("[cyan]Retraining model...[/cyan]\n")
+    train_model(
+        nodes_path=filtered_nodes,
+        edges_path=filtered_edges,
+        types_path=filtered_types if os.path.exists(filtered_types) else None,
+        output_dir=model_dir,
+        graph_dim=graph_dim,
+        context_dim=context_dim,
+        typed_dim=typed_dim,
+        final_dim=final_dim,
+        num_walks=num_walks,
+        walk_length=walk_length,
+        train_ratio=train_ratio,
+        random_state=random_state
+    )
+
+    # Save updated git metadata
+    commit_hash = get_git_commit_hash(codebase_dir)
+    commit_timestamp = get_git_commit_timestamp(codebase_dir)
+    all_files = extract_files_from_jsonl(filtered_nodes)
+    all_files.update(extract_files_from_jsonl(filtered_edges))
+    if os.path.exists(filtered_types):
+        all_files.update(extract_files_from_jsonl(filtered_types))
+
+    save_training_metadata(model_dir, commit_hash, commit_timestamp, all_files)
+    console.print(
+        f"[dim]Updated training metadata (commit: {commit_hash[:8] if commit_hash else 'N/A'})[/dim]")
+
+    # Cleanup temporary files
+    console.print("\n[cyan]Cleaning up temporary files...[/cyan]")
+    for f in [output_nodes, output_edges, output_types, filtered_nodes, filtered_edges, filtered_types]:
+        if os.path.exists(f):
+            os.remove(f)
+
+    console.print("[bold green]✓ Incremental retraining complete![/bold green]")
 
 
 if __name__ == '__main__':

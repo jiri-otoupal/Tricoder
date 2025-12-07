@@ -297,9 +297,14 @@ def train_model(nodes_path: str,
         train_edges, val_edges = split_edges(edges, train_ratio, random_state)
         progress.update(task3, completed=True)
 
-        # Get number of workers (all cores - 1)
+        # Get number of workers (all cores - 1, but use all cores on Windows for better performance)
         from multiprocessing import cpu_count
-        n_jobs = max(1, cpu_count() - 1)
+        import platform
+        if platform.system() == 'Windows':
+            # On Windows, use all cores since spawn method handles it well
+            n_jobs = cpu_count()
+        else:
+            n_jobs = max(1, cpu_count() - 1)
 
         # Create idx_to_node mapping
         idx_to_node = {idx: node_id for node_id, idx in node_to_idx.items()}
