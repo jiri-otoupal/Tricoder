@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Command-line interface for TriCoder."""
+import os
+
 import click
 from rich.console import Console
 
@@ -16,12 +18,12 @@ def cli():
 
 
 @cli.command(name='train')
-@click.option('--nodes', '-n', required=True, type=click.Path(exists=True),
-              help='Path to nodes.jsonl file containing symbol definitions.')
-@click.option('--edges', '-e', required=True, type=click.Path(exists=True),
-              help='Path to edges.jsonl file containing symbol relationships.')
-@click.option('--types', '-t', default=None, type=click.Path(exists=True),
-              help='[Optional] Path to types.jsonl file containing type token information.')
+@click.option('--nodes', '-n', default='nodes.jsonl', type=click.Path(),
+              help='Path to nodes.jsonl file containing symbol definitions (default: nodes.jsonl).')
+@click.option('--edges', '-e', default='edges.jsonl', type=click.Path(),
+              help='Path to edges.jsonl file containing symbol relationships (default: edges.jsonl).')
+@click.option('--types', '-t', default='types.jsonl', type=click.Path(),
+              help='[Optional] Path to types.jsonl file containing type token information (default: types.jsonl).')
 @click.option('--out', '-o', required=True, type=click.Path(),
               help='Output directory where the trained model will be saved.')
 @click.option('--graph-dim', default=None, type=int, show_default=False,
@@ -43,10 +45,13 @@ def cli():
 def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim,
           num_walks, walk_length, train_ratio, random_state):
     """Train TriCoder model on codebase symbols and relationships."""
+    # Handle optional types file - only use if it exists
+    types_path = types if types and os.path.exists(types) else None
+    
     train_main(
         nodes_path=nodes,
         edges_path=edges,
-        types_path=types,
+        types_path=types_path,
         output_dir=out,
         graph_dim=graph_dim,
         context_dim=context_dim,
