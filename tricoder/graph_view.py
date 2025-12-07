@@ -1,11 +1,21 @@
 """Graph view: adjacency matrix, PPMI, and SVD."""
+import os
 from collections import defaultdict, deque
-from multiprocessing import cpu_count
+from multiprocessing import Pool, cpu_count
 from typing import Tuple, List, Dict
 
 import numpy as np
 from scipy import sparse
 from sklearn.decomposition import TruncatedSVD
+
+# Set threading appropriately for multiprocessing
+# Each process should use 1 thread to avoid oversubscription when using multiprocessing
+# numpy/scipy operations release GIL so threading can help, but with multiprocessing
+# we want to avoid thread contention
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['NUMEXPR_NUM_THREADS'] = '1'
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 
 def _get_num_workers() -> int:
@@ -219,9 +229,38 @@ def add_file_hierarchy_edges(edges: List[Tuple[int, int, str, float]],
     return new_edges
 
 
+def _process_file_context(args):
+    """Process a single file for context window edges."""
+    file_path, node_lines, window_size, edge_weights = args
+    new_edges = []
+
+    # Sort by line number
+    node_lines.sort(key=lambda x: x[1])
+
+    for i, (node1_idx, line1) in enumerate(node_lines):
+        for j in range(i + 1, len(node_lines)):
+            node2_idx, line2 = node_lines[j]
+
+            # Check if within window
+            if abs(line2 - line1) <= window_size:
+                # Find existing edge weight or use 0
+                key = (min(node1_idx, node2_idx), max(node1_idx, node2_idx))
+                existing_weight = edge_weights.get(key, 0.0)
+
+                new_weight = existing_weight + 1.0
+                new_edges.append((node1_idx, node2_idx, "context_window", new_weight))
+                new_edges.append((node2_idx, node1_idx, "context_window", new_weight))
+            else:
+                # Lines are sorted, so we can break early
+                break
+
+    return new_edges
+
+
 def add_context_window_edges(edges: List[Tuple[int, int, str, float]],
                              node_metadata: List[Dict],
-                             window_size: int = 5) -> List[Tuple[int, int, str, float]]:
+                             window_size: int = 5,
+                             n_jobs: int = -1) -> List[Tuple[int, int, str, float]]:
     """
     Add edges for symbols appearing within ±W lines in the same file.
     
@@ -229,6 +268,7 @@ def add_context_window_edges(edges: List[Tuple[int, int, str, float]],
         edges: existing edges
         node_metadata: list of node metadata dictionaries
         window_size: context window size (default 5)
+        n_jobs: number of parallel jobs (-1 for all cores - 1)
     
     Returns:
         Expanded list of edges
@@ -254,57 +294,126 @@ def add_context_window_edges(edges: List[Tuple[int, int, str, float]],
             key = (min(src, dst), max(src, dst))
             edge_weights[key] = max(edge_weights[key], w)
 
-    # For each file, add edges for nodes within window_size
-    for file_path, node_lines in nodes_by_file.items():
-        # Sort by line number
-        node_lines.sort(key=lambda x: x[1])
+    # Parallelize file processing
+    if n_jobs == -1:
+        n_jobs = _get_num_workers()
 
-        for i, (node1_idx, line1) in enumerate(node_lines):
-            for j in range(i + 1, len(node_lines)):
-                node2_idx, line2 = node_lines[j]
+    if len(nodes_by_file) > 10 and n_jobs > 1:
+        # Parallel processing for multiple files
+        args_list = [(file_path, node_lines, window_size, edge_weights)
+                     for file_path, node_lines in nodes_by_file.items()]
+        chunksize = max(1, len(args_list) // n_jobs)
 
-                # Check if within window
-                if abs(line2 - line1) <= window_size:
-                    # Find existing edge weight or use 0
-                    key = (min(node1_idx, node2_idx), max(node1_idx, node2_idx))
-                    existing_weight = edge_weights.get(key, 0.0)
+        with Pool(processes=n_jobs) as pool:
+            results = pool.map(_process_file_context, args_list, chunksize=chunksize)
 
-                    new_weight = existing_weight + 1.0
-                    edge_weights[key] = new_weight
-                    new_edges.append((node1_idx, node2_idx, "context_window", new_weight))
-                    new_edges.append((node2_idx, node1_idx, "context_window", new_weight))
-                else:
-                    # Lines are sorted, so we can break early
-                    break
+        # Flatten results
+        for file_edges in results:
+            new_edges.extend(file_edges)
+    else:
+        # Sequential processing for small cases
+        for file_path, node_lines in nodes_by_file.items():
+            # Sort by line number
+            node_lines.sort(key=lambda x: x[1])
+
+            for i, (node1_idx, line1) in enumerate(node_lines):
+                for j in range(i + 1, len(node_lines)):
+                    node2_idx, line2 = node_lines[j]
+
+                    # Check if within window
+                    if abs(line2 - line1) <= window_size:
+                        # Find existing edge weight or use 0
+                        key = (min(node1_idx, node2_idx), max(node1_idx, node2_idx))
+                        existing_weight = edge_weights.get(key, 0.0)
+
+                        new_weight = existing_weight + 1.0
+                        new_edges.append((node1_idx, node2_idx, "context_window", new_weight))
+                        new_edges.append((node2_idx, node1_idx, "context_window", new_weight))
+                    else:
+                        # Lines are sorted, so we can break early
+                        break
 
     return new_edges
 
 
-def build_adjacency_matrix(edges: List[Tuple[int, int, str, float]], num_nodes: int) -> sparse.csr_matrix:
-    """
-    Build weighted adjacency matrix from edges.
-    
-    Args:
-        edges: list of (src_idx, dst_idx, relation, weight) tuples
-        num_nodes: number of nodes
-    
-    Returns:
-        Sparse CSR adjacency matrix
-    """
+def _process_edge_chunk(args):
+    """Process a chunk of edges for parallel aggregation."""
+    edge_chunk, start_idx = args
+    edge_weights = {}
     rows = []
     cols = []
     data = []
 
-    # Aggregate weights for duplicate edges (same src, dst pair)
-    edge_weights = defaultdict(float)
-    for src_idx, dst_idx, rel, weight in edges:
+    for src_idx, dst_idx, rel, weight in edge_chunk:
         key = (src_idx, dst_idx)
-        edge_weights[key] = max(edge_weights[key], weight)
+        if key not in edge_weights:
+            edge_weights[key] = weight
+        else:
+            edge_weights[key] = max(edge_weights[key], weight)
 
     for (src_idx, dst_idx), weight in edge_weights.items():
         rows.append(src_idx)
         cols.append(dst_idx)
         data.append(weight)
+
+    return rows, cols, data
+
+
+def build_adjacency_matrix(edges: List[Tuple[int, int, str, float]], num_nodes: int,
+                           n_jobs: int = -1) -> sparse.csr_matrix:
+    """
+    Build weighted adjacency matrix from edges with optional parallelization.
+    
+    Args:
+        edges: list of (src_idx, dst_idx, relation, weight) tuples
+        num_nodes: number of nodes
+        n_jobs: number of parallel jobs (-1 for all cores - 1)
+    
+    Returns:
+        Sparse CSR adjacency matrix
+    """
+    if n_jobs == -1:
+        n_jobs = _get_num_workers()
+
+    # For small edge lists, use sequential processing
+    if len(edges) < 10000 or n_jobs == 1:
+        rows = []
+        cols = []
+        data = []
+
+        # Aggregate weights for duplicate edges (same src, dst pair)
+        edge_weights = defaultdict(float)
+        for src_idx, dst_idx, rel, weight in edges:
+            key = (src_idx, dst_idx)
+            edge_weights[key] = max(edge_weights[key], weight)
+
+        for (src_idx, dst_idx), weight in edge_weights.items():
+            rows.append(src_idx)
+            cols.append(dst_idx)
+            data.append(weight)
+    else:
+        # Parallel processing for large edge lists
+        chunk_size = max(1, len(edges) // n_jobs)
+        chunks = [edges[i:i + chunk_size] for i in range(0, len(edges), chunk_size)]
+        args_list = [(chunk, i) for i, chunk in enumerate(chunks)]
+
+        with Pool(processes=n_jobs) as pool:
+            results = pool.map(_process_edge_chunk, args_list)
+
+        # Merge results
+        edge_weights = defaultdict(float)
+        for chunk_rows, chunk_cols, chunk_data in results:
+            for i, (src_idx, dst_idx) in enumerate(zip(chunk_rows, chunk_cols)):
+                key = (src_idx, dst_idx)
+                edge_weights[key] = max(edge_weights[key], chunk_data[i])
+
+        rows = []
+        cols = []
+        data = []
+        for (src_idx, dst_idx), weight in edge_weights.items():
+            rows.append(src_idx)
+            cols.append(dst_idx)
+            data.append(weight)
 
     # Create symmetric matrix (undirected graph)
     rows_sym = rows + cols
@@ -363,11 +472,16 @@ def reduce_dimensions_ppmi(ppmi: sparse.csr_matrix, dim: int, random_state: int 
     """
     Reduce PPMI matrix dimensionality using Truncated SVD.
     
+    Note: SVD itself cannot be easily parallelized with multiprocessing as it requires
+    the full matrix. However, numpy/scipy operations release the GIL, so they can use
+    threading effectively. We use multiprocessing for other parts (edge processing)
+    and rely on numpy/scipy's internal threading for matrix operations.
+    
     Args:
         ppmi: PPMI matrix
         dim: target dimensionality
         random_state: random seed
-        n_jobs: number of parallel jobs (-1 for all cores - 1)
+        n_jobs: number of parallel jobs (not used for SVD, but kept for API consistency)
     
     Returns:
         Reduced embeddings matrix and SVD components
@@ -375,7 +489,9 @@ def reduce_dimensions_ppmi(ppmi: sparse.csr_matrix, dim: int, random_state: int 
     num_features = ppmi.shape[1]
     actual_dim = min(dim, num_features)
 
-    # TruncatedSVD doesn't support n_jobs, but sklearn uses threading internally
+    # TruncatedSVD uses ARPACK which is single-threaded
+    # However, the matrix operations (sparse matrix multiplication) can benefit
+    # from threading if numpy/scipy are compiled with threading support
     svd = TruncatedSVD(n_components=actual_dim, random_state=random_state, n_iter=10)
     embeddings = svd.fit_transform(ppmi)
 
@@ -425,7 +541,8 @@ def compute_graph_view(edges: List[Tuple[int, int, str, float]], num_nodes: int,
 
     # Step 2: Add context window co-occurrence (must be before PPMI)
     if add_context and node_metadata is not None:
-        expanded_edges = add_context_window_edges(expanded_edges, node_metadata, window_size=context_window)
+        expanded_edges = add_context_window_edges(expanded_edges, node_metadata, window_size=context_window,
+                                                  n_jobs=n_jobs)
 
     # Step 3: Add subtoken nodes and edges
     if add_subtokens and node_to_idx is not None and node_subtokens is not None:
@@ -439,8 +556,8 @@ def compute_graph_view(edges: List[Tuple[int, int, str, float]], num_nodes: int,
             expanded_edges, node_to_idx, node_file_info, idx_to_node
         )
 
-    # Step 5: Build adjacency matrix and compute PPMI
-    adj = build_adjacency_matrix(expanded_edges, current_num_nodes)
+    # Step 5: Build adjacency matrix and compute PPMI (with parallelization)
+    adj = build_adjacency_matrix(expanded_edges, current_num_nodes, n_jobs=n_jobs)
     ppmi = compute_ppmi(adj)
     embeddings, svd_components = reduce_dimensions_ppmi(ppmi, dim, random_state, n_jobs)
 
