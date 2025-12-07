@@ -252,16 +252,9 @@ def learn_temperature(embeddings: np.ndarray,
     # Parallel evaluation of tau candidates
     if n_jobs > 1 and len(tau_candidates) > 4:
         args_list = [(tau, embeddings, positive_pairs, negative_pairs) for tau in tau_candidates]
-        import platform
-        if platform.system() == 'Windows':
-            from multiprocessing import get_context
-            ctx = get_context('spawn')
-            chunksize = max(1, len(args_list) // (n_jobs * 2))
-            with ctx.Pool(processes=n_jobs) as pool:
-                results = pool.map(_evaluate_single_tau, args_list, chunksize=chunksize)
-        else:
-            with Pool(processes=n_jobs) as pool:
-                results = pool.map(_evaluate_single_tau, args_list)
+        chunksize = max(1, len(args_list) // (n_jobs * 2))
+        with Pool(processes=n_jobs) as pool:
+            results = pool.map(_evaluate_single_tau, args_list, chunksize=chunksize)
 
         best_tau = 1.0
         best_score = -np.inf

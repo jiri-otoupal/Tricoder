@@ -141,18 +141,10 @@ def generate_random_walks(edges: List[Tuple[int, int, str, float]],
             for i, node in enumerate(nodes_to_process)
         ]
 
-        # Use spawn context on Windows to avoid pickling issues
-        import platform
-        if platform.system() == 'Windows':
-            from multiprocessing import get_context
-            ctx = get_context('spawn')
-            # On Windows, use smaller chunksize for better load balancing
-            chunksize = max(1, len(args_list) // (n_jobs * 2))
-            with ctx.Pool(processes=n_jobs) as pool:
-                results = pool.map(_generate_walks_for_node, args_list, chunksize=chunksize)
-        else:
-            with Pool(processes=n_jobs) as pool:
-                results = pool.map(_generate_walks_for_node, args_list)
+        # Parallel processing - use standard Pool which works on all platforms
+        chunksize = max(1, len(args_list) // (n_jobs * 2))
+        with Pool(processes=n_jobs) as pool:
+            results = pool.map(_generate_walks_for_node, args_list, chunksize=chunksize)
 
         # Flatten results
         walks = []
@@ -183,14 +175,8 @@ def train_word2vec(walks: List[List[str]], dim: int, window: int = 10,
     if n_jobs == -1:
         n_jobs = _get_num_workers()
 
-    # For gensim 4.x, use 'workers' parameter correctly
-    # On Windows, gensim handles multiprocessing internally
-    import platform
-    if platform.system() == 'Windows':
-        # On Windows, use all available workers - gensim handles it properly
-        workers = n_jobs
-    else:
-        workers = n_jobs
+    # For gensim 4.x, use workers parameter
+    workers = max(1, n_jobs)
     
     model = Word2Vec(
         sentences=walks,
