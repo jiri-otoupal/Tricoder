@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "TriVector Code Intelligence - Multi-view code relationship model with advanced semantic embeddings"
 authors = ["Jiri Otoupal <j.f.otoupal@gmail.com>"]
 readme = "README.md"
-license = { text = "Non-Commercial License - See LICENSE file" }
+license = "Non-Commercial"
 homepage = "https://github.com/jiri-otoupal/tricoder"
 repository = "https://github.com/jiri-otoupal/tricoder"
 keywords = ["code-intelligence", "embeddings", "semantic-analysis", "code-search"]

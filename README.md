@@ -1,12 +1,12 @@
 # TriCoder Code Intelligence
 
-[![image](https://img.shields.io/pypi/v/pycrosskit.svg)](https://pypi.org/project/tricoder/)
+[![image](https://img.shields.io/pypi/v/tricoder.svg)](https://pypi.org/project/tricoder/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/tricoder)](https://pypi.org/project/tricoder/)
 
 [![Build Status](https://travis-ci.com/jiri-otoupal/pycrosskit.svg?branch=master)](https://travis-ci.com/github/jiri-otoupal/tricoder)
 [![Downloads](https://pepy.tech/badge/tricoder)](https://pepy.tech/project/tricoder)
 
-TriCoder learns high-quality symbol-level embeddings from codebases using three complementary views:
+## TriCoder learns high-quality symbol-level embeddings from codebases using three complementary views:
 
 1. **Graph View**: Structural relationships via PPMI and SVD
 2. **Context View**: Semantic context via Node2Vec random walks and Word2Vec
