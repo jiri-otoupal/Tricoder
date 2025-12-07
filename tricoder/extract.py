@@ -25,6 +25,8 @@ class SymbolExtractor(ast.NodeVisitor):
         self.symbol_counter = 0
         self.symbol_map = {}
         self.type_tokens = defaultdict(int)
+        self.added_symbol_ids = set()  # Track which symbol IDs have been added
+        self.edge_weights = {}  # Track edge weights for aggregation: (src, dst, rel) -> weight
 
     def _get_symbol_id(self, name: str, kind: str) -> str:
         """Generate unique symbol ID."""
@@ -38,6 +40,11 @@ class SymbolExtractor(ast.NodeVisitor):
                     extra_meta: Optional[Dict] = None):
         """Add a symbol to the collection."""
         symbol_id = self._get_symbol_id(name, kind)
+        
+        # Skip if symbol already added (prevents duplicates)
+        if symbol_id in self.added_symbol_ids:
+            return symbol_id
+        
         meta = {
             "file": self.file_path,
             "lineno": lineno,
@@ -52,16 +59,17 @@ class SymbolExtractor(ast.NodeVisitor):
             "name": name,
             "meta": meta
         })
+        self.added_symbol_ids.add(symbol_id)
         return symbol_id
 
     def _add_edge(self, src: str, dst: str, rel: str, weight: float = 1.0):
-        """Add a relationship edge."""
-        self.edges.append({
-            "src": src,
-            "dst": dst,
-            "rel": rel,
-            "weight": weight
-        })
+        """Add a relationship edge, aggregating weights for duplicate edges."""
+        edge_key = (src, dst, rel)
+        if edge_key in self.edge_weights:
+            # Aggregate weights: use maximum (consistent with training code)
+            self.edge_weights[edge_key] = max(self.edge_weights[edge_key], weight)
+        else:
+            self.edge_weights[edge_key] = weight
 
     def _add_type_token(self, symbol_id: str, type_token: str, count: int = 1):
         """Add type token information."""
@@ -400,6 +408,16 @@ def extract_from_file(file_path: str) -> Tuple[List[Dict], List[Dict], List[Dict
         extractor = SymbolExtractor(file_path)
         extractor.visit(tree)
 
+        # Convert aggregated edges from dictionary to list format
+        edges = []
+        for (src, dst, rel), weight in extractor.edge_weights.items():
+            edges.append({
+                "src": src,
+                "dst": dst,
+                "rel": rel,
+                "weight": weight
+            })
+
         # Convert type_tokens to list format
         types = []
         for (symbol_id, type_token), count in extractor.type_tokens.items():
@@ -409,7 +427,7 @@ def extract_from_file(file_path: str) -> Tuple[List[Dict], List[Dict], List[Dict
                 "count": count
             })
 
-        return extractor.symbols, extractor.edges, types
+        return extractor.symbols, edges, types
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
         return [], [], []
