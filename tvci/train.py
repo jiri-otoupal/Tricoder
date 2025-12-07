@@ -9,12 +9,13 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
 from rich.table import Table
 from rich import box
+import time
 
 from .data_loader import load_nodes, load_edges, load_types
 from .graph_view import compute_graph_view
 from .context_view import compute_context_view
 from .typed_view import compute_typed_view
-from .fusion import fuse_embeddings
+from .fusion import fuse_embeddings, iterative_embedding_smoothing
 from .calibration import split_edges, learn_temperature
 
 console = Console()
@@ -30,42 +31,66 @@ def estimate_training_time(num_nodes: int, num_edges: int, num_types: Optional[i
     Returns:
         Estimated time as formatted string
     """
-    # Base time estimates (in seconds) per operation
-    # These are rough estimates based on typical performance
+    # More realistic time estimates based on actual performance
+    # Accounts for parallelization efficiency and overhead
+    
+    # Parallelization efficiency factor (diminishing returns with more cores)
+    # More cores help but not linearly due to overhead
+    efficiency = min(0.85, 0.3 + 0.55 * (n_jobs / max(n_jobs, 8)))  # Cap efficiency at ~85%
+    effective_cores = n_jobs * efficiency
     
     # Graph view: PPMI + SVD
-    # PPMI: O(n^2) for sparse matrix, SVD: O(n * d^2)
-    graph_time = (num_nodes ** 1.5) / (1000 * n_jobs) + (num_nodes * graph_dim ** 2) / (50000 * n_jobs)
+    # PPMI computation: sparse matrix operations, scales with edges
+    # SVD: matrix decomposition, scales with nodes and dimensions
+    # Account for subtoken expansion (roughly doubles nodes)
+    expanded_nodes = num_nodes * 2.5  # Account for subtokens and expansion
+    ppmi_time = (expanded_nodes * num_edges ** 0.5) / (5000 * effective_cores)
+    svd_time = (expanded_nodes * graph_dim ** 2) / (20000 * effective_cores)
+    graph_time = ppmi_time + svd_time
     
     # Context view: Random walks + Word2Vec
-    # Random walks: O(nodes * num_walks * walk_length)
-    # Word2Vec: O(walks * window * epochs)
-    total_walks = num_nodes * num_walks
-    walk_time = (total_walks * walk_length) / (100000 * n_jobs)
-    w2v_time = (total_walks * walk_length * 10 * 5) / (500000 * n_jobs)  # window=10, epochs=5
+    # Random walks: parallelized per node, but has overhead
+    total_walks = expanded_nodes * num_walks
+    walk_time = (total_walks * walk_length) / (8000 * effective_cores)  # More realistic
+    
+    # Word2Vec: training is CPU-intensive, benefits from parallelization
+    # window=10, epochs=5, negative=5
+    w2v_time = (total_walks * walk_length * 10 * 5) / (150000 * effective_cores)
     context_time = walk_time + w2v_time
     
     # Typed view: PPMI + SVD (if available)
     typed_time = 0
     if num_types:
-        typed_time = (num_nodes ** 1.5) / (1000 * n_jobs) + (num_nodes * typed_dim ** 2) / (50000 * n_jobs)
+        # Account for type expansion
+        expanded_types = num_types * 1.3  # Type expansion adds ~30% more types
+        typed_ppmi_time = (expanded_nodes * expanded_types ** 0.5) / (5000 * effective_cores)
+        typed_svd_time = (expanded_nodes * typed_dim ** 2) / (20000 * effective_cores)
+        typed_time = typed_ppmi_time + typed_svd_time
     
     # Fusion: PCA
+    # PCA is memory-bound and benefits less from parallelization
     total_input_dim = graph_dim + context_dim + (typed_dim if num_types else 0)
-    fusion_time = (num_nodes * total_input_dim * final_dim) / (100000 * n_jobs)
+    fusion_time = (expanded_nodes * total_input_dim * final_dim) / (30000 * effective_cores)
     
-    # Temperature calibration: grid search
+    # Embedding smoothing: iterative neighbor averaging
+    smoothing_time = (expanded_nodes * num_edges * 2) / (10000 * effective_cores)  # 2 iterations
+    
+    # Temperature calibration: grid search with parallel evaluation
     tau_candidates = 50  # default
     val_edges_est = int(num_edges * 0.2)  # ~20% for validation
-    calibration_time = (tau_candidates * val_edges_est) / (10000 * n_jobs)
+    calibration_time = (tau_candidates * val_edges_est) / (5000 * effective_cores)
     
-    # ANN index building
-    ann_time = (num_nodes * final_dim * 10) / (500000 * n_jobs)  # 10 trees
+    # ANN index building (single-threaded mostly)
+    ann_time = (num_nodes * final_dim * 10) / 200000  # 10 trees, less parallelizable
     
-    # I/O overhead
-    io_time = 2.0
+    # I/O overhead (saving files)
+    io_time = 1.5
     
-    total_seconds = graph_time + context_time + typed_time + fusion_time + calibration_time + ann_time + io_time
+    # Data loading overhead
+    load_time = 0.5
+    
+    total_seconds = (graph_time + context_time + typed_time + fusion_time + 
+                    smoothing_time + calibration_time + ann_time + io_time + load_time)
     
     # Format time estimate
     if total_seconds < 60:
@@ -161,6 +186,9 @@ def train_model(nodes_path: str,
     # Set random seeds
     np.random.seed(random_state)
     
+    # Record start time
+    start_time = time.time()
+    
     console.print("\n[bold cyan]TriVector Code Intelligence - Training Pipeline[/bold cyan]\n")
     
     with Progress(
@@ -172,7 +200,7 @@ def train_model(nodes_path: str,
     ) as progress:
         # Load data first to compute dimensions
         task1 = progress.add_task("[cyan]Loading data to compute dimensions...", total=None)
-        node_to_idx, node_metadata = load_nodes(nodes_path)
+        node_to_idx, node_metadata, node_subtokens, node_file_info = load_nodes(nodes_path)
         edges, num_nodes = load_edges(edges_path, node_to_idx)
         progress.update(task1, completed=True)
         
@@ -272,49 +300,98 @@ def train_model(nodes_path: str,
         from multiprocessing import cpu_count
         n_jobs = max(1, cpu_count() - 1)
         
-        # Compute graph view
-        task4 = progress.add_task(f"[cyan]Computing graph view (PPMI + SVD) [{n_jobs} workers]...", total=None)
-        X_graph, svd_components_graph = compute_graph_view(
-            train_edges, num_nodes, graph_dim, random_state, n_jobs=n_jobs
+        # Create idx_to_node mapping
+        idx_to_node = {idx: node_id for node_id, idx in node_to_idx.items()}
+        
+        # Step 1: Compute graph view with all enhancements
+        # This task runs completely and sequentially before moving to the next one
+        # This ensures full parallelization can be used for graph view operations
+        task4 = progress.add_task(f"[cyan]Step 1/5: Computing graph view (PPMI + SVD + enhancements) [{n_jobs} workers]...", total=None)
+        X_graph, svd_components_graph, final_num_nodes, subtoken_to_idx, expanded_edges = compute_graph_view(
+            train_edges, num_nodes, graph_dim, random_state, n_jobs=n_jobs,
+            node_to_idx=node_to_idx,
+            node_subtokens=node_subtokens,
+            node_file_info=node_file_info,
+            node_metadata=node_metadata,
+            idx_to_node=idx_to_node,
+            expand_calls=True,
+            add_subtokens=True,
+            add_hierarchy=True,
+            add_context=True,
+            context_window=5
         )
         progress.update(task4, completed=True)
+        # Graph view is now complete - all resources released before next task
         
-        # Compute context view
-        task5 = progress.add_task(f"[cyan]Computing context view (Node2Vec + Word2Vec) [{n_jobs} workers]...", total=None)
+        # Step 2: Compute context view using expanded edges (includes subtokens)
+        # This task runs completely after graph view finishes
+        # This ensures full parallelization can be used for context view operations
+        task5 = progress.add_task(f"[cyan]Step 2/5: Computing context view (Node2Vec + Word2Vec) [{n_jobs} workers]...", total=None)
+        # Use expanded_edges which includes subtokens and all enhancements
         X_w2v, word2vec_kv = compute_context_view(
-            train_edges, num_nodes, context_dim, num_walks, walk_length, random_state, n_jobs=n_jobs
+            expanded_edges, final_num_nodes, context_dim, num_walks, walk_length, random_state, n_jobs=n_jobs
         )
         progress.update(task5, completed=True)
+        # Context view is now complete - all resources released before next task
         
-        # Compute typed view if available
+        # Step 3: Compute typed view if available (with type expansion)
+        # This task runs completely after context view finishes
         X_types = None
         svd_components_types = None
+        final_type_to_idx = None
         if node_types is not None and type_to_idx is not None:
-            task6 = progress.add_task(f"[cyan]Computing typed view (PPMI + SVD) [{n_jobs} workers]...", total=None)
-            X_types, svd_components_types = compute_typed_view(
-                node_types, type_to_idx, num_nodes, typed_dim, random_state, n_jobs=n_jobs
+            task6 = progress.add_task(f"[cyan]Step 3/5: Computing typed view (PPMI + SVD + type expansion) [{n_jobs} workers]...", total=None)
+            X_types, svd_components_types, final_type_to_idx = compute_typed_view(
+                node_types, type_to_idx, final_num_nodes, typed_dim, random_state, n_jobs=n_jobs,
+                expand_types=True
             )
             progress.update(task6, completed=True)
+            # Typed view is now complete - all resources released before next task
         
-        # Fuse embeddings
-        task7 = progress.add_task(f"[cyan]Fusing embeddings (PCA + Normalize) [{n_jobs} workers]...", total=None)
+        # Step 4: Fuse embeddings
+        # This task runs completely after typed view finishes (if available)
+        task7 = progress.add_task(f"[cyan]Step 4/5: Fusing embeddings (PCA + Normalize) [{n_jobs} workers]...", total=None)
         embeddings_list = [X_graph, X_w2v]
         if X_types is not None:
             embeddings_list.append(X_types)
         
         E, pca_components, pca_mean = fuse_embeddings(
-            embeddings_list, num_nodes, final_dim, random_state, n_jobs=n_jobs
+            embeddings_list, final_num_nodes, final_dim, random_state, n_jobs=n_jobs
         )
+        
+        # Store embeddings before normalization for mean_norm computation
+        E_before_norm = E.copy()
+        
+        # Compute mean_norm for length penalty
+        mean_norm = float(np.mean(np.linalg.norm(E_before_norm, axis=1)))
+        
         progress.update(task7, completed=True)
         
-        # Learn temperature
-        task8 = progress.add_task(f"[cyan]Learning temperature parameter [{n_jobs} workers]...", total=None)
-        tau = learn_temperature(E, val_edges, num_nodes, random_state=random_state, n_jobs=n_jobs)
+        # Apply iterative embedding smoothing (diffusion)
+        # This runs after fusion completes
+        task7b = progress.add_task(f"[cyan]Applying embedding smoothing (diffusion) [{n_jobs} workers]...", total=None)
+        E = iterative_embedding_smoothing(
+            E, expanded_edges, final_num_nodes,
+            num_iterations=2, beta=0.35, random_state=random_state
+        )
+        progress.update(task7b, completed=True)
+        # Smoothing is now complete - all resources released before next task
+        
+        # Step 5: Learn temperature with improved negative sampling
+        # This task runs completely after smoothing finishes
+        task8 = progress.add_task(f"[cyan]Step 5/5: Learning temperature parameter (improved negative sampling) [{n_jobs} workers]...", total=None)
+        tau = learn_temperature(
+            E, val_edges, final_num_nodes, random_state=random_state, n_jobs=n_jobs,
+            node_metadata=node_metadata,
+            node_file_info=node_file_info,
+            idx_to_node=idx_to_node
+        )
         progress.update(task8, completed=True)
         
-        # Build ANN index
+        # Build ANN index (only for original nodes, not subtokens)
         task9 = progress.add_task("[cyan]Building ANN index...", total=None)
         ann_index = AnnoyIndex(final_dim, 'angular')
+        # Only index original nodes (not subtokens)
         for i in range(num_nodes):
             ann_index.add_item(i, E[i])
         ann_index.build(10)  # 10 trees
@@ -324,22 +401,49 @@ def train_model(nodes_path: str,
         task10 = progress.add_task("[cyan]Saving model...", total=None)
         os.makedirs(output_dir, exist_ok=True)
     
-        # Save embeddings
+        # Save embeddings (only original nodes for query, but keep full for future use)
+        # Save full embeddings including subtokens
         np.save(os.path.join(output_dir, 'embeddings.npy'), E)
         
         # Save temperature
         np.save(os.path.join(output_dir, 'tau.npy'), np.array(tau))
         
+        # Save mean_norm for length penalty
+        np.save(os.path.join(output_dir, 'mean_norm.npy'), np.array(mean_norm))
+        
         # Save metadata
-        idx_to_node = {idx: node_id for node_id, idx in node_to_idx.items()}
         metadata = {
             'node_map': node_to_idx,
             'node_metadata': node_metadata,
             'embedding_dim': final_dim,
-            'num_nodes': num_nodes
+            'num_nodes': num_nodes,
+            'final_num_nodes': final_num_nodes  # Includes subtokens
         }
         with open(os.path.join(output_dir, 'metadata.json'), 'w') as f:
             json.dump(metadata, f, indent=2)
+        
+        # Save subtoken mapping
+        if subtoken_to_idx:
+            with open(os.path.join(output_dir, 'subtoken_map.json'), 'w') as f:
+                json.dump(subtoken_to_idx, f, indent=2)
+        
+        # Save node subtokens
+        if node_subtokens:
+            with open(os.path.join(output_dir, 'node_subtokens.json'), 'w') as f:
+                json.dump(node_subtokens, f, indent=2)
+        
+        # Save node types (for query expansion)
+        if node_types is not None:
+            # Convert node_types from idx-based to node_id-based
+            node_types_by_id = {}
+            for node_idx, types_dict in node_types.items():
+                node_id = idx_to_node.get(node_idx)
+                if node_id:
+                    # Convert counts to int for JSON serialization
+                    node_types_by_id[node_id] = {k: int(v) for k, v in types_dict.items()}
+            if node_types_by_id:
+                with open(os.path.join(output_dir, 'node_types.json'), 'w') as f:
+                    json.dump(node_types_by_id, f, indent=2)
         
         # Save PCA components
         np.save(os.path.join(output_dir, 'fusion_pca_components.npy'), pca_components)
@@ -357,12 +461,32 @@ def train_model(nodes_path: str,
         # Save ANN index
         ann_index.save(os.path.join(output_dir, 'ann_index.ann'))
         
-        # Save type token map if available
-        if type_to_idx is not None:
+        # Save type token map (use final expanded version)
+        if final_type_to_idx is not None:
+            with open(os.path.join(output_dir, 'type_token_map.json'), 'w') as f:
+                json.dump(final_type_to_idx, f, indent=2)
+        elif type_to_idx is not None:
             with open(os.path.join(output_dir, 'type_token_map.json'), 'w') as f:
                 json.dump(type_to_idx, f, indent=2)
         
         progress.update(task10, completed=True)
+    
+    # Calculate elapsed time
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    
+    # Format elapsed time
+    if elapsed_time < 60:
+        time_str = f"{elapsed_time:.2f} seconds"
+    elif elapsed_time < 3600:
+        minutes = int(elapsed_time // 60)
+        seconds = elapsed_time % 60
+        time_str = f"{minutes}m {seconds:.2f}s"
+    else:
+        hours = int(elapsed_time // 3600)
+        minutes = int((elapsed_time % 3600) // 60)
+        seconds = elapsed_time % 60
+        time_str = f"{hours}h {minutes}m {seconds:.2f}s"
     
     # Display statistics
     console.print("\n[bold green]✓ Training Complete![/bold green]\n")
@@ -371,18 +495,26 @@ def train_model(nodes_path: str,
     stats_table.add_column("Metric", style="cyan", width=25)
     stats_table.add_column("Value", style="white")
     stats_table.add_row("Total Nodes", str(num_nodes))
+    stats_table.add_row("Total Nodes (with subtokens)", str(final_num_nodes))
     stats_table.add_row("Total Edges", str(len(edges)))
     stats_table.add_row("Training Edges", str(len(train_edges)))
     stats_table.add_row("Validation Edges", str(len(val_edges)))
-    if type_to_idx:
+    if final_type_to_idx:
+        stats_table.add_row("Type Tokens (expanded)", str(len(final_type_to_idx)))
+    elif type_to_idx:
         stats_table.add_row("Type Tokens", str(len(type_to_idx)))
+    if subtoken_to_idx:
+        stats_table.add_row("Subtoken Nodes", str(len(subtoken_to_idx)))
     stats_table.add_row("Graph View Dim", f"{X_graph.shape[1]}")
     stats_table.add_row("Context View Dim", f"{X_w2v.shape[1]}")
     if X_types is not None:
         stats_table.add_row("Typed View Dim", f"{X_types.shape[1]}")
     stats_table.add_row("Final Embedding Dim", f"{E.shape[1]}")
     stats_table.add_row("Temperature (τ)", f"{tau:.6f}")
+    stats_table.add_row("Mean Norm", f"{mean_norm:.6f}")
     stats_table.add_row("Model Directory", output_dir)
+    stats_table.add_row("", "")  # Separator
+    stats_table.add_row("[bold]Total Training Time[/bold]", f"[bold green]{time_str}[/bold green]")
     
     console.print(stats_table)
     console.print()
