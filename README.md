@@ -1,6 +1,6 @@
 # TriCoder Code Intelligence
 
-[![image](https://img.shields.io/pypi/v/pycrosskit.svg)](https://pypi.org/project/pycrosskit/)
+[![image](https://img.shields.io/pypi/v/pycrosskit.svg)](https://pypi.org/project/tricoder/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/tricoder)](https://pypi.org/project/tricoder/)
 
 [![Build Status](https://travis-ci.com/jiri-otoupal/pycrosskit.svg?branch=master)](https://travis-ci.com/github/jiri-otoupal/tricoder)
