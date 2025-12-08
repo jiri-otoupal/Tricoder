@@ -670,36 +670,35 @@ def train_model(nodes_path: str,
         # Graph view is now complete - all resources released before next task
 
         # Step 2: Compute context view using expanded edges (includes subtokens)
-        # This task runs completely after graph view finishes
-        # This ensures full parallelization can be used for context view operations
         console.print(f"\n[bold cyan]Step 2/5: Context View[/bold cyan]")
         console.print(f"  [dim]Computing context embeddings (dim={context_dim}) with {n_jobs} workers...[/dim]")
         console.print(f"  [dim]Parameters: {num_walks} walks/node, length={walk_length}[/dim]")
         
-        # Count nodes with edges for determinate progress
-        nodes_with_edges = len([i for i in range(final_num_nodes) 
-                                if any(e[0] == i or e[1] == i for e in expanded_edges)])
+        task_context1 = progress.add_task(f"[cyan]Generating random walks (~{final_num_nodes:,} nodes, ~{final_num_nodes * num_walks:,} total walks)...", total=max(1, final_num_nodes))
         
-        task_context1 = progress.add_task("[cyan]Generating random walks...", total=max(1, nodes_with_edges))
-        console.print(f"  [dim]  → Generating {num_walks} walks per node (total: ~{final_num_nodes * num_walks:,} walks)...[/dim]")
-        
-        # Create progress callback for random walks
         def walk_progress_cb(current, total):
-            progress.update(task_context1, completed=current, total=total)
+            progress.update(task_context1, completed=current, total=total, refresh=True)
         
-        # Use expanded_edges which includes subtokens and all enhancements
+        progress.update(task_context1, completed=0, total=max(1, final_num_nodes), refresh=True)
+        
+        task_context2 = progress.add_task(f"[cyan]Training Word2Vec model (window={7 if not fast_mode else 5}, epochs={3 if not fast_mode else 2})...", total=None)
+        
+        def word2vec_progress_cb(is_starting):
+            if is_starting:
+                progress.start_task(task_context2)
+                progress.update(task_context2, total=None, refresh=True)
+            else:
+                progress.update(task_context2, completed=True)
+        
         X_w2v, word2vec_kv = compute_context_view(
             expanded_edges, final_num_nodes, context_dim, num_walks, walk_length, random_state, 
-            n_jobs=n_jobs, progress_callback=walk_progress_cb
+            n_jobs=n_jobs, progress_callback=walk_progress_cb,
+            word2vec_progress_callback=word2vec_progress_cb
         )
         progress.update(task_context1, completed=True)
         progress.remove_task(task_context1)
         
-        # Word2Vec training happens inside compute_context_view, show it's complete
-        task_context2 = progress.add_task("[cyan]Training Word2Vec model...", total=None)
-        console.print(f"  [dim]  → Training SkipGram model (window={7 if not fast_mode else 5}, epochs={3 if not fast_mode else 2})...[/dim]")
-        # Note: Word2Vec training already completed inside compute_context_view
-        # We show it here for clarity, but it's already done
+        # Word2Vec training completed inside compute_context_view
         progress.update(task_context2, completed=True)
         progress.remove_task(task_context2)
         

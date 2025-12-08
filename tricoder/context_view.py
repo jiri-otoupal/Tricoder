@@ -94,15 +94,23 @@ def generate_random_walks(edges: List[Tuple[int, int, str, float]],
     Returns:
         List of walks (each walk is a list of node indices)
     """
-    # Build adjacency list and neighbor sets (for fast lookups)
+    if progress_callback:
+        estimated_total = min(num_nodes, max(100, len(edges) // 10))
+        progress_callback(0, estimated_total)
+        progress_callback(0, estimated_total)
+    
     adj_list: Dict[int, List[Tuple[int, float]]] = {i: [] for i in range(num_nodes)}
     adj_sets: Dict[int, Set[int]] = {i: set() for i in range(num_nodes)}
     
-    for src_idx, dst_idx, rel, weight in edges:
+    total_edges = len(edges)
+    callback_interval = max(1, total_edges // 20) if total_edges > 100 else 1
+    for idx, (src_idx, dst_idx, rel, weight) in enumerate(edges):
         adj_list[src_idx].append((dst_idx, weight))
         adj_list[dst_idx].append((src_idx, weight))
         adj_sets[src_idx].add(dst_idx)
         adj_sets[dst_idx].add(src_idx)
+        if progress_callback and (idx + 1) % callback_interval == 0:
+            progress_callback(0, estimated_total)
 
     # Determine number of workers
     if n_jobs == -1:
@@ -113,7 +121,8 @@ def generate_random_walks(edges: List[Tuple[int, int, str, float]],
     nodes_to_process = [node for node in range(num_nodes) if adj_list[node]]
     total_nodes_to_process = len(nodes_to_process)
     
-    # Update progress at start
+    # Update progress with correct total now that we know it
+    # This ensures the progress bar shows the correct total
     if progress_callback:
         progress_callback(0, total_nodes_to_process)
 
@@ -242,9 +251,15 @@ def compute_context_view(edges: List[Tuple[int, int, str, float]],
                          walk_length: int = 80,
                          random_state: int = 42,
                          n_jobs: int = -1,
-                         progress_callback=None) -> Tuple[np.ndarray, KeyedVectors]:
+                         progress_callback=None,
+                         word2vec_progress_callback=None) -> Tuple[np.ndarray, KeyedVectors]:
     """
     Compute context view embeddings using Node2Vec + Word2Vec with multiprocessing.
+    
+    Args:
+        progress_callback: callback for random walk generation progress (current, total)
+        word2vec_progress_callback: callback to signal Word2Vec training start/end
+        console: Rich console for logging (optional)
     
     Returns:
         embeddings: node embeddings from context view
@@ -253,9 +268,18 @@ def compute_context_view(edges: List[Tuple[int, int, str, float]],
     walks = generate_random_walks(edges, num_nodes, num_walks, walk_length,
                                   random_state=random_state, n_jobs=n_jobs,
                                   progress_callback=progress_callback)
+    
+    # Signal Word2Vec training is starting
+    if word2vec_progress_callback:
+        word2vec_progress_callback(True)  # True = start
+    
     # Word2Vec training happens here - this is the actual learning step
     # Note: gensim Word2Vec doesn't support progress callbacks, so training happens synchronously
     kv = train_word2vec(walks, dim, random_state=random_state, n_jobs=n_jobs)
+    
+    # Signal Word2Vec training is complete
+    if word2vec_progress_callback:
+        word2vec_progress_callback(False)  # False = complete
 
     # Extract embeddings for all nodes
     embeddings = np.zeros((num_nodes, dim))

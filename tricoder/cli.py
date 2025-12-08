@@ -7,15 +7,12 @@ from typing import List
 import click
 from rich import box
 from rich.console import Console
-from rich.table import Table
 from rich.prompt import Prompt
 
-from .git_tracker import (
-    get_git_commit_hash, get_git_commit_timestamp, get_changed_files_for_retraining,
-    save_training_metadata, extract_files_from_jsonl, get_all_python_files
-)
-from .model import SymbolModel
-from .train import train_model
+from tricoder.git_tracker import get_git_commit_hash, get_git_commit_timestamp, extract_files_from_jsonl, \
+    save_training_metadata, get_changed_files_for_retraining, get_all_python_files
+from tricoder.model import SymbolModel
+from tricoder.train import train_model
 
 console = Console()
 
