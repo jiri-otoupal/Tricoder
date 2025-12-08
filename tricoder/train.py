@@ -575,12 +575,34 @@ def train_model(nodes_path: str,
         # Save model
         console.print(f"\n[bold cyan]Saving Model[/bold cyan]")
         console.print(f"  [dim]Writing model files to {output_dir}...[/dim]")
+        
+        # Ensure E exists and is valid before saving
+        if E is None:
+            raise ValueError("Embeddings (E) are None - cannot save model")
+        if not isinstance(E, np.ndarray):
+            raise ValueError(f"Embeddings (E) must be numpy array, got {type(E)}")
+        if E.size == 0:
+            raise ValueError("Embeddings (E) is empty - cannot save model")
+        
         task10a = progress.add_task("[cyan]  → Saving embeddings & components...", total=None)
         os.makedirs(output_dir, exist_ok=True)
 
         # Save embeddings (only original nodes for query, but keep full for future use)
         # Save full embeddings including subtokens
-        np.save(os.path.join(output_dir, 'embeddings.npy'), E)
+        embeddings_path = os.path.join(output_dir, 'embeddings.npy')
+        try:
+            np.save(embeddings_path, E)
+            # Verify file was written
+            if not os.path.exists(embeddings_path):
+                raise IOError(f"Failed to save embeddings.npy to {embeddings_path}")
+            # Verify file is readable
+            test_load = np.load(embeddings_path)
+            if test_load.shape != E.shape:
+                raise IOError(f"Saved embeddings shape mismatch: expected {E.shape}, got {test_load.shape}")
+            console.print(f"  [dim]✓ Saved embeddings: {E.shape} → {embeddings_path}[/dim]")
+        except Exception as e:
+            console.print(f"[bold red]Error saving embeddings: {e}[/bold red]")
+            raise
         progress.update(task10a, completed=True)
         
         task10b = progress.add_task("[cyan]  → Saving metadata & indices...", total=None)
@@ -649,7 +671,24 @@ def train_model(nodes_path: str,
                 json.dump(type_to_idx, f, indent=2)
 
         progress.update(task10b, completed=True)
+        
+        # Verify critical files were saved
+        critical_files = ['embeddings.npy', 'tau.npy', 'metadata.json', 'ann_index.ann']
+        missing_files = []
+        for filename in critical_files:
+            filepath = os.path.join(output_dir, filename)
+            if not os.path.exists(filepath):
+                missing_files.append(filename)
+        
+        if missing_files:
+            raise IOError(
+                f"Critical model files missing after save: {', '.join(missing_files)}\n"
+                f"Model directory: {output_dir}\n"
+                f"This indicates a save failure. Please check disk space and permissions."
+            )
+        
         console.print(f"  [dim]✓ Saved {len(os.listdir(output_dir))} model files[/dim]")
+        console.print(f"  [dim]✓ Verified critical files: {', '.join(critical_files)}[/dim]")
 
     # Calculate elapsed time
     end_time = time.time()

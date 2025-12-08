@@ -95,8 +95,19 @@ class SymbolModel:
         Args:
             model_dir: path to model directory
         """
+        # Check if model directory exists
+        if not os.path.exists(model_dir):
+            raise FileNotFoundError(f"Model directory not found: {model_dir}")
+        
         # Load embeddings
-        self.embeddings = np.load(os.path.join(model_dir, 'embeddings.npy'))
+        embeddings_path = os.path.join(model_dir, 'embeddings.npy')
+        if not os.path.exists(embeddings_path):
+            raise FileNotFoundError(
+                f"Embeddings file not found: {embeddings_path}\n"
+                f"This usually means training was interrupted or failed before completion.\n"
+                f"Please retrain the model."
+            )
+        self.embeddings = np.load(embeddings_path)
         self.embedding_dim = self.embeddings.shape[1]
 
         # Load temperature
