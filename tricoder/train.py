@@ -460,15 +460,17 @@ def train_model(nodes_path: str,
         # Step 4: Fuse embeddings
         # This task runs completely after typed view finishes (if available)
         console.print(f"\n[bold cyan]Step 4/5: Fusion[/bold cyan]")
+        
+        # Build embeddings list
+        embeddings_list = [X_graph, X_w2v]
+        if X_types is not None:
+            embeddings_list.append(X_types)
+        
         input_dims = [graph_dim, context_dim]
         if X_types is not None:
             input_dims.append(typed_dim)
         total_input_dim = sum(input_dims)
         console.print(f"  [dim]Fusing {len(embeddings_list)} views (total input dim={total_input_dim}) → {final_dim}...[/dim]")
-        
-        embeddings_list = [X_graph, X_w2v]
-        if X_types is not None:
-            embeddings_list.append(X_types)
 
         task7a = progress.add_task("[cyan]  → Concatenating views & applying PCA...", total=None)
         E, pca_components, pca_mean = fuse_embeddings(
