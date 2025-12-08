@@ -1,4 +1,4 @@
-# TriCoder Code Intelligence
+# TriVector Embeddings for Smarter Code Search for AI Agents
 
 [![image](https://img.shields.io/pypi/v/tricoder.svg)](https://pypi.org/project/tricoder/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/tricoder)](https://pypi.org/project/tricoder/)
