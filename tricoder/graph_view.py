@@ -468,20 +468,16 @@ def compute_ppmi(adj: sparse.csr_matrix, k: float = 1.0) -> sparse.csr_matrix:
 
 
 def reduce_dimensions_ppmi(ppmi: sparse.csr_matrix, dim: int, random_state: int = 42,
-                           n_jobs: int = -1) -> Tuple[np.ndarray, np.ndarray]:
+                           n_jobs: int = -1, gpu_accelerator=None) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Reduce PPMI matrix dimensionality using Truncated SVD.
-    
-    Note: SVD itself cannot be easily parallelized with multiprocessing as it requires
-    the full matrix. However, numpy/scipy operations release the GIL, so they can use
-    threading effectively. We use multiprocessing for other parts (edge processing)
-    and rely on numpy/scipy's internal threading for matrix operations.
+    Reduce PPMI matrix dimensionality using Truncated SVD (GPU-accelerated if available).
     
     Args:
         ppmi: PPMI matrix
         dim: target dimensionality
         random_state: random seed
         n_jobs: number of parallel jobs (not used for SVD, but kept for API consistency)
+        gpu_accelerator: Optional GPUAccelerator instance for GPU acceleration
     
     Returns:
         Reduced embeddings matrix and SVD components
@@ -489,21 +485,39 @@ def reduce_dimensions_ppmi(ppmi: sparse.csr_matrix, dim: int, random_state: int 
     num_features = ppmi.shape[1]
     actual_dim = min(dim, num_features)
 
-    # Use randomized SVD for faster computation (especially for large matrices)
-    # Randomized SVD is much faster and often produces similar quality results
-    # Use n_iter=5 for faster convergence (default is 7)
-    svd = TruncatedSVD(n_components=actual_dim, random_state=random_state, n_iter=5)
-    embeddings = svd.fit_transform(ppmi)
+    # Try GPU acceleration if available
+    if gpu_accelerator and gpu_accelerator.use_gpu:
+        try:
+            # Convert sparse matrix to dense for GPU SVD (CuPy doesn't support sparse SVD well)
+            # Only do this if matrix is reasonably sized
+            if ppmi.shape[0] * ppmi.shape[1] < 50_000_000:  # ~50M elements threshold
+                ppmi_dense = ppmi.toarray()
+                U, S, Vt = gpu_accelerator.svd(ppmi_dense, actual_dim, random_state)
+                
+                # Transform: U @ diag(S)
+                embeddings = U @ np.diag(S)
+                components = Vt
+            else:
+                # Too large, fall back to CPU sparse SVD
+                raise ValueError("Matrix too large for GPU dense SVD")
+        except Exception as e:
+            # Fall back to CPU
+            svd = TruncatedSVD(n_components=actual_dim, random_state=random_state, n_iter=5)
+            embeddings = svd.fit_transform(ppmi)
+            components = svd.components_
+    else:
+        # CPU path
+        svd = TruncatedSVD(n_components=actual_dim, random_state=random_state, n_iter=5)
+        embeddings = svd.fit_transform(ppmi)
+        components = svd.components_
 
     # Pad embeddings if needed to match requested dimension
     if actual_dim < dim:
         padding = np.zeros((embeddings.shape[0], dim - actual_dim))
         embeddings = np.hstack([embeddings, padding])
         # Pad components similarly
-        component_padding = np.zeros((dim - actual_dim, svd.components_.shape[1]))
-        components = np.vstack([svd.components_, component_padding])
-    else:
-        components = svd.components_
+        component_padding = np.zeros((dim - actual_dim, components.shape[1]))
+        components = np.vstack([components, component_padding])
 
     return embeddings, components
 
@@ -520,7 +534,8 @@ def compute_graph_view(edges: List[Tuple[int, int, str, float]], num_nodes: int,
                        add_hierarchy: bool = True,
                        add_context: bool = True,
                        context_window: int = 5,
-                       max_depth: int = 3) -> Tuple[
+                       max_depth: int = 3,
+                       gpu_accelerator=None) -> Tuple[
     np.ndarray, np.ndarray, int, Dict[str, int], List[Tuple[int, int, str, float]]]:
     """
     Compute graph view embeddings with all enhancements.
@@ -563,6 +578,6 @@ def compute_graph_view(edges: List[Tuple[int, int, str, float]], num_nodes: int,
     # Step 5: Build adjacency matrix and compute PPMI (with parallelization)
     adj = build_adjacency_matrix(expanded_edges, current_num_nodes, n_jobs=n_jobs)
     ppmi = compute_ppmi(adj)
-    embeddings, svd_components = reduce_dimensions_ppmi(ppmi, dim, random_state, n_jobs)
+    embeddings, svd_components = reduce_dimensions_ppmi(ppmi, dim, random_state, n_jobs, gpu_accelerator)
 
     return embeddings, svd_components, current_num_nodes, subtoken_to_idx, expanded_edges

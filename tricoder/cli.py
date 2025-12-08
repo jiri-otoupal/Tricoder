@@ -51,8 +51,10 @@ def cli():
               help='Random seed for reproducibility.')
 @click.option('--fast', is_flag=True, default=False,
               help='Enable fast mode: reduces walk parameters by half for faster training (slightly lower quality).')
+@click.option('--use-gpu', is_flag=True, default=False,
+              help='Enable GPU acceleration: CUDA (NVIDIA) via CuPy, or MPS (Mac) via PyTorch. Falls back to CPU if GPU unavailable.')
 def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim,
-          num_walks, walk_length, train_ratio, random_state, fast):
+          num_walks, walk_length, train_ratio, random_state, fast, use_gpu):
     """Train TriCoder model on codebase symbols and relationships."""
     # Handle optional types file - only use if it exists
     types_path = types if types and os.path.exists(types) else None
@@ -70,7 +72,8 @@ def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim
         walk_length=walk_length,
         train_ratio=train_ratio,
         random_state=random_state,
-        fast_mode=fast
+        fast_mode=fast,
+        use_gpu=use_gpu
     )
 
     # Save git metadata after training
@@ -665,7 +668,8 @@ def retrain(model_dir, codebase_dir, output_nodes, output_edges, output_types,
         num_walks=num_walks,
         walk_length=walk_length,
         train_ratio=train_ratio,
-        random_state=random_state
+        random_state=random_state,
+        use_gpu=False  # Retrain doesn't support GPU yet
     )
 
     # Save updated git metadata

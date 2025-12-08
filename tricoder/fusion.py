@@ -39,15 +39,18 @@ def fuse_embeddings(embeddings_list: List[np.ndarray],
                     num_nodes: int,
                     final_dim: int,
                     random_state: int = 42,
-                    n_jobs: int = -1) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+                    n_jobs: int = -1,
+                    gpu_accelerator=None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Fuse multiple embedding views using concatenation and PCA.
+    Fuse multiple embedding views using concatenation and PCA (GPU-accelerated if available).
     
     Args:
         embeddings_list: list of embedding matrices from different views
         num_nodes: number of nodes
         final_dim: final embedding dimensionality
         random_state: random seed
+        n_jobs: number of parallel jobs (not used, kept for API consistency)
+        gpu_accelerator: Optional GPUAccelerator instance for GPU acceleration
     
     Returns:
         fused_embeddings: final fused embeddings
@@ -64,28 +67,45 @@ def fuse_embeddings(embeddings_list: List[np.ndarray],
     num_features = concatenated.shape[1]
     actual_dim = min(final_dim, num_nodes, num_features)
 
-    # PCA uses threading internally, no explicit n_jobs parameter
-    # Apply PCA
-    pca = PCA(n_components=actual_dim, random_state=random_state)
-    fused = pca.fit_transform(concatenated)
+    # Try GPU acceleration if available
+    if gpu_accelerator and gpu_accelerator.use_gpu:
+        try:
+            fused, components, mean = gpu_accelerator.pca(concatenated, actual_dim, random_state)
+        except Exception:
+            # Fall back to CPU
+            pca = PCA(n_components=actual_dim, random_state=random_state)
+            fused = pca.fit_transform(concatenated)
+            components = pca.components_
+            mean = pca.mean_
+    else:
+        # CPU path
+        pca = PCA(n_components=actual_dim, random_state=random_state)
+        fused = pca.fit_transform(concatenated)
+        components = pca.components_
+        mean = pca.mean_
 
     # Pad if needed to match requested dimension
     if actual_dim < final_dim:
         padding = np.zeros((fused.shape[0], final_dim - actual_dim))
         fused = np.hstack([fused, padding])
         # Pad components
-        component_padding = np.zeros((final_dim - actual_dim, pca.components_.shape[1]))
-        components = np.vstack([pca.components_, component_padding])
-        # Pad mean (just keep as is, PCA handles this)
-        mean = pca.mean_
-    else:
-        components = pca.components_
-        mean = pca.mean_
+        component_padding = np.zeros((final_dim - actual_dim, components.shape[1]))
+        components = np.vstack([components, component_padding])
 
-    # Normalize each row to unit length
-    norms = np.linalg.norm(fused, axis=1, keepdims=True)
-    norms = np.maximum(norms, 1e-10)  # Avoid division by zero
-    fused_normalized = fused / norms
+    # Normalize each row to unit length (use GPU if available)
+    if gpu_accelerator and gpu_accelerator.use_gpu:
+        try:
+            norms = gpu_accelerator.norm(fused, axis=1, keepdims=True)
+            norms = gpu_accelerator.maximum(norms, 1e-10)
+            fused_normalized = fused / norms
+        except Exception:
+            norms = np.linalg.norm(fused, axis=1, keepdims=True)
+            norms = np.maximum(norms, 1e-10)
+            fused_normalized = fused / norms
+    else:
+        norms = np.linalg.norm(fused, axis=1, keepdims=True)
+        norms = np.maximum(norms, 1e-10)
+        fused_normalized = fused / norms
 
     return fused_normalized, components, mean
 
@@ -121,7 +141,8 @@ def iterative_embedding_smoothing(embeddings: np.ndarray,
                                   num_nodes: int,
                                   num_iterations: int = 2,
                                   beta: float = 0.35,
-                                  random_state: int = 42) -> np.ndarray:
+                                  random_state: int = 42,
+                                  gpu_accelerator=None) -> np.ndarray:
     """
     Apply iterative embedding smoothing (diffusion) to embeddings.
     Optimized with vectorized operations.
@@ -147,22 +168,36 @@ def iterative_embedding_smoothing(embeddings: np.ndarray,
 
     for iteration in range(num_iterations):
         # Vectorized neighbor averaging using sparse matrix multiplication
-        # adj @ smoothed computes sum of neighbor embeddings for each node
-        neighbor_sums = adj.dot(smoothed)
-        
-        # Get degree of each node (number of neighbors)
-        degrees = np.array(adj.sum(axis=1)).flatten()
-        degrees = np.maximum(degrees, 1.0)  # Avoid division by zero
-        
-        # Compute average neighbor embeddings
-        neighbor_avg = neighbor_sums / degrees[:, np.newaxis]
-        
-        # Weighted combination: beta * neighbor_avg + (1-beta) * current
-        smoothed = beta * neighbor_avg + (1 - beta) * smoothed
-
-        # L2-normalize
-        norms = np.linalg.norm(smoothed, axis=1, keepdims=True)
-        norms = np.maximum(norms, 1e-10)
-        smoothed = smoothed / norms
+        # Use GPU acceleration if available
+        if gpu_accelerator and gpu_accelerator.use_gpu:
+            try:
+                neighbor_sums = gpu_accelerator.sparse_matmul(adj, smoothed)
+                degrees = gpu_accelerator.sum(adj, axis=1)
+                degrees = gpu_accelerator.maximum(degrees.flatten(), 1.0)
+                neighbor_avg = neighbor_sums / degrees[:, np.newaxis]
+                smoothed = beta * neighbor_avg + (1 - beta) * smoothed
+                norms = gpu_accelerator.norm(smoothed, axis=1, keepdims=True)
+                norms = gpu_accelerator.maximum(norms, 1e-10)
+                smoothed = smoothed / norms
+            except Exception:
+                # Fall back to CPU
+                neighbor_sums = adj.dot(smoothed)
+                degrees = np.array(adj.sum(axis=1)).flatten()
+                degrees = np.maximum(degrees, 1.0)
+                neighbor_avg = neighbor_sums / degrees[:, np.newaxis]
+                smoothed = beta * neighbor_avg + (1 - beta) * smoothed
+                norms = np.linalg.norm(smoothed, axis=1, keepdims=True)
+                norms = np.maximum(norms, 1e-10)
+                smoothed = smoothed / norms
+        else:
+            # CPU path
+            neighbor_sums = adj.dot(smoothed)
+            degrees = np.array(adj.sum(axis=1)).flatten()
+            degrees = np.maximum(degrees, 1.0)
+            neighbor_avg = neighbor_sums / degrees[:, np.newaxis]
+            smoothed = beta * neighbor_avg + (1 - beta) * smoothed
+            norms = np.linalg.norm(smoothed, axis=1, keepdims=True)
+            norms = np.maximum(norms, 1e-10)
+            smoothed = smoothed / norms
 
     return smoothed

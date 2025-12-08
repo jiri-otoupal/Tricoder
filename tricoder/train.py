@@ -167,7 +167,8 @@ def train_model(nodes_path: str,
                 walk_length: int = 80,
                 train_ratio: float = 0.8,
                 random_state: int = 42,
-                fast_mode: bool = False):
+                fast_mode: bool = False,
+                use_gpu: bool = False):
     """
     Train TriVector Code Intelligence model.
     
@@ -202,7 +203,19 @@ def train_model(nodes_path: str,
         train_ratio: ratio of edges for training (rest for calibration)
         random_state: random seed
         fast_mode: if True, reduces walk parameters for faster training (lower quality)
+        use_gpu: if True, attempt GPU acceleration (requires CuPy and CUDA-capable GPU)
     """
+    # Initialize GPU accelerator if requested
+    gpu_accelerator = None
+    if use_gpu:
+        from .gpu_utils import GPUAccelerator
+        gpu_accelerator = GPUAccelerator(use_gpu=True)
+        if gpu_accelerator.use_gpu:
+            backend_name = "CUDA (NVIDIA)" if gpu_accelerator.device_type == 'cuda' else "MPS (Mac)"
+            console.print(f"[bold green]✓ GPU acceleration enabled ({backend_name})[/bold green]\n")
+        else:
+            console.print(f"[yellow]⚠ GPU acceleration requested but not available, using CPU[/yellow]\n")
+    
     # Set random seeds
     np.random.seed(random_state)
 
@@ -381,7 +394,8 @@ def train_model(nodes_path: str,
             add_hierarchy=True,
             add_context=True,
             context_window=context_window_size,
-            max_depth=call_graph_depth
+            max_depth=call_graph_depth,
+            gpu_accelerator=gpu_accelerator
         )
         progress.update(task4a, completed=True)
         progress.update(task4, completed=True)
@@ -430,7 +444,7 @@ def train_model(nodes_path: str,
                 f"[cyan]  → Computing PPMI & SVD...", total=None)
             X_types, svd_components_types, final_type_to_idx = compute_typed_view(
                 node_types, type_to_idx, final_num_nodes, typed_dim, random_state, n_jobs=n_jobs,
-                expand_types=True
+                expand_types=True, gpu_accelerator=gpu_accelerator
             )
             progress.update(task6a, completed=True)
             progress.update(task6, completed=True)
@@ -458,7 +472,8 @@ def train_model(nodes_path: str,
 
         task7a = progress.add_task("[cyan]  → Concatenating views & applying PCA...", total=None)
         E, pca_components, pca_mean = fuse_embeddings(
-            embeddings_list, final_num_nodes, final_dim, random_state, n_jobs=n_jobs
+            embeddings_list, final_num_nodes, final_dim, random_state, n_jobs=n_jobs,
+            gpu_accelerator=gpu_accelerator
         )
         progress.update(task7a, completed=True)
 
@@ -480,7 +495,8 @@ def train_model(nodes_path: str,
             task7c = progress.add_task(f"[cyan]  → Smoothing embeddings via diffusion...", total=None)
             E = iterative_embedding_smoothing(
                 E, expanded_edges, final_num_nodes,
-                num_iterations=smoothing_iterations, beta=0.35, random_state=random_state
+                num_iterations=smoothing_iterations, beta=0.35, random_state=random_state,
+                gpu_accelerator=gpu_accelerator
             )
             progress.update(task7c, completed=True)
             console.print(f"  [dim]✓ Applied {smoothing_iterations} smoothing iteration(s)[/dim]")
