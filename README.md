@@ -23,6 +23,9 @@
 - **Hybrid Similarity Scoring**: Length-penalized cosine similarity
 - **Iterative Embedding Smoothing**: Diffusion-based smoothing for better clustering
 - **Query-Time Semantic Expansion**: Expands queries with subtokens and types
+- **GPU Acceleration**: Supports CUDA (NVIDIA) and MPS (Mac) for faster training
+- **Keyword Search**: Search symbols by keywords and type tokens
+- **Graph Optimization**: Filter out low-value nodes and edges to improve training efficiency
 
 ## Installation
 
@@ -38,48 +41,199 @@ poetry install
 pip install .
 ```
 
+### GPU Support (Optional)
+
+For NVIDIA GPUs (CUDA):
+```bash
+pip install cupy-cuda12x
+```
+
+For Mac GPUs (MPS):
+```bash
+pip install torch
+```
+
 ## Usage
 
 ### 1. Extract Symbols from Codebase
 
 ```bash
-tricoder-extract --input-dir /path/to/codebase --output-nodes nodes.jsonl --output-edges edges.jsonl --output-types types.jsonl
+# Basic extraction (Python files only)
+tricoder extract --input-dir /path/to/codebase
+
+# Extract specific file types
+tricoder extract --input-dir /path/to/codebase --extensions "py,js,ts"
+
+# Exclude specific keywords from extraction
+tricoder extract --input-dir /path/to/codebase --exclude-keywords debug --exclude-keywords temp
+
+# Custom output files
+tricoder extract --input-dir /path/to/codebase --output-nodes my_nodes.jsonl --output-edges my_edges.jsonl
 ```
 
-### 2. Train Model
+**Extraction Options:**
+- `--input-dir`, `--root`, `-r`: Input directory to scan (default: current directory)
+- `--extensions`, `--ext`: Comma-separated file extensions (default: `py`)
+- `--include-dirs`, `-i`: Include only specific subdirectories (can specify multiple)
+- `--exclude-dirs`, `-e`: Exclude directories (default: `.venv`, `__pycache__`, `.git`, `node_modules`, `.pytest_cache`)
+- `--exclude-keywords`, `--exclude`: Exclude symbol names (appended to default excluded keywords)
+- `--output-nodes`, `-n`: Output file for nodes (default: `nodes.jsonl`)
+- `--output-edges`, `-d`: Output file for edges (default: `edges.jsonl`)
+- `--output-types`, `-t`: Output file for types (default: `types.jsonl`)
+- `--no-gitignore`: Disable `.gitignore` filtering (enabled by default)
+
+### 2. Optimize Graph (Optional)
+
+Reduce graph size by filtering low-value nodes and edges:
 
 ```bash
-tricoder-train --nodes nodes.jsonl --edges edges.jsonl --types types.jsonl --out model_output
+# Basic optimization (overwrites input files)
+tricoder optimize
+
+# Custom output files
+tricoder optimize --output-nodes nodes_opt.jsonl --output-edges edges_opt.jsonl
+
+# Customize thresholds
+tricoder optimize --min-edge-weight 0.5 --remove-isolated --remove-generic
+
+# Keep isolated nodes
+tricoder optimize --keep-isolated
 ```
 
-### 3. Query Model
+**Optimization Options:**
+- `--nodes`, `-n`: Input nodes file (default: `nodes.jsonl`)
+- `--edges`, `-e`: Input edges file (default: `edges.jsonl`)
+- `--types`, `-t`: Input types file (default: `types.jsonl`, optional)
+- `--output-nodes`, `-N`: Output nodes file (default: overwrites input)
+- `--output-edges`, `-E`: Output edges file (default: overwrites input)
+- `--output-types`, `-T`: Output types file (default: overwrites input)
+- `--min-edge-weight`: Minimum edge weight to keep (default: `0.3`)
+- `--remove-isolated`: Remove nodes with no edges (default: `True`)
+- `--keep-isolated`: Keep isolated nodes (overrides `--remove-isolated`)
+- `--remove-generic`: Remove generic names (default: `True`)
+- `--keep-generic`: Keep generic names (overrides `--remove-generic`)
+- `--exclude-keywords`, `--exclude`: Additional keywords to exclude (can specify multiple)
+
+### 3. Train Model
 
 ```bash
-# Single query
-tricoder-query --model-dir model_output --symbol sym_0001 --top-k 10
+# Basic training
+tricoder train --out model_output
+
+# With GPU acceleration
+tricoder train --out model_output --use-gpu
+
+# Fast mode (faster training, slightly lower quality)
+tricoder train --out model_output --fast
+
+# Custom dimensions
+tricoder train --out model_output --graph-dim 128 --context-dim 128 --final-dim 256
+
+# Custom training parameters
+tricoder train --out model_output --num-walks 20 --walk-length 100 --train-ratio 0.9
+```
+
+**Training Options:**
+- `--nodes`, `-n`: Path to nodes.jsonl (default: `nodes.jsonl`)
+- `--edges`, `-e`: Path to edges.jsonl (default: `edges.jsonl`)
+- `--types`, `-t`: Path to types.jsonl (default: `types.jsonl`, optional)
+- `--out`, `-o`: Output directory (required)
+- `--graph-dim`: Graph view dimensionality (default: auto-calculated)
+- `--context-dim`: Context view dimensionality (default: auto-calculated)
+- `--typed-dim`: Typed view dimensionality (default: auto-calculated)
+- `--final-dim`: Final fused embedding dimensionality (default: auto-calculated)
+- `--num-walks`: Number of random walks per node (default: `10`)
+- `--walk-length`: Length of each random walk (default: `80`)
+- `--train-ratio`: Fraction of edges for training (default: `0.8`)
+- `--random-state`: Random seed for reproducibility (default: `42`)
+- `--fast`: Enable fast mode (reduces parameters for faster training)
+- `--use-gpu`: Enable GPU acceleration (CUDA or MPS, falls back to CPU if unavailable)
+
+### 4. Query Model
+
+```bash
+# Query by symbol ID
+tricoder query --model-dir model_output --symbol function_my_function_0001 --top-k 10
+
+# Search by keywords
+tricoder query --model-dir model_output --keywords "database connection" --top-k 10
+
+# Multi-word phrases (use quotes)
+tricoder query --model-dir model_output --keywords '"user authentication" login'
+
+# Exclude specific keywords from results
+tricoder query --model-dir model_output --keywords handler --exclude-keywords debug --exclude-keywords temp
 
 # Interactive mode
-tricoder-query --model-dir model_output --interactive
+tricoder query --model-dir model_output --interactive
 ```
 
-## Advanced Options
+**Query Options:**
+- `--model-dir`, `-m`: Path to model directory (required)
+- `--symbol`, `-s`: Symbol ID to query
+- `--keywords`, `-w`: Keywords to search for (use quotes for multi-word: `"my function"`)
+- `--top-k`, `-k`: Number of results to return (default: `10`)
+- `--exclude-keywords`, `--exclude`: Additional keywords to exclude (appended to default excluded keywords)
+- `--interactive`, `-i`: Interactive mode
 
-### Training Options
+### 5. Incremental Retraining
 
-- `--graph-dim`: Graph view dimensionality (default: auto)
-- `--context-dim`: Context view dimensionality (default: auto)
-- `--typed-dim`: Typed view dimensionality (default: auto)
-- `--final-dim`: Final fused embedding dimensionality (default: auto)
-- `--num-walks`: Number of random walks per node (default: 10)
-- `--walk-length`: Length of each random walk (default: 80)
-- `--train-ratio`: Fraction of edges for training (default: 0.8)
-- `--random-state`: Random seed for reproducibility (default: 42)
+Retrain only on changed files since last training:
 
-### Extraction Options
+```bash
+# Basic retraining (detects changed files automatically)
+tricoder retrain --model-dir model_output --codebase-dir /path/to/codebase
 
-- `--include-dirs`: Include only specific subdirectories
-- `--exclude-dirs`: Exclude specific directories
-- `--no-gitignore`: Disable .gitignore filtering
+# Force full retraining
+tricoder retrain --model-dir model_output --codebase-dir /path/to/codebase --force
+
+# Custom training parameters
+tricoder retrain --model-dir model_output --codebase-dir /path/to/codebase --num-walks 20
+```
+
+**Retrain Options:**
+- `--model-dir`, `-m`: Path to existing model directory (required)
+- `--codebase-dir`, `-c`: Path to codebase root (default: current directory)
+- `--output-nodes`, `-n`: Temporary nodes file (default: `nodes_retrain.jsonl`)
+- `--output-edges`, `-d`: Temporary edges file (default: `edges_retrain.jsonl`)
+- `--output-types`, `-t`: Temporary types file (default: `types_retrain.jsonl`)
+- `--graph-dim`, `--context-dim`, `--typed-dim`, `--final-dim`: Override model dimensions
+- `--num-walks`, `--walk-length`, `--train-ratio`, `--random-state`: Training parameters
+- `--force`: Force full retraining even if no files changed
+
+## Examples
+
+### Complete Workflow
+
+```bash
+# 1. Extract symbols from codebase
+tricoder extract --input-dir ./my_project --extensions "py,js"
+
+# 2. (Optional) Optimize the graph
+tricoder optimize --min-edge-weight 0.4
+
+# 3. Train model with GPU acceleration
+tricoder train --out ./models/my_project --use-gpu
+
+# 4. Query for similar symbols
+tricoder query --model-dir ./models/my_project --keywords "database" --top-k 5
+
+# 5. After code changes, retrain incrementally
+tricoder retrain --model-dir ./models/my_project --codebase-dir ./my_project
+```
+
+### Keyword Search Examples
+
+```bash
+# Search for authentication-related code
+tricoder query --model-dir model_output --keywords "auth login password"
+
+# Search for specific function name
+tricoder query --model-dir model_output --keywords '"process_payment"'
+
+# Search excluding common keywords
+tricoder query --model-dir model_output --keywords handler --exclude-keywords temp --exclude-keywords debug
+```
 
 ## Requirements
 
@@ -91,6 +245,10 @@ tricoder-query --model-dir model_output --interactive
 - annoy >= 1.17.0
 - click >= 8.0.0
 - rich >= 13.0.0
+
+**Optional (for GPU acceleration):**
+- cupy-cuda12x >= 12.0.0 (for NVIDIA GPUs)
+- torch >= 2.0.0 (for Mac GPUs or CUDA fallback)
 
 ## License
 
