@@ -1,0 +1,818 @@
+{
+  "function_get_symbol_id_0024": {
+    "str": 3
+  },
+  "function_add_symbol_0028": {
+    "str": 2,
+    "int": 1,
+    "Optional[Dict]": 1
+  },
+  "function_add_edge_0037": {
+    "str": 3,
+    "float": 1
+  },
+  "function_add_type_token_0043": {
+    "str": 2,
+    "int": 1
+  },
+  "function_extract_type_annotation_0098": {
+    "Optional[str]": 1
+  },
+  "function_load_patterns_0105": {
+    "Path": 1
+  },
+  "function_matches_0116": {
+    "bool": 1,
+    "Path": 1
+  },
+  "function_match_pattern_0127": {
+    "bool": 1,
+    "str": 2,
+    "List[str]": 1
+  },
+  "function_match_glob_0143": {
+    "bool": 1,
+    "str": 2
+  },
+  "function_find_gitignore_0145": {
+    "Optional[Path]": 1,
+    "Path": 1
+  },
+  "function_should_process_file_0149": {
+    "bool": 1,
+    "str": 1,
+    "List[str]": 2,
+    "Optional[GitIgnoreMatcher]": 1
+  },
+  "function_extract_from_file_0159": {
+    "Tuple[List[Dict], List[Dict], List[Dict]]": 1,
+    "str": 1
+  },
+  "function_extract_from_directory_0175": {
+    "str": 4,
+    "List[str]": 2,
+    "bool": 1
+  },
+  "function_validate_nodes_0011": {
+    "tuple": 1,
+    "str": 1
+  },
+  "function_validate_edges_0041": {
+    "tuple": 1,
+    "str": 1
+  },
+  "function_validate_types_0051": {
+    "tuple": 1,
+    "str": 1
+  },
+  "function_get_num_workers_0010": {
+    "int": 3
+  },
+  "function_split_edges_0024": {
+    "Tuple[List[Tuple[int, int, str, float]], List[Tuple[int, int, str, float]]]": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "float": 1,
+    "int": 1
+  },
+  "function_sample_negatives_0044": {
+    "List[Tuple[int, int]]": 2,
+    "int": 3,
+    "List[Dict]": 1,
+    "Dict[str, Tuple[str, str, str]]": 1,
+    "Dict[int, str]": 1
+  },
+  "function_compute_calibrated_score_0076": {
+    "float": 2,
+    "np.ndarray": 2
+  },
+  "function_softmax_scores_0081": {
+    "np.ndarray": 2
+  },
+  "function_evaluate_tau_0019": {
+    "float": 2,
+    "np.ndarray": 1,
+    "List[Tuple[int, int]]": 2
+  },
+  "function_learn_temperature_0108": {
+    "float": 1,
+    "np.ndarray": 2,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 4,
+    "List[Dict]": 1,
+    "Dict[str, Tuple[str, str, str]]": 1,
+    "Dict[int, str]": 1
+  },
+  "function_get_tricoder_dir_0019": {
+    "str": 1
+  },
+  "function_get_model_dir_0026": {
+    "str": 1
+  },
+  "function_is_valid_model_dir_0029": {
+    "bool": 1,
+    "str": 1
+  },
+  "function_discover_models_0034": {
+    "List[str]": 1,
+    "str": 1
+  },
+  "function_get_code_snippet_0154": {
+    "str": 2,
+    "int": 2
+  },
+  "function_display_results_0145": {
+    "bool": 1
+  },
+  "function_parse_keywords_0150": {
+    "str": 2
+  },
+  "function_search_and_display_results_0152": {
+    "str": 1,
+    "int": 1,
+    "set": 1,
+    "bool": 1
+  },
+  "function_interactive_mode_0141": {
+    "set": 1,
+    "bool": 1
+  },
+  "function_generate_random_walks_0053": {
+    "List[List[int]]": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 5,
+    "float": 2
+  },
+  "function_train_word2vec_0080": {
+    "KeyedVectors": 1,
+    "List[List[str]]": 1,
+    "int": 7
+  },
+  "function_compute_context_view_0091": {
+    "Tuple[np.ndarray, KeyedVectors]": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 6
+  },
+  "function_load_nodes_0009": {
+    "Tuple[Dict[str, int], List[Dict], Dict[str, List[str]], Dict[str, Tuple[str, str, str]]]": 1,
+    "str": 1
+  },
+  "function_load_edges_0052": {
+    "Tuple[List[Tuple[int, int, str, float]], int]": 1,
+    "str": 1,
+    "Dict[str, int]": 1
+  },
+  "function_load_types_0071": {
+    "Tuple[Dict[int, Dict[str, int]], Dict[str, int]]": 1,
+    "str": 1,
+    "Dict[str, int]": 1
+  },
+  "function_build_node_location_map_0085": {
+    "Dict[int, Tuple[str, int]]": 1,
+    "List[Dict]": 1
+  },
+  "function_sanitize_name_0026": {
+    "str": 2
+  },
+  "function_get_symbol_id_0035": {
+    "str": 3
+  },
+  "function_get_node_end_line_0042": {
+    "Optional[int]": 1,
+    "ast.AST": 1
+  },
+  "function_add_symbol_0056": {
+    "str": 2,
+    "int": 1,
+    "Optional[int]": 1,
+    "Optional[Dict]": 1
+  },
+  "function_add_edge_0066": {
+    "str": 3,
+    "float": 1
+  },
+  "function_add_type_token_0073": {
+    "str": 2,
+    "int": 1
+  },
+  "function_extract_type_annotation_0128": {
+    "Optional[str]": 1
+  },
+  "function_load_patterns_0135": {
+    "Path": 1
+  },
+  "function_matches_0146": {
+    "bool": 1,
+    "Path": 1
+  },
+  "function_match_pattern_0157": {
+    "bool": 1,
+    "str": 2,
+    "List[str]": 1
+  },
+  "function_match_glob_0172": {
+    "bool": 1,
+    "str": 2
+  },
+  "function_find_gitignore_0174": {
+    "Optional[Path]": 1,
+    "Path": 1
+  },
+  "function_should_process_file_0178": {
+    "bool": 1,
+    "str": 1,
+    "List[str]": 2,
+    "Optional[GitIgnoreMatcher]": 1
+  },
+  "function_extract_from_file_0188": {
+    "Tuple[List[Dict], List[Dict], List[Dict]]": 1,
+    "str": 1,
+    "Set[str]": 1
+  },
+  "function_extract_from_directory_0206": {
+    "str": 4,
+    "List[str]": 3,
+    "Set[str]": 1,
+    "bool": 1
+  },
+  "function_get_num_workers_0008": {
+    "int": 1
+  },
+  "function_pad_to_same_rows_0014": {
+    "List[np.ndarray]": 2,
+    "int": 1
+  },
+  "function_fuse_embeddings_0026": {
+    "Tuple[np.ndarray, np.ndarray, np.ndarray]": 1,
+    "List[np.ndarray]": 1,
+    "int": 4
+  },
+  "function_build_neighbor_graph_0053": {
+    "sparse.csr_matrix": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 1
+  },
+  "function_iterative_embedding_smoothing_0071": {
+    "np.ndarray": 2,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 3,
+    "float": 1
+  },
+  "function_get_git_commit_hash_0009": {
+    "Optional[str]": 1,
+    "str": 1
+  },
+  "function_get_git_commit_timestamp_0017": {
+    "Optional[datetime]": 1,
+    "str": 1
+  },
+  "function_get_file_git_timestamp_0024": {
+    "Optional[datetime]": 1,
+    "str": 2
+  },
+  "function_get_changed_files_since_commit_0026": {
+    "Set[str]": 1,
+    "str": 2
+  },
+  "function_get_all_python_files_0035": {
+    "Set[str]": 1,
+    "str": 1
+  },
+  "function_save_training_metadata_0036": {
+    "str": 1,
+    "Optional[str]": 1,
+    "Optional[datetime]": 1,
+    "Set[str]": 1
+  },
+  "function_load_training_metadata_0055": {
+    "Optional[Dict]": 1,
+    "str": 1
+  },
+  "function_get_changed_files_for_retraining_0060": {
+    "Set[str]": 1,
+    "str": 2
+  },
+  "function_extract_files_from_jsonl_0068": {
+    "Set[str]": 1,
+    "str": 1
+  },
+  "function_filter_jsonl_by_files_0075": {
+    "int": 1,
+    "str": 2,
+    "Set[str]": 1
+  },
+  "function_diagnose_gpu_support_0018": {
+    "dict": 1
+  },
+  "function_to_gpu_0044": {
+    "np.ndarray": 1
+  },
+  "function_to_cpu_0049": {
+    "np.ndarray": 1
+  },
+  "function_sparse_to_gpu_0054": {
+    "'cusp.spmatrix'": 1,
+    "sparse.spmatrix": 1
+  },
+  "function_sparse_to_cpu_0060": {
+    "sparse.spmatrix": 1
+  },
+  "function_svd_0062": {
+    "Tuple[np.ndarray, np.ndarray, np.ndarray]": 1,
+    "np.ndarray": 1,
+    "int": 1,
+    "Optional[int]": 1
+  },
+  "function_pca_0082": {
+    "Tuple[np.ndarray, np.ndarray, np.ndarray]": 1,
+    "np.ndarray": 1,
+    "int": 1,
+    "Optional[int]": 1
+  },
+  "function_norm_0108": {
+    "np.ndarray": 2,
+    "Optional[int]": 1,
+    "bool": 1
+  },
+  "function_get_num_workers_0013": {
+    "int": 1
+  },
+  "function_expand_call_graph_0019": {
+    "List[Tuple[int, int, str, float]]": 2,
+    "int": 2
+  },
+  "function_add_subtoken_edges_0061": {
+    "Tuple[List[Tuple[int, int, str, float]], int, Dict[str, int]]": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "Dict[str, int]": 1,
+    "Dict[str, List[str]]": 1,
+    "int": 1
+  },
+  "function_add_file_hierarchy_edges_0083": {
+    "List[Tuple[int, int, str, float]]": 2,
+    "Dict[str, int]": 1,
+    "Dict[str, Tuple[str, str, str]]": 1,
+    "Dict[int, str]": 1
+  },
+  "function_add_context_length_edges_0127": {
+    "List[Tuple[int, int, str, float]]": 2,
+    "List[Dict]": 1,
+    "float": 1
+  },
+  "function_add_context_window_edges_0150": {
+    "List[Tuple[int, int, str, float]]": 2,
+    "List[Dict]": 1,
+    "int": 2
+  },
+  "function_build_adjacency_matrix_0174": {
+    "sparse.csr_matrix": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 2
+  },
+  "function_compute_ppmi_0190": {
+    "sparse.csr_matrix": 2,
+    "float": 1
+  },
+  "function_reduce_dimensions_ppmi_0208": {
+    "Tuple[np.ndarray, np.ndarray]": 1,
+    "sparse.csr_matrix": 1,
+    "int": 3
+  },
+  "function_compute_graph_view_0235": {
+    "Tuple[np.ndarray, np.ndarray, int, Dict[str, int], List[Tuple[int, int, str, float]]]": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 6,
+    "Dict[str, int]": 1,
+    "Dict[str, List[str]]": 1,
+    "Dict[str, Tuple[str, str, str]]": 1,
+    "List[Dict]": 1,
+    "Dict[int, str]": 1,
+    "bool": 4
+  },
+  "var_default_excluded_keywords_0011": {
+    "Set[str]": 1
+  },
+  "function_load_0014": {
+    "str": 2
+  },
+  "function_load_retrieval_pipeline_0048": {
+    "str": 1
+  },
+  "function_expand_query_vector_0098": {
+    "np.ndarray": 1,
+    "str": 1
+  },
+  "function_get_context_length_0125": {
+    "Optional[int]": 1,
+    "str": 1
+  },
+  "function_compute_context_similarity_0132": {
+    "float": 1,
+    "Optional[int]": 2
+  },
+  "function_compute_hybrid_score_0142": {
+    "float": 2,
+    "np.ndarray": 2,
+    "str": 2
+  },
+  "function_query_0158": {
+    "List[Dict]": 1,
+    "str": 1,
+    "int": 1,
+    "Optional[bool]": 1
+  },
+  "function_query_multi_stage_0169": {
+    "List[Dict]": 1,
+    "str": 1,
+    "np.ndarray": 1,
+    "int": 1
+  },
+  "function_query_legacy_0184": {
+    "List[Dict]": 1,
+    "str": 1,
+    "np.ndarray": 1,
+    "int": 2
+  },
+  "function_search_by_keywords_0193": {
+    "List[Dict]": 1,
+    "str": 1,
+    "int": 1,
+    "Set[str]": 1
+  },
+  "function_get_type_tokens_0204": {
+    "List[str]": 1,
+    "str": 1
+  },
+  "function_is_generic_name_0009": {
+    "bool": 1,
+    "str": 2
+  },
+  "function_optimize_nodes_and_edges_0019": {
+    "Tuple[int, int, int]": 1,
+    "str": 6,
+    "float": 1,
+    "bool": 2,
+    "Set[str]": 1
+  },
+  "function_add_symbol_0024": {
+    "str": 2,
+    "List[str]": 2,
+    "Dict": 1
+  },
+  "function_search_0039": {
+    "List[Tuple[str, float]]": 2,
+    "List[str]": 1,
+    "int": 2,
+    "np.ndarray": 1,
+    "Optional[Set[str]]": 1
+  },
+  "var_symbol_scores_0042": {
+    "Dict[str, float]": 1
+  },
+  "function_save_0060": {
+    "str": 2
+  },
+  "function_load_0072": {
+    "str": 2,
+    "Optional[np.ndarray]": 1
+  },
+  "function_build_index_0084": {
+    "np.ndarray": 1,
+    "List[str]": 1
+  },
+  "function_compute_type_similarity_0144": {
+    "float": 1,
+    "str": 2
+  },
+  "function_score_0156": {
+    "float": 5
+  },
+  "function_compute_namespace_score_0168": {
+    "float": 1,
+    "str": 2
+  },
+  "function_rerank_0187": {
+    "List[Tuple[str, float]]": 4,
+    "np.ndarray": 1,
+    "int": 2,
+    "str": 1
+  },
+  "function_get_symbol_snippet_0196": {
+    "str": 2
+  },
+  "function_retrieve_0241": {
+    "List[Tuple[str, float]]": 1,
+    "str": 1,
+    "np.ndarray": 1,
+    "Optional[str]": 1
+  },
+  "function_stem_0008": {
+    "str": 2
+  },
+  "function_split_camel_case_0018": {
+    "List[str]": 1,
+    "str": 1
+  },
+  "function_split_snake_case_0031": {
+    "List[str]": 1,
+    "str": 1
+  },
+  "function_split_kebab_case_0033": {
+    "List[str]": 1,
+    "str": 1
+  },
+  "function_split_numeric_0034": {
+    "List[str]": 1,
+    "str": 1
+  },
+  "function_extract_subtokens_0043": {
+    "Tuple[List[str], List[str]]": 1,
+    "str": 1,
+    "bool": 1
+  },
+  "function_get_file_hierarchy_0070": {
+    "Tuple[str, str, str]": 1,
+    "str": 1
+  },
+  "function_estimate_training_time_0028": {
+    "str": 2,
+    "int": 18,
+    "Optional[int]": 2,
+    "bool": 1
+  },
+  "function_compute_default_dimensions_0086": {
+    "dict": 1,
+    "int": 2,
+    "Optional[int]": 1
+  },
+  "function_train_model_0092": {
+    "str": 3,
+    "Optional[str]": 1,
+    "Optional[int]": 4,
+    "int": 3,
+    "float": 1,
+    "bool": 2
+  },
+  "function_parse_composite_type_0016": {
+    "Tuple[List[str], List[str]]": 1,
+    "str": 1
+  },
+  "function_expand_type_semantics_0056": {
+    "Tuple[Dict[int, Dict[str, int]], Dict[str, int]]": 1,
+    "Dict[int, Dict[str, int]]": 1,
+    "Dict[str, int]": 1,
+    "int": 1
+  },
+  "function_build_type_matrix_0076": {
+    "Tuple[sparse.csr_matrix, Dict[str, int]]": 1,
+    "Dict[int, Dict[str, int]]": 1,
+    "Dict[str, int]": 1,
+    "int": 1,
+    "bool": 1
+  },
+  "function_compute_ppmi_types_0099": {
+    "sparse.csr_matrix": 2,
+    "float": 1
+  },
+  "function_compute_typed_view_0125": {
+    "Tuple[np.ndarray, np.ndarray, Dict[str, int]]": 1,
+    "Dict[int, Dict[str, int]]": 1,
+    "Dict[str, int]": 1,
+    "int": 4,
+    "bool": 1
+  },
+  "function_reduce_dimensions_ppmi_0128": {
+    "Tuple[np.ndarray, np.ndarray]": 1,
+    "sparse.csr_matrix": 1,
+    "int": 3
+  },
+  "function_get_num_workers_0011": {
+    "int": 2
+  },
+  "function_split_edges_0025": {
+    "Tuple[List[Tuple[int, int, str, float]], List[Tuple[int, int, str, float]]]": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "float": 1,
+    "int": 1
+  },
+  "function_sample_negatives_0045": {
+    "List[Tuple[int, int]]": 2,
+    "int": 3,
+    "List[Dict]": 1,
+    "Dict[str, Tuple[str, str, str]]": 1,
+    "Dict[int, str]": 1
+  },
+  "function_compute_calibrated_score_0077": {
+    "float": 2,
+    "np.ndarray": 2
+  },
+  "function_softmax_scores_0082": {
+    "np.ndarray": 2
+  },
+  "function_evaluate_tau_0020": {
+    "float": 2,
+    "np.ndarray": 1,
+    "List[Tuple[int, int]]": 2
+  },
+  "function_learn_temperature_0109": {
+    "float": 1,
+    "np.ndarray": 2,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 4,
+    "List[Dict]": 1,
+    "Dict[str, Tuple[str, str, str]]": 1,
+    "Dict[int, str]": 1
+  },
+  "function_get_num_workers_0012": {
+    "int": 2
+  },
+  "function_generate_random_walks_0055": {
+    "List[List[int]]": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 5,
+    "float": 2
+  },
+  "function_train_word2vec_0081": {
+    "KeyedVectors": 1,
+    "List[List[str]]": 1,
+    "int": 6
+  },
+  "function_compute_context_view_0090": {
+    "Tuple[np.ndarray, KeyedVectors]": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 6
+  },
+  "function_load_nodes_0012": {
+    "Tuple[Dict[str, int], List[Dict], Dict[str, List[str]], Dict[str, Tuple[str, str, str]]]": 1,
+    "str": 1
+  },
+  "function_load_edges_0055": {
+    "Tuple[List[Tuple[int, int, str, float]], int]": 1,
+    "str": 1,
+    "Dict[str, int]": 1
+  },
+  "function_load_types_0074": {
+    "Tuple[Dict[int, Dict[str, int]], Dict[str, int]]": 1,
+    "str": 1,
+    "Dict[str, int]": 1
+  },
+  "function_build_node_location_map_0088": {
+    "Dict[int, Tuple[str, int]]": 1,
+    "List[Dict]": 1
+  },
+  "function_get_num_workers_0009": {
+    "int": 1
+  },
+  "function_pad_to_same_rows_0015": {
+    "List[np.ndarray]": 2,
+    "int": 1
+  },
+  "function_fuse_embeddings_0027": {
+    "Tuple[np.ndarray, np.ndarray, np.ndarray]": 1,
+    "List[np.ndarray]": 1,
+    "int": 4
+  },
+  "function_build_neighbor_graph_0049": {
+    "sparse.csr_matrix": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 1
+  },
+  "function_iterative_embedding_smoothing_0067": {
+    "np.ndarray": 2,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 3,
+    "float": 1
+  },
+  "function_expand_call_graph_0018": {
+    "List[Tuple[int, int, str, float]]": 2,
+    "int": 2
+  },
+  "function_add_subtoken_edges_0060": {
+    "Tuple[List[Tuple[int, int, str, float]], int, Dict[str, int]]": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "Dict[str, int]": 1,
+    "Dict[str, List[str]]": 1,
+    "int": 1
+  },
+  "function_add_file_hierarchy_edges_0082": {
+    "List[Tuple[int, int, str, float]]": 2,
+    "Dict[str, int]": 1,
+    "Dict[str, Tuple[str, str, str]]": 1,
+    "Dict[int, str]": 1
+  },
+  "function_add_context_window_edges_0104": {
+    "List[Tuple[int, int, str, float]]": 2,
+    "List[Dict]": 1,
+    "int": 1
+  },
+  "function_build_adjacency_matrix_0138": {
+    "sparse.csr_matrix": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 1
+  },
+  "function_compute_ppmi_0152": {
+    "sparse.csr_matrix": 2,
+    "float": 1
+  },
+  "function_reduce_dimensions_ppmi_0170": {
+    "Tuple[np.ndarray, np.ndarray]": 1,
+    "sparse.csr_matrix": 1,
+    "int": 3
+  },
+  "function_compute_graph_view_0186": {
+    "Tuple[np.ndarray, np.ndarray, int, Dict[str, int], List[Tuple[int, int, str, float]]]": 1,
+    "List[Tuple[int, int, str, float]]": 1,
+    "int": 5,
+    "Dict[str, int]": 1,
+    "Dict[str, List[str]]": 1,
+    "Dict[str, Tuple[str, str, str]]": 1,
+    "List[Dict]": 1,
+    "Dict[int, str]": 1,
+    "bool": 4
+  },
+  "function_expand_query_vector_0043": {
+    "np.ndarray": 1,
+    "str": 1
+  },
+  "function_compute_hybrid_score_0070": {
+    "float": 2,
+    "np.ndarray": 2
+  },
+  "function_query_0080": {
+    "List[Dict]": 1,
+    "str": 1,
+    "int": 1
+  },
+  "function_stem_0009": {
+    "str": 2
+  },
+  "function_split_camel_case_0019": {
+    "List[str]": 1,
+    "str": 1
+  },
+  "function_split_snake_case_0032": {
+    "List[str]": 1,
+    "str": 1
+  },
+  "function_split_kebab_case_0034": {
+    "List[str]": 1,
+    "str": 1
+  },
+  "function_split_numeric_0035": {
+    "List[str]": 1,
+    "str": 1
+  },
+  "function_extract_subtokens_0044": {
+    "Tuple[List[str], List[str]]": 1,
+    "str": 1,
+    "bool": 1
+  },
+  "function_get_file_hierarchy_0071": {
+    "Tuple[str, str, str]": 1,
+    "str": 1
+  },
+  "function_compute_default_dimensions_0073": {
+    "dict": 1,
+    "int": 2,
+    "Optional[int]": 1
+  },
+  "function_train_model_0079": {
+    "str": 3,
+    "Optional[str]": 1,
+    "Optional[int]": 4,
+    "int": 3,
+    "float": 1
+  },
+  "function_parse_composite_type_0017": {
+    "Tuple[List[str], List[str]]": 1,
+    "str": 1
+  },
+  "function_expand_type_semantics_0057": {
+    "Tuple[Dict[int, Dict[str, int]], Dict[str, int]]": 1,
+    "Dict[int, Dict[str, int]]": 1,
+    "Dict[str, int]": 1,
+    "int": 1
+  },
+  "function_build_type_matrix_0077": {
+    "Tuple[sparse.csr_matrix, Dict[str, int]]": 1,
+    "Dict[int, Dict[str, int]]": 1,
+    "Dict[str, int]": 1,
+    "int": 1,
+    "bool": 1
+  },
+  "function_compute_ppmi_types_0100": {
+    "sparse.csr_matrix": 2,
+    "float": 1
+  },
+  "function_compute_typed_view_0126": {
+    "Tuple[np.ndarray, np.ndarray, Dict[str, int]]": 1,
+    "Dict[int, Dict[str, int]]": 1,
+    "Dict[str, int]": 1,
+    "int": 4,
+    "bool": 1
+  },
+  "function_reduce_dimensions_ppmi_0129": {
+    "Tuple[np.ndarray, np.ndarray]": 1,
+    "sparse.csr_matrix": 1,
+    "int": 3
+  }
+}

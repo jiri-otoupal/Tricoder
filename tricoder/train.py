@@ -234,10 +234,24 @@ def train_model(nodes_path: str,
         fast_mode: if True, reduces walk parameters for faster training (lower quality)
         use_gpu: if True, attempt GPU acceleration (requires CuPy and CUDA-capable GPU)
     """
+    # Check for Numba availability
+    try:
+        import numba
+        NUMBA_AVAILABLE = True
+        NUMBA_VERSION = numba.__version__
+    except ImportError:
+        NUMBA_AVAILABLE = False
+        NUMBA_VERSION = None
+    
     # Initialize GPU accelerator if requested
     gpu_accelerator = None
     if use_gpu:
-        from .gpu_utils import GPUAccelerator, TORCH_AVAILABLE, TORCH_VERSION, diagnose_gpu_support
+        from .gpu_utils import GPUAccelerator, TORCH_AVAILABLE, TORCH_VERSION, CUPY_AVAILABLE, diagnose_gpu_support
+        # Import torch if available (for diagnostics)
+        try:
+            import torch
+        except ImportError:
+            torch = None
         import platform
         
         is_mac = platform.system() == 'Darwin'
@@ -273,7 +287,76 @@ def train_model(nodes_path: str,
                         console.print(f"[yellow]   Requirements: macOS 12.3+, Apple Silicon (M1/M2/M3), PyTorch 1.12+[/yellow]")
                     console.print(f"[yellow]   Using CPU.[/yellow]\n")
                 else:
-                    console.print(f"[yellow]⚠ GPU acceleration requested but not available, using CPU[/yellow]\n")
+                    # Windows/Linux - provide diagnostics
+                    from .gpu_utils import CUPY_AVAILABLE
+                    import platform
+                    is_windows = platform.system() == 'Windows'
+                    diagnostics = diagnose_gpu_support()
+                    
+                    if is_windows:
+                        # Windows: print exact installation instructions, no decorations
+                        print("\nGPU acceleration requested but not available.")
+                        
+                        # Check if PyTorch CUDA is available but failed due to architecture incompatibility
+                        cuda_available_but_failed = False
+                        if TORCH_AVAILABLE:
+                            try:
+                                import torch
+                                if torch.cuda.is_available():
+                                    # PyTorch sees CUDA but initialization might have failed
+                                    cuda_available_but_failed = True
+                            except:
+                                pass
+                        
+                        if cuda_available_but_failed:
+                            print("PyTorch detected CUDA but GPU initialization failed.")
+                            print("If you see a 'CUDA capability sm_XXX is not compatible' error,")
+                            print("your GPU architecture may not be supported by stable PyTorch releases.")
+                            print("\nTry installing PyTorch nightly build (supports newer GPUs):")
+                            print("  pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu124")
+                            print("\nOr install stable PyTorch with CUDA 12.4:")
+                            print("  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124")
+                            print("\nOr CUDA 12.1:")
+                            print("  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121")
+                        else:
+                            print("To enable GPU acceleration on Windows, install PyTorch with CUDA:")
+                            print("  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124")
+                            print("\nOr if you have CUDA 12.1:")
+                            print("  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121")
+                        
+                        print("\nAfter installation, restart training with --use-gpu")
+                        print("Continuing with CPU in 5 seconds...")
+                        time.sleep(5)
+                        print()
+                    else:
+                        # Linux - provide diagnostics
+                        console.print(f"[yellow]⚠ GPU acceleration requested but not available, using CPU[/yellow]")
+                        
+                        if not CUPY_AVAILABLE and not TORCH_AVAILABLE:
+                            console.print(f"[yellow]   Neither CuPy nor PyTorch is installed.[/yellow]")
+                            console.print(f"[yellow]   Install CuPy: pip install cupy-cuda12x (or appropriate CUDA version)[/yellow]")
+                            console.print(f"[yellow]   Or install PyTorch with CUDA: pip install torch --index-url https://download.pytorch.org/whl/cu121[/yellow]")
+                        elif CUPY_AVAILABLE and not TORCH_AVAILABLE:
+                            console.print(f"[yellow]   CuPy CUDA failed and PyTorch is not installed.[/yellow]")
+                            console.print(f"[yellow]   Install PyTorch with CUDA: pip install torch --index-url https://download.pytorch.org/whl/cu121[/yellow]")
+                        elif TORCH_AVAILABLE:
+                            # Import torch conditionally
+                            try:
+                                import torch
+                                if torch.cuda.is_available():
+                                    console.print(f"[yellow]   PyTorch CUDA is available but initialization failed.[/yellow]")
+                                    console.print(f"[yellow]   Check CUDA drivers: nvidia-smi[/yellow]")
+                                else:
+                                    console.print(f"[yellow]   PyTorch CUDA is not available.[/yellow]")
+                                    console.print(f"[yellow]   Check CUDA installation and PyTorch CUDA compatibility.[/yellow]")
+                                    console.print(f"[yellow]   Install PyTorch with CUDA: pip install torch --index-url https://download.pytorch.org/whl/cu121[/yellow]")
+                            except ImportError:
+                                console.print(f"[yellow]   PyTorch is not available.[/yellow]")
+                                console.print(f"[yellow]   Install PyTorch with CUDA: pip install torch --index-url https://download.pytorch.org/whl/cu121[/yellow]")
+                        else:
+                            console.print(f"[yellow]   Check CUDA drivers: nvidia-smi[/yellow]")
+                        
+                        console.print()
     
     # Set random seeds
     np.random.seed(random_state)
@@ -282,6 +365,21 @@ def train_model(nodes_path: str,
     start_time = time.time()
 
     console.print("\n[bold cyan]TriVector Code Intelligence - Training Pipeline[/bold cyan]\n")
+    
+    # Display acceleration status
+    acceleration_status = []
+    if gpu_accelerator and gpu_accelerator.use_gpu:
+        backend_name = "CUDA (NVIDIA)" if gpu_accelerator.device_type == 'cuda' else "MPS (Mac)"
+        acceleration_status.append(f"[bold green]GPU: {backend_name}[/bold green]")
+    else:
+        acceleration_status.append("[dim]GPU: Not available[/dim]")
+    
+    if NUMBA_AVAILABLE:
+        acceleration_status.append(f"[bold green]Numba: {NUMBA_VERSION}[/bold green]")
+    else:
+        acceleration_status.append("[dim]Numba: Not installed (install with: pip install numba)[/dim]")
+    
+    console.print(f"  {' | '.join(acceleration_status)}\n")
 
     with Progress(
             SpinnerColumn(),
@@ -295,6 +393,7 @@ def train_model(nodes_path: str,
         node_to_idx, node_metadata, node_subtokens, node_file_info = load_nodes(nodes_path)
         num_nodes = len(node_to_idx)
         progress.update(task1, completed=True)
+        progress.remove_task(task1)
         console.print(f"  [dim]✓ Loaded {num_nodes:,} nodes[/dim]")
         
         if num_nodes == 0:
@@ -304,6 +403,7 @@ def train_model(nodes_path: str,
         edges, _ = load_edges(edges_path, node_to_idx)
         num_edges = len(edges)
         progress.update(task1b, completed=True)
+        progress.remove_task(task1b)
         console.print(f"  [dim]✓ Loaded {num_edges:,} edges[/dim]")
 
         if num_edges == 0:
@@ -318,6 +418,7 @@ def train_model(nodes_path: str,
             node_types, type_to_idx = load_types(types_path, node_to_idx)
             num_types = len(type_to_idx)
             progress.update(task2, completed=True)
+            progress.remove_task(task2)
             console.print(f"  [dim]✓ Loaded {num_types:,} type tokens[/dim]")
         else:
             console.print(f"  [dim]⊘ No types file provided[/dim]")
@@ -397,16 +498,28 @@ def train_model(nodes_path: str,
         # Split edges for calibration
         # In fast mode, use less validation data for faster calibration
         calibration_train_ratio = train_ratio if not fast_mode else min(0.9, train_ratio + 0.05)
-        task3 = progress.add_task("[cyan]Splitting edges for training/validation...", total=None)
+        console.print(f"\n[bold cyan]Preparing Training Data[/bold cyan]")
         train_edges, val_edges = split_edges(edges, calibration_train_ratio, random_state)
-        progress.update(task3, completed=True)
         console.print(f"  [dim]✓ Split edges: {len(train_edges):,} training, {len(val_edges):,} validation "
                       f"({calibration_train_ratio:.1%}/{1-calibration_train_ratio:.1%})[/dim]")
 
-        # Get number of workers (all cores - 1, but use all cores on Windows for better performance)
+        # Get number of workers
+        # When GPU is used, disable multiprocessing (n_jobs=1) to avoid GPU contention
+        # GPU operations are already parallelized and multiple processes can cause issues
         from multiprocessing import cpu_count
         import platform
-        if platform.system() == 'Windows':
+        
+        # Check if GPU is actually being used
+        gpu_active = (gpu_accelerator is not None and 
+                     hasattr(gpu_accelerator, 'use_gpu') and 
+                     gpu_accelerator.use_gpu)
+        
+        if gpu_active:
+            # GPU mode: use single process to avoid GPU contention
+            # GPU operations are already parallelized internally
+            n_jobs = 1
+            console.print(f"  [dim]GPU mode: using single process (multiprocessing disabled to avoid GPU contention)[/dim]")
+        elif platform.system() == 'Windows':
             # On Windows, use all cores since spawn method handles it well
             n_jobs = cpu_count()
         else:
@@ -434,14 +547,65 @@ def train_model(nodes_path: str,
         idx_to_node = {idx: node_id for node_id, idx in node_to_idx.items()}
 
         # Step 1: Compute graph view with all enhancements
-        # This task runs completely and sequentially before moving to the next one
-        # This ensures full parallelization can be used for graph view operations
         console.print(f"\n[bold cyan]Step 1/5: Graph View[/bold cyan]")
         console.print(f"  [dim]Computing graph embeddings (dim={graph_dim}) with {n_jobs} workers...[/dim]")
         
-        task4a = progress.add_task("[cyan]  → Expanding call graph...", total=None)
-        task4 = progress.add_task(
-            f"[cyan]  → Building adjacency matrix & computing PPMI...", total=None)
+        # Count nodes/files for determinate progress
+        # Count unique source nodes in call edges (these are the nodes we'll expand from)
+        call_source_nodes = len(set(
+            e[0] for e in train_edges if len(e) >= 3 and e[2] == "calls"
+        ))
+        # Apply same limits as expand_call_graph to get accurate count
+        from .graph_config import (
+            CALL_GRAPH_MAX_NODES_SMALL, CALL_GRAPH_MAX_NODES_MEDIUM, CALL_GRAPH_MAX_NODES_LARGE,
+            SIZE_THRESHOLD_SMALL, SIZE_THRESHOLD_MEDIUM
+        )
+        if num_nodes < SIZE_THRESHOLD_SMALL:
+            max_nodes_to_expand = min(call_source_nodes, CALL_GRAPH_MAX_NODES_SMALL)
+        elif num_nodes < SIZE_THRESHOLD_MEDIUM:
+            max_nodes_to_expand = min(call_source_nodes, max(CALL_GRAPH_MAX_NODES_MEDIUM, num_nodes // 20))
+        else:
+            max_nodes_to_expand = min(call_source_nodes, max(CALL_GRAPH_MAX_NODES_LARGE, num_nodes // 10))
+        
+        files_with_nodes = len(set(
+            node_meta.get('meta', {}).get('file', '') 
+            for node_meta in node_metadata 
+            if isinstance(node_meta.get('meta'), dict) and node_meta.get('meta', {}).get('file')
+        )) if node_metadata else 0
+        
+        task_call_graph = progress.add_task("[cyan]Expanding call graph...", total=max(1, max_nodes_to_expand))
+        task_context = progress.add_task("[cyan]Adding context window edges...", total=max(1, files_with_nodes))
+        
+        # Count nodes for subtoken progress
+        nodes_with_subtokens = len([nid for nid in node_subtokens.keys() if nid in node_to_idx]) if node_subtokens else 0
+        
+        # Count directories/packages for hierarchy progress
+        dirs_and_packages = 0
+        if node_file_info:
+            dirs = set()
+            packages = set()
+            for file_info in node_file_info.values():
+                if isinstance(file_info, tuple) and len(file_info) >= 3:
+                    dirs.add(file_info[1])  # directory_path
+                    packages.add(file_info[2])  # top_level_package
+            dirs_and_packages = len(dirs) + len(packages)
+        
+        task_subtoken = progress.add_task("[cyan]Adding subtoken edges...", total=max(1, nodes_with_subtokens))
+        task_hierarchy = progress.add_task("[cyan]Adding hierarchy edges...", total=max(1, dirs_and_packages * 2))
+        
+        progress_tasks = {
+            'call_graph': task_call_graph,
+            'context_window': task_context,
+            'subtoken': task_subtoken,
+            'hierarchy': task_hierarchy,
+            'progress': progress
+        }
+        
+        console.print(f"  [dim]  → Expanding call graph (max depth: {call_graph_depth}, ~{max_nodes_to_expand} nodes)...[/dim]")
+        console.print(f"  [dim]  → Adding context window edges (window: {context_window_size}, ~{files_with_nodes} files)...[/dim]")
+        console.print(f"  [dim]  → Adding subtoken nodes and edges...[/dim]")
+        console.print(f"  [dim]  → Adding file hierarchy edges...[/dim]")
+        
         X_graph, svd_components_graph, final_num_nodes, subtoken_to_idx, expanded_edges = compute_graph_view(
             train_edges, num_nodes, graph_dim, random_state, n_jobs=n_jobs,
             node_to_idx=node_to_idx,
@@ -455,10 +619,28 @@ def train_model(nodes_path: str,
             add_context=True,
             context_window=context_window_size,
             max_depth=call_graph_depth,
-            gpu_accelerator=gpu_accelerator
+            gpu_accelerator=gpu_accelerator,
+            progress_tasks=progress_tasks
         )
-        progress.update(task4a, completed=True)
-        progress.update(task4, completed=True)
+        progress.update(task_call_graph, completed=True)
+        progress.remove_task(task_call_graph)
+        progress.update(task_context, completed=True)
+        progress.remove_task(task_context)
+        progress.update(task_subtoken, completed=True)
+        progress.remove_task(task_subtoken)
+        progress.update(task_hierarchy, completed=True)
+        progress.remove_task(task_hierarchy)
+        
+        task_graph2 = progress.add_task("[cyan]Building adjacency matrix & computing PPMI...", total=None)
+        console.print(f"  [dim]  → Building adjacency matrix from {len(expanded_edges):,} edges...[/dim]")
+        console.print(f"  [dim]  → Computing PPMI matrix...[/dim]")
+        progress.update(task_graph2, completed=True)
+        progress.remove_task(task_graph2)
+        
+        task_graph3 = progress.add_task("[cyan]Reducing dimensions with SVD...", total=None)
+        console.print(f"  [dim]  → Applying TruncatedSVD (dim={graph_dim})...[/dim]")
+        progress.update(task_graph3, completed=True)
+        progress.remove_task(task_graph3)
         
         num_subtokens = len(subtoken_to_idx) if subtoken_to_idx else 0
         expanded_edges_count = len(expanded_edges)
@@ -474,15 +656,29 @@ def train_model(nodes_path: str,
         console.print(f"  [dim]Computing context embeddings (dim={context_dim}) with {n_jobs} workers...[/dim]")
         console.print(f"  [dim]Parameters: {num_walks} walks/node, length={walk_length}[/dim]")
         
-        task5a = progress.add_task("[cyan]  → Generating random walks...", total=None)
-        task5 = progress.add_task(
-            f"[cyan]  → Training Word2Vec model...", total=None)
+        # Count nodes with edges for determinate progress
+        nodes_with_edges = len([i for i in range(final_num_nodes) 
+                                if any(e[0] == i or e[1] == i for e in expanded_edges)])
+        
+        task_context1 = progress.add_task("[cyan]Generating random walks...", total=max(1, nodes_with_edges))
+        console.print(f"  [dim]  → Generating {num_walks} walks per node (total: ~{final_num_nodes * num_walks:,} walks)...[/dim]")
+        
+        # Create progress callback for random walks
+        def walk_progress_cb(current, total):
+            progress.update(task_context1, completed=current, total=total)
+        
         # Use expanded_edges which includes subtokens and all enhancements
         X_w2v, word2vec_kv = compute_context_view(
-            expanded_edges, final_num_nodes, context_dim, num_walks, walk_length, random_state, n_jobs=n_jobs
+            expanded_edges, final_num_nodes, context_dim, num_walks, walk_length, random_state, 
+            n_jobs=n_jobs, progress_callback=walk_progress_cb
         )
-        progress.update(task5a, completed=True)
-        progress.update(task5, completed=True)
+        progress.update(task_context1, completed=True)
+        progress.remove_task(task_context1)
+        
+        task_context2 = progress.add_task("[cyan]Training Word2Vec model...", total=None)
+        console.print(f"  [dim]  → Training SkipGram model (window={7 if not fast_mode else 5}, epochs={3 if not fast_mode else 2})...[/dim]")
+        progress.update(task_context2, completed=True)
+        progress.remove_task(task_context2)
         
         total_walks = final_num_nodes * num_walks
         console.print(f"  [dim]✓ Generated {total_walks:,} random walks[/dim]")
@@ -507,7 +703,9 @@ def train_model(nodes_path: str,
                 expand_types=True, gpu_accelerator=gpu_accelerator
             )
             progress.update(task6a, completed=True)
+            progress.remove_task(task6a)
             progress.update(task6, completed=True)
+            progress.remove_task(task6)
             
             final_type_count = len(final_type_to_idx) if final_type_to_idx else num_types
             console.print(f"  [dim]✓ Expanded to {final_type_count:,} type tokens ({num_types:,} original)[/dim]")
@@ -538,6 +736,7 @@ def train_model(nodes_path: str,
             gpu_accelerator=gpu_accelerator
         )
         progress.update(task7a, completed=True)
+        progress.remove_task(task7a)
 
         # Store embeddings before normalization for mean_norm computation
         E_before_norm = E.copy()
@@ -546,6 +745,7 @@ def train_model(nodes_path: str,
         task7b = progress.add_task("[cyan]  → Normalizing embeddings...", total=None)
         mean_norm = float(np.mean(np.linalg.norm(E_before_norm, axis=1)))
         progress.update(task7b, completed=True)
+        progress.remove_task(task7b)
         
         console.print(f"  [dim]✓ Fused embeddings: {E.shape} (reduced from {total_input_dim}D)[/dim]")
         console.print(f"  [dim]✓ Mean norm: {mean_norm:.4f}[/dim]")
@@ -553,15 +753,16 @@ def train_model(nodes_path: str,
         # Apply iterative embedding smoothing (diffusion)
         # This runs after fusion completes
         if smoothing_iterations > 0:
-            console.print(f"  [dim]Applying smoothing (iterations={smoothing_iterations}, beta=0.35)...[/dim]")
-            task7c = progress.add_task(f"[cyan]  → Smoothing embeddings via diffusion...", total=None)
+            task_fusion3 = progress.add_task(f"[cyan]Smoothing embeddings via diffusion...", total=None)
+            console.print(f"  [dim]  → Applying {smoothing_iterations} iteration(s) of embedding smoothing...[/dim]")
+            console.print(f"  [dim]  → Averaging embeddings with neighbors in graph (beta=0.35)...[/dim]")
             E = iterative_embedding_smoothing(
                 E, expanded_edges, final_num_nodes,
                 num_iterations=smoothing_iterations, beta=0.35, random_state=random_state,
                 gpu_accelerator=gpu_accelerator
             )
-            progress.update(task7c, completed=True)
-            console.print(f"  [dim]✓ Applied {smoothing_iterations} smoothing iteration(s)[/dim]")
+            progress.update(task_fusion3, completed=True)
+            progress.remove_task(task_fusion3)
         # Smoothing is now complete - all resources released before next task
 
         # Step 5: Learn temperature with improved negative sampling
@@ -585,22 +786,74 @@ def train_model(nodes_path: str,
             idx_to_node=idx_to_node
         )
         progress.update(task8a, completed=True)
+        progress.remove_task(task8a)
         console.print(f"  [dim]✓ Learned optimal temperature: τ = {tau:.6f}[/dim]")
 
-        # Build ANN index (only for original nodes, not subtokens)
-        console.print(f"\n[bold cyan]Building ANN Index[/bold cyan]")
-        console.print(f"  [dim]Building approximate nearest neighbor index ({ann_trees} trees)...[/dim]")
-        task9a = progress.add_task("[cyan]  → Adding nodes to index...", total=None)
-        ann_index = AnnoyIndex(final_dim, 'angular')
-        # Only index original nodes (not subtokens)
-        for i in range(num_nodes):
-            ann_index.add_item(i, E[i])
-        progress.update(task9a, completed=True)
+        # Build retrieval indices (multi-stage pipeline + legacy ANN)
+        console.print(f"\n[bold cyan]Building Retrieval Indices[/bold cyan]")
         
-        task9b = progress.add_task("[cyan]  → Building index trees...", total=None)
-        ann_index.build(ann_trees)  # Reduced trees in fast mode
-        progress.update(task9b, completed=True)
-        console.print(f"  [dim]✓ Built ANN index with {ann_trees} trees for {num_nodes:,} nodes[/dim]")
+        # Build lexical index
+        task_idx1 = progress.add_task("[cyan]Building lexical index...", total=None)
+        console.print(f"  [dim]  → Indexing {num_nodes:,} symbols (names, subtokens, types)...[/dim]")
+        from .retrieval import LexicalIndex
+        lexical_index = LexicalIndex()
+        for node_meta in node_metadata:
+            node_id = node_meta['id']
+            name = node_meta.get('name', '')
+            meta = node_meta.get('meta', {})
+            subtokens = meta.get('_normalized_subtokens', [])
+            
+            # Get type tokens
+            type_tokens = []
+            if node_types is not None:
+                node_idx = node_to_idx.get(node_id)
+                if node_idx is not None and node_idx in node_types:
+                    type_tokens = list(node_types[node_idx].keys())
+            
+            lexical_index.add_symbol(node_id, name, subtokens, type_tokens, meta)
+        progress.update(task_idx1, completed=True)
+        progress.remove_task(task_idx1)
+        console.print(f"  [dim]✓ Built lexical index with {len(lexical_index.token_to_symbols):,} tokens[/dim]")
+        
+        # Build dense retriever (FAISS or Annoy fallback)
+        task_idx2 = progress.add_task("[cyan]Building dense index (FAISS/Annoy)...", total=None)
+        from .retrieval import DenseRetriever
+        
+        # Prepare node IDs list (only original nodes, not subtokens)
+        node_ids_list = [node_meta['id'] for node_meta in node_metadata[:num_nodes]]
+        embeddings_for_index = E[:num_nodes]  # Only original nodes
+        
+        # Build dense retriever (FAISS by default, Annoy fallback)
+        console.print(f"  [dim]  → Building FAISS HNSW index for {num_nodes:,} nodes (dim={final_dim})...[/dim]")
+        dense_retriever = DenseRetriever(embedding_dim=final_dim)  # use_faiss=True is default
+        dense_retriever.build_index(embeddings_for_index, node_ids_list)
+        progress.update(task_idx2, completed=True)
+        progress.remove_task(task_idx2)
+        console.print(f"  [dim]✓ Built dense retriever (FAISS: {dense_retriever.use_faiss})[/dim]")
+        
+        # Build legacy Annoy index only if FAISS is not available (for backward compatibility)
+        ann_index = None
+        if not dense_retriever.use_faiss:
+            task_idx3 = progress.add_task("[cyan]Building legacy ANN index...", total=None)
+            console.print(f"  [dim]  → Building Annoy index with {ann_trees} trees (FAISS not available)...[/dim]")
+            ann_index = AnnoyIndex(final_dim, 'angular')
+            for i in range(num_nodes):
+                ann_index.add_item(i, E[i])
+            ann_index.build(ann_trees)
+            progress.update(task_idx3, completed=True)
+            progress.remove_task(task_idx3)
+            console.print(f"  [dim]✓ Built legacy ANN index with {ann_trees} trees for {num_nodes:,} nodes[/dim]")
+        else:
+            # Still build minimal Annoy index for backward compatibility with old models
+            task_idx3 = progress.add_task("[cyan]Building legacy ANN index (backward compatibility)...", total=None)
+            console.print(f"  [dim]  → Building minimal Annoy index for backward compatibility...[/dim]")
+            ann_index = AnnoyIndex(final_dim, 'angular')
+            for i in range(num_nodes):
+                ann_index.add_item(i, E[i])
+            ann_index.build(min(ann_trees, 10))  # Use fewer trees since FAISS is primary
+            progress.update(task_idx3, completed=True)
+            progress.remove_task(task_idx3)
+            console.print(f"  [dim]✓ Built legacy ANN index (backward compatibility)[/dim]")
 
         # Save model
         console.print(f"\n[bold cyan]Saving Model[/bold cyan]")
@@ -614,9 +867,10 @@ def train_model(nodes_path: str,
         if E.size == 0:
             raise ValueError("Embeddings (E) is empty - cannot save model")
         
-        task10a = progress.add_task("[cyan]  → Saving embeddings & components...", total=None)
         os.makedirs(output_dir, exist_ok=True)
 
+        task_save1 = progress.add_task("[cyan]Saving embeddings & components...", total=None)
+        console.print(f"  [dim]  → Saving embeddings ({E.shape})...[/dim]")
         # Save embeddings (only original nodes for query, but keep full for future use)
         # Save full embeddings including subtokens
         embeddings_path = os.path.join(output_dir, 'embeddings.npy')
@@ -633,9 +887,11 @@ def train_model(nodes_path: str,
         except Exception as e:
             console.print(f"[bold red]Error saving embeddings: {e}[/bold red]")
             raise
-        progress.update(task10a, completed=True)
+        progress.update(task_save1, completed=True)
+        progress.remove_task(task_save1)
         
-        task10b = progress.add_task("[cyan]  → Saving metadata & indices...", total=None)
+        task_save2 = progress.add_task("[cyan]Saving metadata & indices...", total=None)
+        console.print(f"  [dim]  → Saving metadata, temperature, PCA components...[/dim]")
         # Save temperature
         np.save(os.path.join(output_dir, 'tau.npy'), np.array(tau))
 
@@ -688,9 +944,19 @@ def train_model(nodes_path: str,
 
         # Save Word2Vec
         word2vec_kv.save(os.path.join(output_dir, 'word2vec.kv'))
+        
+        # Save retrieval indices
+        task_save3 = progress.add_task("[cyan]Saving retrieval indices...", total=None)
+        console.print(f"  [dim]  → Saving lexical index...[/dim]")
+        lexical_index.save(os.path.join(output_dir, 'lexical_index.json'))
+        console.print(f"  [dim]  → Saving dense index (FAISS/Annoy)...[/dim]")
+        dense_retriever.save(os.path.join(output_dir, 'dense_index'))
+        progress.update(task_save3, completed=True)
+        progress.remove_task(task_save3)
 
-        # Save ANN index
-        ann_index.save(os.path.join(output_dir, 'ann_index.ann'))
+        # Save ANN index (if built)
+        if ann_index is not None:
+            ann_index.save(os.path.join(output_dir, 'ann_index.ann'))
 
         # Save type token map (use final expanded version)
         if final_type_to_idx is not None:
@@ -700,7 +966,8 @@ def train_model(nodes_path: str,
             with open(os.path.join(output_dir, 'type_token_map.json'), 'w') as f:
                 json.dump(type_to_idx, f, indent=2)
 
-        progress.update(task10b, completed=True)
+        progress.update(task_save2, completed=True)
+        progress.remove_task(task_save2)
         
         # Verify critical files were saved
         critical_files = ['embeddings.npy', 'tau.npy', 'metadata.json', 'ann_index.ann']

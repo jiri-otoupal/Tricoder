@@ -110,7 +110,10 @@ class GPUAccelerator:
                 self.device_type = 'cuda'
                 self.backend = 'cupy'
                 return
-            except Exception:
+            except Exception as e:
+                # CuPy failed, will try PyTorch CUDA as fallback
+                if use_gpu:
+                    warnings.warn(f"CuPy CUDA initialization failed: {e}. Trying PyTorch CUDA...")
                 pass
         
         # Try PyTorch MPS (Mac GPU)
@@ -134,22 +137,53 @@ class GPUAccelerator:
             except Exception as e:
                 warnings.warn(f"MPS GPU acceleration failed: {e}. Falling back to CPU.")
         
-        # Try PyTorch CUDA as fallback (if available)
-        if TORCH_AVAILABLE and torch.cuda.is_available():
+        # Try PyTorch CUDA as fallback (if available) - works on Windows/Linux
+        if TORCH_AVAILABLE:
             try:
-                self.device = torch.device('cuda')
-                test_tensor = torch.tensor([1.0, 2.0, 3.0], device=self.device)
-                _ = test_tensor * 2
-                self.use_gpu = True
-                self.device_type = 'cuda'
-                self.backend = 'torch'
-                return
-            except Exception:
-                pass
+                if torch.cuda.is_available():
+                    self.device = torch.device('cuda')
+                    test_tensor = torch.tensor([1.0, 2.0, 3.0], device=self.device)
+                    _ = test_tensor * 2
+                    self.use_gpu = True
+                    self.device_type = 'cuda'
+                    self.backend = 'torch'
+                    return
+                else:
+                    if use_gpu and not is_mac:
+                        warnings.warn("PyTorch CUDA is not available. Make sure CUDA drivers and PyTorch with CUDA support are installed.")
+            except RuntimeError as e:
+                # Catch CUDA capability errors (e.g., sm_120 not supported)
+                error_msg = str(e)
+                if "CUDA capability" in error_msg and "not compatible" in error_msg:
+                    if use_gpu:
+                        warnings.warn(f"GPU architecture not supported by current PyTorch: {error_msg}. "
+                                    "Try installing PyTorch nightly build for newer GPU support: "
+                                    "pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu124")
+                else:
+                    if use_gpu:
+                        warnings.warn(f"PyTorch CUDA initialization failed: {e}")
+            except Exception as e:
+                if use_gpu:
+                    warnings.warn(f"PyTorch CUDA initialization failed: {e}")
         
         # No GPU available
         if use_gpu:
-            warnings.warn("GPU acceleration requested but no GPU backend available. Falling back to CPU.")
+            # Provide helpful diagnostics
+            if not is_mac:
+                # Windows/Linux - check what's available
+                if not CUPY_AVAILABLE and not TORCH_AVAILABLE:
+                    warnings.warn("GPU acceleration requested but neither CuPy nor PyTorch is installed. "
+                                "Install CuPy with: pip install cupy-cuda12x (or appropriate CUDA version)")
+                elif CUPY_AVAILABLE and not TORCH_AVAILABLE:
+                    warnings.warn("GPU acceleration requested but CuPy CUDA failed and PyTorch is not installed. "
+                                "Install PyTorch with CUDA: pip install torch --index-url https://download.pytorch.org/whl/cu121")
+                elif TORCH_AVAILABLE and not torch.cuda.is_available():
+                    warnings.warn("GPU acceleration requested but PyTorch reports CUDA is not available. "
+                                "Check CUDA installation and PyTorch CUDA compatibility.")
+                else:
+                    warnings.warn("GPU acceleration requested but no GPU backend available. Falling back to CPU.")
+            else:
+                warnings.warn("GPU acceleration requested but no GPU backend available. Falling back to CPU.")
     
     def to_gpu(self, arr: np.ndarray):
         """Convert numpy array to GPU array."""

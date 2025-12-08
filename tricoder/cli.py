@@ -170,7 +170,9 @@ def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim
 @click.option('--interactive', '-i', is_flag=True, help='Interactive mode')
 @click.option('--no-recursive', '--no-discover', is_flag=True, default=False,
               help='Disable recursive model discovery. Only use the base model directory directly.')
-def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive, no_recursive):
+@click.option('--full', '-f', is_flag=True, default=False,
+              help='Show full code context (from start to end line) for each result')
+def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive, no_recursive, full):
     """Query the TriCoder model for similar symbols."""
     # Discover models if not specified
     if model_dir is None:
@@ -266,18 +268,56 @@ def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive, no_
                      f"({len(exclude_keywords)} user-added)[/dim]\n")
 
     if interactive:
-        interactive_mode(model, excluded_keywords_set)
+        interactive_mode(model, excluded_keywords_set, show_full=full)
     elif symbol:
-        display_results(model, symbol, top_k)
+        display_results(model, symbol, top_k, show_full=full)
     elif keywords:
         # Parse keywords (handle quoted strings)
         keywords_parsed = parse_keywords(keywords)
-        search_and_display_results(model, keywords_parsed, top_k, excluded_keywords_set)
+        search_and_display_results(model, keywords_parsed, top_k, excluded_keywords_set, show_full=full)
     else:
         console.print("[bold yellow]Please provide --symbol, --keywords, or use --interactive mode[/bold yellow]")
 
 
-def display_results(model, symbol_id, top_k):
+def get_code_snippet(file_path: str, start_line: int, end_line: int = None) -> str:
+    """
+    Extract code snippet from file between start_line and end_line.
+    
+    Args:
+        file_path: path to the file
+        start_line: starting line number (1-indexed)
+        end_line: ending line number (1-indexed), if None uses start_line
+    
+    Returns:
+        Code snippet as string, or error message if file cannot be read
+    """
+    if not file_path or not os.path.exists(file_path):
+        return "[dim]File not found[/dim]"
+    
+    if start_line is None or start_line < 1:
+        return "[dim]Invalid line number[/dim]"
+    
+    if end_line is None:
+        end_line = start_line
+    
+    try:
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            lines = f.readlines()
+        
+        # Adjust for 1-indexed line numbers
+        start_idx = max(0, start_line - 1)
+        end_idx = min(len(lines), end_line)
+        
+        if start_idx >= len(lines):
+            return "[dim]Line number out of range[/dim]"
+        
+        snippet_lines = lines[start_idx:end_idx]
+        return ''.join(snippet_lines).rstrip()
+    except Exception as e:
+        return f"[dim]Error reading file: {e}[/dim]"
+
+
+def display_results(model, symbol_id, top_k, show_full: bool = False):
     """Display query results in a formatted table."""
     results = model.query(symbol_id, top_k)
 
@@ -311,6 +351,7 @@ def display_results(model, symbol_id, top_k):
         meta_dict = meta.get('meta', {}) if isinstance(meta.get('meta'), dict) else {}
         file_path = meta_dict.get('file', '') if meta_dict.get('file') else ''
         lineno = meta_dict.get('lineno', None)
+        end_lineno = meta_dict.get('end_lineno', None)
 
         console.print(f"[dim]{idx}.[/dim] [cyan]{result['symbol']:15}[/cyan] "
                       f"[green]Score: {result['score']:8.4f}[/green] "
@@ -319,9 +360,23 @@ def display_results(model, symbol_id, top_k):
                       f"[white]{meta.get('name', ''):30}[/white]")
         if file_path:
             if lineno is not None and lineno >= 0:
-                console.print(f"     [dim]→ {file_path}:{lineno}[/dim]")
+                if end_lineno is not None and end_lineno > lineno:
+                    console.print(f"     [dim]→ {file_path}:{lineno}-{end_lineno}[/dim]")
+                else:
+                    console.print(f"     [dim]→ {file_path}:{lineno}[/dim]")
             else:
                 console.print(f"     [dim]→ {file_path}[/dim]")
+        
+        # Show full code context if requested
+        if show_full and file_path and lineno is not None:
+            snippet = get_code_snippet(file_path, lineno, end_lineno)
+            if snippet and not snippet.startswith("[dim]"):
+                console.print(f"     [dim]Code:[/dim]")
+                # Indent the code snippet
+                for line in snippet.split('\n'):
+                    console.print(f"     [dim]│[/dim] {line}")
+            elif snippet.startswith("[dim]"):
+                console.print(f"     {snippet}")
 
     console.print()
 
@@ -345,7 +400,7 @@ def parse_keywords(keywords_str: str) -> str:
         return keywords_str.strip()
 
 
-def search_and_display_results(model, keywords: str, top_k: int, excluded_keywords: set = None):
+def search_and_display_results(model, keywords: str, top_k: int, excluded_keywords: set = None, show_full: bool = False):
     """Search for symbols by keywords and display results."""
     from .model import DEFAULT_EXCLUDED_KEYWORDS
     
@@ -380,6 +435,7 @@ def search_and_display_results(model, keywords: str, top_k: int, excluded_keywor
         meta_dict = meta.get('meta', {}) if isinstance(meta.get('meta'), dict) else {}
         file_path = meta_dict.get('file', '') if meta_dict.get('file') else ''
         lineno = meta_dict.get('lineno', None)
+        end_lineno = meta_dict.get('end_lineno', None)
         
         console.print(f"[dim]{idx}.[/dim] [cyan]{match['symbol']:15}[/cyan] "
                       f"[green]Relevance: {match['score']:6.4f}[/green] "
@@ -387,9 +443,23 @@ def search_and_display_results(model, keywords: str, top_k: int, excluded_keywor
                       f"[white]{meta.get('name', ''):30}[/white]")
         if file_path:
             if lineno is not None and lineno >= 0:
-                console.print(f"     [dim]→ {file_path}:{lineno}[/dim]")
+                if end_lineno is not None and end_lineno > lineno:
+                    console.print(f"     [dim]→ {file_path}:{lineno}-{end_lineno}[/dim]")
+                else:
+                    console.print(f"     [dim]→ {file_path}:{lineno}[/dim]")
             else:
                 console.print(f"     [dim]→ {file_path}[/dim]")
+        
+        # Show full code context if requested
+        if show_full and file_path and lineno is not None:
+            snippet = get_code_snippet(file_path, lineno, end_lineno)
+            if snippet and not snippet.startswith("[dim]"):
+                console.print(f"     [dim]Code:[/dim]")
+                # Indent the code snippet
+                for line in snippet.split('\n'):
+                    console.print(f"     [dim]│[/dim] {line}")
+            elif snippet.startswith("[dim]"):
+                console.print(f"     {snippet}")
     
     console.print()
     
@@ -399,7 +469,7 @@ def search_and_display_results(model, keywords: str, top_k: int, excluded_keywor
         console.print(f"[dim]Tip: Query similar symbols with: --symbol {first_match['symbol']}[/dim]\n")
 
 
-def interactive_mode(model, excluded_keywords: set = None):
+def interactive_mode(model, excluded_keywords: set = None, show_full: bool = False):
     """Interactive query mode."""
     from .model import DEFAULT_EXCLUDED_KEYWORDS
     
@@ -423,11 +493,11 @@ def interactive_mode(model, excluded_keywords: set = None):
 
             # Check if it looks like a symbol ID (starts with 'sym_') or try as keywords
             if query_input.startswith('sym_') and query_input in model.node_map:
-                display_results(model, query_input, top_k)
+                display_results(model, query_input, top_k, show_full=show_full)
             else:
                 # Try as keywords
                 keywords_parsed = parse_keywords(query_input)
-                search_and_display_results(model, keywords_parsed, top_k, excluded_keywords)
+                search_and_display_results(model, keywords_parsed, top_k, excluded_keywords, show_full=show_full)
 
         except KeyboardInterrupt:
             console.print("\n[bold yellow]Goodbye![/bold yellow]")
@@ -443,7 +513,7 @@ def interactive_mode(model, excluded_keywords: set = None):
 @click.option('--include-dirs', '-i', multiple=True,
               help='Include only these subdirectories (can be specified multiple times).')
 @click.option('--exclude-dirs', '-e', multiple=True,
-              default=['.venv', '__pycache__', '.git', 'node_modules', '.pytest_cache'],
+              default=['.venv', '__pycache__', '.git', 'node_modules', '.pytest_cache', '.tricoder'],
               help='Exclude these directories (can be specified multiple times).')
 @click.option('--extensions', '--ext', default='py',
               help='Comma-separated list of file extensions to process (e.g., "py,js,ts"). Default: py')

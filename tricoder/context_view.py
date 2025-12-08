@@ -1,11 +1,13 @@
 """Context view: Node2Vec-style random walks and Word2Vec."""
 import random
 from multiprocessing import Pool, cpu_count
-from typing import List, Tuple
+from typing import List, Tuple, Set, Dict
 
 import numpy as np
 from gensim.models import Word2Vec
 from gensim.models.keyedvectors import KeyedVectors
+
+from .graph_config import RANDOM_WALK_MAX_NEIGHBORS, RANDOM_WALK_MIN_NODES_FOR_PARALLEL
 
 
 def _get_num_workers() -> int:
@@ -15,7 +17,7 @@ def _get_num_workers() -> int:
 
 def _generate_walks_for_node(args):
     """Generate walks for a single node (helper for multiprocessing)."""
-    start_node, adj_list, num_walks, walk_length, p, q, seed_offset = args
+    start_node, adj_list, adj_sets, num_walks, walk_length, p, q, seed_offset = args
     # Set seed for this worker
     random.seed(42 + seed_offset + start_node)
     np.random.seed(42 + seed_offset + start_node)
@@ -34,24 +36,29 @@ def _generate_walks_for_node(args):
             if not neighbors:
                 break
 
+            # Limit neighbors to check (prevents slow probability calculation)
+            neighbors_to_check = neighbors[:RANDOM_WALK_MAX_NEIGHBORS] if len(neighbors) > RANDOM_WALK_MAX_NEIGHBORS else neighbors
+
             if len(walk) == 1:
-                next_node = random.choice(neighbors)[0]
+                next_node = random.choice(neighbors_to_check)[0]
             else:
                 prev = walk[-2]
+                prev_neighbors_set = adj_sets[prev]  # Fast set lookup instead of list iteration
+                
                 probs = []
                 nodes = []
 
-                for neighbor, weight in neighbors:
+                for neighbor, weight in neighbors_to_check:
                     nodes.append(neighbor)
                     if neighbor == prev:
                         prob = weight / p
-                    elif neighbor in adj_list[prev]:
+                    elif neighbor in prev_neighbors_set:
                         prob = weight
                     else:
                         prob = weight / q
                     probs.append(max(prob, 1e-10))
 
-                probs = np.array(probs)
+                probs = np.array(probs, dtype=np.float64)
                 probs = probs / probs.sum()
                 next_node = np.random.choice(nodes, p=probs)
 
@@ -69,7 +76,8 @@ def generate_random_walks(edges: List[Tuple[int, int, str, float]],
                           p: float = 1.0,
                           q: float = 1.0,
                           random_state: int = 42,
-                          n_jobs: int = -1) -> List[List[int]]:
+                          n_jobs: int = -1,
+                          progress_callback=None) -> List[List[int]]:
     """
     Generate Node2Vec-style random walks with multiprocessing support.
     
@@ -86,11 +94,15 @@ def generate_random_walks(edges: List[Tuple[int, int, str, float]],
     Returns:
         List of walks (each walk is a list of node indices)
     """
-    # Build adjacency list
-    adj_list = {i: [] for i in range(num_nodes)}
+    # Build adjacency list and neighbor sets (for fast lookups)
+    adj_list: Dict[int, List[Tuple[int, float]]] = {i: [] for i in range(num_nodes)}
+    adj_sets: Dict[int, Set[int]] = {i: set() for i in range(num_nodes)}
+    
     for src_idx, dst_idx, rel, weight in edges:
         adj_list[src_idx].append((dst_idx, weight))
         adj_list[dst_idx].append((src_idx, weight))
+        adj_sets[src_idx].add(dst_idx)
+        adj_sets[dst_idx].add(src_idx)
 
     # Determine number of workers
     if n_jobs == -1:
@@ -99,14 +111,27 @@ def generate_random_walks(edges: List[Tuple[int, int, str, float]],
 
     # Prepare arguments for parallel processing
     nodes_to_process = [node for node in range(num_nodes) if adj_list[node]]
+    total_nodes_to_process = len(nodes_to_process)
+    
+    # Update progress at start
+    if progress_callback:
+        progress_callback(0, total_nodes_to_process)
 
-    if n_jobs == 1 or len(nodes_to_process) < n_jobs:
+    # Use parallel processing if we have enough nodes (overhead not worth it for small cases)
+    use_parallel = (n_jobs > 1 and len(nodes_to_process) >= RANDOM_WALK_MIN_NODES_FOR_PARALLEL)
+    
+    if not use_parallel:
         # Sequential processing for small cases
         random.seed(random_state)
         np.random.seed(random_state)
         walks = []
-        for _ in range(num_walks):
-            for start_node in nodes_to_process:
+        processed_count = 0
+        for walk_idx in range(num_walks):
+            for node_idx, start_node in enumerate(nodes_to_process):
+                # Update progress
+                if progress_callback and walk_idx == 0:  # Only update on first walk to avoid double counting
+                    processed_count += 1
+                    progress_callback(processed_count, total_nodes_to_process)
                 walk = [start_node]
                 for _ in range(walk_length - 1):
                     curr = walk[-1]
@@ -114,43 +139,56 @@ def generate_random_walks(edges: List[Tuple[int, int, str, float]],
                     if not neighbors:
                         break
 
+                    # Limit neighbors to check (prevents slow probability calculation)
+                    neighbors_to_check = neighbors[:RANDOM_WALK_MAX_NEIGHBORS] if len(neighbors) > RANDOM_WALK_MAX_NEIGHBORS else neighbors
+                    
                     if len(walk) == 1:
-                        next_node = random.choice(neighbors)[0]
+                        next_node = random.choice(neighbors_to_check)[0]
                     else:
                         prev = walk[-2]
+                        prev_neighbors_set = adj_sets[prev]  # Fast set lookup
                         probs = []
                         nodes = []
-                        for neighbor, weight in neighbors:
+                        for neighbor, weight in neighbors_to_check:
                             nodes.append(neighbor)
                             if neighbor == prev:
                                 prob = weight / p
-                            elif neighbor in adj_list[prev]:
+                            elif neighbor in prev_neighbors_set:
                                 prob = weight
                             else:
                                 prob = weight / q
                             probs.append(max(prob, 1e-10))
-                        probs = np.array(probs)
+                        probs = np.array(probs, dtype=np.float64)
                         probs = probs / probs.sum()
                         next_node = np.random.choice(nodes, p=probs)
                     walk.append(next_node)
                 walks.append([str(node) for node in walk])
     else:
-        # Parallel processing
+        # Parallel processing with progress tracking
         args_list = [
-            (node, adj_list, num_walks, walk_length, p, q, random_state + i)
+            (node, adj_list, adj_sets, num_walks, walk_length, p, q, random_state + i)
             for i, node in enumerate(nodes_to_process)
         ]
 
         # Parallel processing - use standard Pool which works on all platforms
-        chunksize = max(1, len(args_list) // (n_jobs * 2))
-        with Pool(processes=n_jobs) as pool:
-            results = pool.map(_generate_walks_for_node, args_list, chunksize=chunksize)
-
-        # Flatten results
+        # Use larger chunksize for better load balancing
+        chunksize = max(1, len(args_list) // (n_jobs * 4))
+        
+        # Use imap_unordered for progress tracking
         walks = []
-        for result in results:
-            walks.extend(result)
+        with Pool(processes=n_jobs) as pool:
+            results = pool.imap_unordered(_generate_walks_for_node, args_list, chunksize=chunksize)
+            completed = 0
+            for result in results:
+                walks.extend(result)
+                completed += 1
+                if progress_callback:
+                    progress_callback(completed, total_nodes_to_process)
 
+    # Update progress to complete
+    if progress_callback:
+        progress_callback(total_nodes_to_process, total_nodes_to_process)
+    
     return walks
 
 
@@ -202,7 +240,8 @@ def compute_context_view(edges: List[Tuple[int, int, str, float]],
                          num_walks: int = 10,
                          walk_length: int = 80,
                          random_state: int = 42,
-                         n_jobs: int = -1) -> Tuple[np.ndarray, KeyedVectors]:
+                         n_jobs: int = -1,
+                         progress_callback=None) -> Tuple[np.ndarray, KeyedVectors]:
     """
     Compute context view embeddings using Node2Vec + Word2Vec with multiprocessing.
     
@@ -211,7 +250,8 @@ def compute_context_view(edges: List[Tuple[int, int, str, float]],
         keyed_vectors: Word2Vec KeyedVectors model
     """
     walks = generate_random_walks(edges, num_nodes, num_walks, walk_length,
-                                  random_state=random_state, n_jobs=n_jobs)
+                                  random_state=random_state, n_jobs=n_jobs,
+                                  progress_callback=progress_callback)
     kv = train_word2vec(walks, dim, random_state=random_state, n_jobs=n_jobs)
 
     # Extract embeddings for all nodes

@@ -56,7 +56,40 @@ class SymbolExtractor(ast.NodeVisitor):
             self.symbol_map[key] = f"{sanitized_kind}_{sanitized_name}_{self.symbol_counter:04d}"
         return self.symbol_map[key]
 
+    def _get_node_end_line(self, node: ast.AST) -> Optional[int]:
+        """
+        Get the end line number of an AST node (where its scope ends).
+        Uses end_lineno if available (Python 3.8+), otherwise calculates from children.
+        """
+        # Python 3.8+ has end_lineno attribute - this is the most accurate
+        if hasattr(node, 'end_lineno') and node.end_lineno is not None:
+            return node.end_lineno
+        
+        # Fallback: recursively find the maximum end line from all descendant nodes
+        # This handles older Python versions or nodes without end_lineno
+        start_line = node.lineno if hasattr(node, 'lineno') else 1
+        max_end_line = start_line  # Default to start line
+        
+        def find_max_line(n):
+            """Recursively find maximum line number in subtree."""
+            nonlocal max_end_line
+            if hasattr(n, 'end_lineno') and n.end_lineno is not None:
+                max_end_line = max(max_end_line, n.end_lineno)
+            elif hasattr(n, 'lineno'):
+                max_end_line = max(max_end_line, n.lineno)
+            
+            # Recursively check children
+            for child in ast.iter_child_nodes(n):
+                find_max_line(child)
+        
+        # Start from direct children (skip the node itself)
+        for child in ast.iter_child_nodes(node):
+            find_max_line(child)
+        
+        return max_end_line if max_end_line > start_line else None
+
     def _add_symbol(self, name: str, kind: str, lineno: int,
+                    end_lineno: Optional[int] = None,
                     extra_meta: Optional[Dict] = None):
         """Add a symbol to the collection."""
         # Skip if symbol name is in excluded keywords
@@ -74,6 +107,10 @@ class SymbolExtractor(ast.NodeVisitor):
             "lineno": lineno,
             "typing": []
         }
+        # Add end_lineno if provided
+        if end_lineno is not None:
+            meta["end_lineno"] = end_lineno
+        
         if extra_meta:
             meta.update(extra_meta)
 
@@ -101,10 +138,15 @@ class SymbolExtractor(ast.NodeVisitor):
 
     def visit_Module(self, node):
         """Visit module node."""
+        # Module nodes don't have lineno, use 1 as default
+        start_line = 1
+        # Get end line from the last child node
+        end_line = self._get_node_end_line(node) if hasattr(node, 'body') and node.body else None
         file_symbol = self._add_symbol(
             os.path.basename(self.file_path),
             "file",
-            node.lineno if hasattr(node, 'lineno') else 1
+            start_line,
+            end_lineno=end_line
         )
         self.generic_visit(node)
         return file_symbol
@@ -120,11 +162,13 @@ class SymbolExtractor(ast.NodeVisitor):
             else:
                 bases.append(str(base))
 
+        end_line = self._get_node_end_line(node)
         class_id = self._add_symbol(
             node.name,
             "class",
             node.lineno,
-            {"bases": bases}
+            end_lineno=end_line,
+            extra_meta={"bases": bases}
         )
 
         # Link class to file
@@ -145,11 +189,13 @@ class SymbolExtractor(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         """Visit function definition."""
+        end_line = self._get_node_end_line(node)
         func_id = self._add_symbol(
             node.name,
             "function",
             node.lineno,
-            {"args": len(node.args.args)}
+            end_lineno=end_line,
+            extra_meta={"args": len(node.args.args)}
         )
 
         # Link function to containing class or file
@@ -237,12 +283,16 @@ class SymbolExtractor(ast.NodeVisitor):
 
     def visit_Assign(self, node):
         """Visit variable assignment."""
+        # For variables, end_line is typically the same as start_line (single line)
+        # But we'll try to get it from the node if available
+        end_line = getattr(node, 'end_lineno', None) or node.lineno
         for target in node.targets:
             if isinstance(target, ast.Name):
                 var_id = self._add_symbol(
                     target.id,
                     "var",
-                    node.lineno
+                    node.lineno,
+                    end_lineno=end_line
                 )
 
                 # Link variable to containing function/class/file
@@ -258,11 +308,14 @@ class SymbolExtractor(ast.NodeVisitor):
     
     def visit_AnnAssign(self, node):
         """Visit annotated assignment (e.g., x: int = 5)."""
+        # For variables, end_line is typically the same as start_line (single line)
+        end_line = getattr(node, 'end_lineno', None) or node.lineno
         if isinstance(node.target, ast.Name):
             var_id = self._add_symbol(
                 node.target.id,
                 "var",
-                node.lineno
+                node.lineno,
+                end_lineno=end_line
             )
             
             # Link variable to containing function/class/file
@@ -511,7 +564,7 @@ def extract_from_directory(root_dir: str, include_dirs: List[str] = None,
     if include_dirs is None:
         include_dirs = []
     if exclude_dirs is None:
-        exclude_dirs = ['.venv', '__pycache__', '.git', 'node_modules', '.pytest_cache']
+        exclude_dirs = ['.venv', '__pycache__', '.git', 'node_modules', '.pytest_cache', '.tricoder']
     if extensions is None:
         extensions = ['py']  # Default to Python files
     if excluded_keywords is None:

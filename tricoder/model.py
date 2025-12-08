@@ -1,7 +1,7 @@
 """SymbolModel: main model class for loading and querying."""
 import json
 import os
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Optional
 
 import numpy as np
 from annoy import AnnoyIndex
@@ -77,7 +77,7 @@ class SymbolModel:
         self.svd_components_graph = None
         self.svd_components_types = None
         self.word2vec_kv = None
-        self.ann_index = None
+        self.ann_index = None  # Legacy Annoy index (kept for backward compatibility)
         self.type_token_map = None
         self.embedding_dim = None
         self.idx_to_node = None
@@ -87,6 +87,14 @@ class SymbolModel:
         self.node_subtokens = None
         self.node_types = None
         self.alpha = 0.05  # Length penalty coefficient
+        
+        # Multi-stage retrieval pipeline components
+        self.lexical_index = None
+        self.dense_retriever = None
+        self.type_retriever = None
+        self.namespace_router = None
+        self.retrieval_pipeline = None
+        self.use_multi_stage = False  # Flag to enable/disable multi-stage retrieval
 
     def load(self, model_dir: str):
         """
@@ -183,9 +191,91 @@ class SymbolModel:
         else:
             self.node_types = {}
 
-        # Load ANN index
-        self.ann_index = AnnoyIndex(self.embedding_dim, 'angular')
-        self.ann_index.load(os.path.join(model_dir, 'ann_index.ann'))
+        # Load ANN index (legacy, for backward compatibility)
+        ann_index_path = os.path.join(model_dir, 'ann_index.ann')
+        if os.path.exists(ann_index_path):
+            self.ann_index = AnnoyIndex(self.embedding_dim, 'angular')
+            self.ann_index.load(ann_index_path)
+        
+        # Load multi-stage retrieval pipeline components
+        self._load_retrieval_pipeline(model_dir)
+    
+    def _load_retrieval_pipeline(self, model_dir: str):
+        """Load multi-stage retrieval pipeline components."""
+        try:
+            from .retrieval import (
+                LexicalIndex, DenseRetriever, TypeEmbeddingRetriever,
+                NamespaceRouter, HybridScorer, LightweightReranker,
+                CrossEncoderReranker, MultiStageRetrievalPipeline
+            )
+            from .data_loader import get_file_hierarchy
+            
+            # Load lexical index
+            lexical_index_path = os.path.join(model_dir, 'lexical_index.json')
+            if os.path.exists(lexical_index_path):
+                self.lexical_index = LexicalIndex()
+                self.lexical_index.load(lexical_index_path)
+            
+            # Load dense retriever (FAISS preferred, Annoy fallback)
+            dense_index_prefix = os.path.join(model_dir, 'dense_index')
+            if os.path.exists(f"{dense_index_prefix}.mapping.json"):
+                self.dense_retriever = DenseRetriever(embedding_dim=self.embedding_dim)  # use_faiss=True is default
+                if not self.dense_retriever.load(dense_index_prefix, embeddings=self.embeddings):
+                    self.dense_retriever = None
+            
+            # Build type retriever if types available
+            if self.node_types and self.type_token_map:
+                self.type_retriever = TypeEmbeddingRetriever(
+                    self.embeddings, self.node_types, self.type_token_map, self.node_map
+                )
+            
+            # Build namespace router
+            node_file_info = {}
+            for node_meta in self.node_metadata:
+                node_id = node_meta['id']
+                meta = node_meta.get('meta', {})
+                if isinstance(meta, dict):
+                    file_path = meta.get('file', '')
+                    if file_path:
+                        file_name, directory_path, top_level_package = get_file_hierarchy(file_path)
+                        node_file_info[node_id] = (file_name, directory_path, top_level_package)
+            
+            if node_file_info:
+                self.namespace_router = NamespaceRouter(node_file_info)
+            
+            # Initialize pipeline components
+            if self.lexical_index and self.dense_retriever:
+                hybrid_scorer = HybridScorer(
+                    dense_weight=0.5,
+                    lexical_weight=0.2,
+                    type_weight=0.15,
+                    namespace_weight=0.15
+                )
+                
+                lightweight_reranker = LightweightReranker(self.embeddings, self.node_map)
+                cross_encoder = CrossEncoderReranker(
+                    self.embeddings, self.node_map, self.metadata_lookup
+                )
+                
+                self.retrieval_pipeline = MultiStageRetrievalPipeline(
+                    lexical_index=self.lexical_index,
+                    dense_retriever=self.dense_retriever,
+                    type_retriever=self.type_retriever,
+                    namespace_router=self.namespace_router,
+                    hybrid_scorer=hybrid_scorer,
+                    lightweight_reranker=lightweight_reranker,
+                    cross_encoder=cross_encoder,
+                    stage1_top_k=500,
+                    stage2_top_k=200,
+                    stage3_top_k=50,
+                    stage4_top_k=10
+                )
+                self.use_multi_stage = True
+        except Exception as e:
+            # Fallback to legacy retrieval if pipeline fails to load
+            import warnings
+            warnings.warn(f"Failed to load multi-stage retrieval pipeline: {e}. Using legacy retrieval.")
+            self.use_multi_stage = False
 
     def expand_query_vector(self, node_id: str) -> np.ndarray:
         """
@@ -250,15 +340,55 @@ class SymbolModel:
 
         return expanded
 
-    def compute_hybrid_score(self, query_vec: np.ndarray, candidate_vec: np.ndarray,
-                             candidate_norm_before_normalization: float = None) -> float:
+    def _get_context_length(self, node_id: str) -> Optional[int]:
+        """Get context length (scope size) for a symbol."""
+        if not self.metadata_lookup:
+            return None
+        meta = self.metadata_lookup.get(node_id)
+        if not meta:
+            return None
+        meta_dict = meta.get('meta', {})
+        if not isinstance(meta_dict, dict):
+            return None
+        lineno = meta_dict.get('lineno', -1)
+        end_lineno = meta_dict.get('end_lineno', None)
+        if lineno >= 0 and end_lineno is not None and end_lineno > lineno:
+            return end_lineno - lineno
+        elif lineno >= 0:
+            return 1  # Single-line symbol
+        return None
+
+    def _compute_context_similarity(self, len1: Optional[int], len2: Optional[int]) -> float:
         """
-        Compute hybrid similarity score with length penalty.
+        Compute context length similarity score (0.0 to 1.0).
+        Returns 0.0 if either length is None or if lengths are very different.
+        """
+        if len1 is None or len2 is None:
+            return 0.0
+        if len1 == 0 or len2 == 0:
+            return 0.0
+        
+        # Similarity ratio: min/max (1.0 for identical, decreasing as difference increases)
+        max_len = max(len1, len2)
+        min_len = min(len1, len2)
+        similarity = min_len / max_len if max_len > 0 else 0.0
+        
+        # Only return meaningful similarity (threshold 0.2)
+        return similarity if similarity >= 0.2 else 0.0
+
+    def compute_hybrid_score(self, query_vec: np.ndarray, candidate_vec: np.ndarray,
+                             candidate_norm_before_normalization: float = None,
+                             query_node_id: str = None,
+                             candidate_node_id: str = None) -> float:
+        """
+        Compute hybrid similarity score with length penalty and context similarity bonus.
         
         Args:
             query_vec: query embedding vector (normalized)
             candidate_vec: candidate embedding vector (normalized)
             candidate_norm_before_normalization: norm before normalization (for penalty)
+            query_node_id: query symbol ID (for context length comparison)
+            candidate_node_id: candidate symbol ID (for context length comparison)
         
         Returns:
             Hybrid similarity score
@@ -273,15 +403,28 @@ class SymbolModel:
         else:
             score = cosine_sim
 
+        # Context length similarity bonus (if both node IDs provided)
+        if query_node_id and candidate_node_id:
+            query_len = self._get_context_length(query_node_id)
+            candidate_len = self._get_context_length(candidate_node_id)
+            context_sim = self._compute_context_similarity(query_len, candidate_len)
+            
+            # Add bonus: up to 0.15 boost for similar context lengths
+            # This helps symbols with similar scope sizes rank higher
+            context_bonus = context_sim * 0.15
+            score = score + context_bonus
+
         return score
 
-    def query(self, node_id: str, top_k: int = 10) -> List[Dict]:
+    def query(self, node_id: str, top_k: int = 10, use_multi_stage: Optional[bool] = None) -> List[Dict]:
         """
         Query for similar symbols with query expansion and hybrid scoring.
+        Uses multi-stage retrieval pipeline if available, otherwise falls back to legacy ANN search.
         
         Args:
             node_id: symbol ID to query
             top_k: number of results to return
+            use_multi_stage: whether to use multi-stage retrieval (None = auto-detect)
         
         Returns:
             List of result dictionaries with symbol, score, distance, meta
@@ -295,6 +438,75 @@ class SymbolModel:
         query_vector = self.expand_query_vector(node_id)
         if query_vector is None:
             query_vector = self.embeddings[node_idx]
+        
+        # Normalize query vector
+        query_norm = np.linalg.norm(query_vector)
+        if query_norm > 1e-10:
+            query_vector = query_vector / query_norm
+
+        # Use multi-stage retrieval if available and enabled
+        if use_multi_stage is None:
+            use_multi_stage = self.use_multi_stage
+        
+        if use_multi_stage and self.retrieval_pipeline:
+            return self._query_multi_stage(node_id, query_vector, top_k)
+        else:
+            return self._query_legacy(node_id, query_vector, node_idx, top_k)
+    
+    def _query_multi_stage(self, node_id: str, query_vector: np.ndarray, top_k: int) -> List[Dict]:
+        """Query using multi-stage retrieval pipeline."""
+        # Get query text from metadata
+        query_meta = self.metadata_lookup.get(node_id, {})
+        query_name = query_meta.get('name', '')
+        
+        # Execute multi-stage retrieval
+        pipeline_results = self.retrieval_pipeline.retrieve(
+            query_node_id=node_id,
+            query_vector=query_vector,
+            query_text=query_name
+        )
+        
+        # Convert to result format
+        results = []
+        for rank, (result_node_id, final_score) in enumerate(pipeline_results):
+            if result_node_id == node_id:
+                continue  # Skip self
+            
+            result_idx = self.node_map.get(result_node_id)
+            if result_idx is None:
+                continue
+            
+            # Compute distance for compatibility
+            candidate_vec = self.embeddings[result_idx]
+            candidate_norm = np.linalg.norm(candidate_vec)
+            if candidate_norm > 1e-10:
+                candidate_vec = candidate_vec / candidate_norm
+            
+            distance = 1.0 - float(np.dot(query_vector, candidate_vec))
+            
+            # Get metadata
+            meta = self.metadata_lookup.get(result_node_id)
+            
+            # Apply temperature calibration
+            calibrated_score = final_score / self.tau if self.tau else final_score
+            
+            results.append({
+                'symbol': result_node_id,
+                'score': float(calibrated_score),
+                'hybrid_score': float(final_score),
+                'distance': float(distance),
+                'meta': meta
+            })
+            
+            if len(results) >= top_k:
+                break
+        
+        return results
+    
+    def _query_legacy(self, node_id: str, query_vector: np.ndarray, node_idx: int, top_k: int) -> List[Dict]:
+        """Legacy query using Annoy index."""
+        if self.ann_index is None:
+            return []
 
         # ANN search
         indices, distances = self.ann_index.get_nns_by_vector(
@@ -312,9 +524,13 @@ class SymbolModel:
             if node_id_result is None:
                 continue
 
-            # Compute hybrid score
+            # Compute hybrid score with context length similarity
             candidate_vec = self.embeddings[idx]
-            hybrid_score = self.compute_hybrid_score(query_vector, candidate_vec)
+            hybrid_score = self.compute_hybrid_score(
+                query_vector, candidate_vec,
+                query_node_id=node_id,
+                candidate_node_id=node_id_result
+            )
 
             # Compute calibrated score (for probability)
             calibrated_score = hybrid_score / self.tau if self.tau else hybrid_score
