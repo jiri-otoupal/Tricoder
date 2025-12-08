@@ -25,13 +25,34 @@ console = Console()
 def estimate_training_time(num_nodes: int, num_edges: int, num_types: Optional[int],
                            graph_dim: int, context_dim: int, typed_dim: int,
                            num_walks: int, walk_length: int, final_dim: int,
-                           n_jobs: int = 1) -> str:
+                           n_jobs: int = 1, use_gpu: bool = False) -> str:
     """
     Estimate training time based on data size and parameters.
+    
+    Args:
+        use_gpu: Whether GPU acceleration will be used (affects SVD/PCA/matrix operation times)
     
     Returns:
         Estimated time as formatted string
     """
+    # Check if GPU is actually available
+    gpu_available = False
+    gpu_speedup_factor = 1.0
+    if use_gpu:
+        try:
+            from .gpu_utils import GPUAccelerator
+            gpu_accelerator = GPUAccelerator(use_gpu=True)
+            if gpu_accelerator.use_gpu:
+                gpu_available = True
+                # GPU speedup factors based on typical performance:
+                # - SVD/PCA: 5-20x faster (use conservative 8x)
+                # - Matrix operations: 10-50x faster (use conservative 15x)
+                # - Sparse operations: 3-10x faster (use conservative 5x)
+                # Use different factors for different operations
+                gpu_speedup_factor = 1.0  # Will be applied per-operation
+        except Exception:
+            pass  # GPU not available, use CPU estimates
+
     # More realistic time estimates based on actual performance
     # Accounts for parallelization efficiency and overhead
 
@@ -46,7 +67,9 @@ def estimate_training_time(num_nodes: int, num_edges: int, num_types: Optional[i
     # Account for subtoken expansion (roughly doubles nodes)
     expanded_nodes = num_nodes * 2.5  # Account for subtokens and expansion
     ppmi_time = (expanded_nodes * num_edges ** 0.5) / (5000 * effective_cores)
-    svd_time = (expanded_nodes * graph_dim ** 2) / (20000 * effective_cores)
+    # SVD benefits significantly from GPU (8x speedup)
+    svd_base_time = (expanded_nodes * graph_dim ** 2) / (20000 * effective_cores)
+    svd_time = svd_base_time / (8.0 if gpu_available else 1.0)
     graph_time = ppmi_time + svd_time
 
     # Context view: Random walks + Word2Vec
@@ -56,6 +79,7 @@ def estimate_training_time(num_nodes: int, num_edges: int, num_types: Optional[i
 
     # Word2Vec: training is CPU-intensive, benefits from parallelization
     # window=10, epochs=5, negative=5
+    # Word2Vec doesn't benefit much from GPU (mostly CPU-bound)
     w2v_time = (total_walks * walk_length * 10 * 5) / (150000 * effective_cores)
     context_time = walk_time + w2v_time
 
@@ -65,23 +89,28 @@ def estimate_training_time(num_nodes: int, num_edges: int, num_types: Optional[i
         # Account for type expansion
         expanded_types = num_types * 1.3  # Type expansion adds ~30% more types
         typed_ppmi_time = (expanded_nodes * expanded_types ** 0.5) / (5000 * effective_cores)
-        typed_svd_time = (expanded_nodes * typed_dim ** 2) / (20000 * effective_cores)
+        # SVD benefits significantly from GPU (8x speedup)
+        typed_svd_base_time = (expanded_nodes * typed_dim ** 2) / (20000 * effective_cores)
+        typed_svd_time = typed_svd_base_time / (8.0 if gpu_available else 1.0)
         typed_time = typed_ppmi_time + typed_svd_time
 
     # Fusion: PCA
-    # PCA is memory-bound and benefits less from parallelization
+    # PCA is memory-bound and benefits significantly from GPU (8x speedup)
     total_input_dim = graph_dim + context_dim + (typed_dim if num_types else 0)
-    fusion_time = (expanded_nodes * total_input_dim * final_dim) / (30000 * effective_cores)
+    fusion_base_time = (expanded_nodes * total_input_dim * final_dim) / (30000 * effective_cores)
+    fusion_time = fusion_base_time / (8.0 if gpu_available else 1.0)
 
     # Embedding smoothing: iterative neighbor averaging
-    smoothing_time = (expanded_nodes * num_edges * 2) / (10000 * effective_cores)  # 2 iterations
+    # Sparse matrix operations benefit from GPU (5x speedup)
+    smoothing_base_time = (expanded_nodes * num_edges * 2) / (10000 * effective_cores)  # 2 iterations
+    smoothing_time = smoothing_base_time / (5.0 if gpu_available else 1.0)
 
     # Temperature calibration: grid search with parallel evaluation
     tau_candidates = 50  # default
     val_edges_est = int(num_edges * 0.2)  # ~20% for validation
     calibration_time = (tau_candidates * val_edges_est) / (5000 * effective_cores)
 
-    # ANN index building (single-threaded mostly)
+    # ANN index building (single-threaded mostly, no GPU benefit)
     ann_time = (num_nodes * final_dim * 10) / 200000  # 10 trees, less parallelizable
 
     # I/O overhead (saving files)
@@ -294,12 +323,12 @@ def train_model(nodes_path: str,
     from multiprocessing import cpu_count
     n_jobs_est = max(1, cpu_count() - 1)
 
-    # Estimate training time
+    # Estimate training time (account for GPU if available)
     estimated_time = estimate_training_time(
         num_nodes, len(edges), num_types,
         graph_dim, context_dim, typed_dim,
         num_walks, walk_length, final_dim,
-        n_jobs_est
+        n_jobs_est, use_gpu=use_gpu
     )
 
     # Display configuration
@@ -321,7 +350,8 @@ def train_model(nodes_path: str,
     if num_types:
         config_table.add_row("Data: Type Tokens", str(num_types), "")
     config_table.add_row("", "", "")  # Separator
-    config_table.add_row("[bold]Estimated Time[/bold]", f"[bold green]{estimated_time}[/bold green]", "")
+    gpu_status = "GPU" if (use_gpu and gpu_accelerator and gpu_accelerator.use_gpu) else "CPU"
+    config_table.add_row("[bold]Estimated Time[/bold]", f"[bold green]{estimated_time}[/bold green]", f"[dim]({gpu_status})[/dim]")
     config_table.add_row("Workers", str(n_jobs_est), "")
     console.print(config_table)
     console.print()
