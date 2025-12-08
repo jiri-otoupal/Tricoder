@@ -191,9 +191,20 @@ class GPUAccelerator:
             return arr
         
         if self.backend == 'cupy':
-            return cp.asarray(arr)
+            gpu_arr = cp.asarray(arr)
+            # Verify data is on GPU
+            if not isinstance(gpu_arr, cp.ndarray):
+                raise RuntimeError("Failed to convert array to CuPy GPU array")
+            return gpu_arr
         elif self.backend == 'torch':
-            return torch.from_numpy(arr).to(self.device)
+            if self.device is None:
+                raise RuntimeError("PyTorch device is None - GPU not properly initialized")
+            # Convert to tensor and move to device
+            gpu_tensor = torch.from_numpy(arr).to(self.device)
+            # Verify tensor is on correct device
+            if gpu_tensor.device != self.device:
+                raise RuntimeError(f"Tensor not on expected device: {gpu_tensor.device} != {self.device}")
+            return gpu_tensor
         return arr
     
     def to_cpu(self, arr) -> np.ndarray:
@@ -242,12 +253,25 @@ class GPUAccelerator:
             try:
                 gpu_matrix = self.to_gpu(matrix)
                 
+                # Verify data is on GPU
+                if self.backend == 'cupy':
+                    if not isinstance(gpu_matrix, cp.ndarray):
+                        raise RuntimeError("Matrix not on GPU (CuPy)")
+                elif self.backend == 'torch':
+                    if not isinstance(gpu_matrix, torch.Tensor) or gpu_matrix.device.type != self.device.type:
+                        raise RuntimeError(f"Matrix not on GPU (PyTorch): device={gpu_matrix.device if isinstance(gpu_matrix, torch.Tensor) else 'not tensor'}")
+                
                 if self.backend == 'cupy':
                     # CuPy SVD
                     U, S, Vt = cp.linalg.svd(gpu_matrix, full_matrices=False)
                 elif self.backend == 'torch':
-                    # PyTorch SVD
+                    # PyTorch SVD - ensure operations happen on GPU
                     U, S, Vt = torch.linalg.svd(gpu_matrix, full_matrices=False)
+                    # Synchronize GPU operations
+                    if self.device.type == 'cuda':
+                        torch.cuda.synchronize()
+                    elif self.device.type == 'mps':
+                        torch.mps.synchronize()
                 else:
                     raise ValueError(f"Unknown backend: {self.backend}")
                 
@@ -287,6 +311,14 @@ class GPUAccelerator:
             try:
                 gpu_matrix = self.to_gpu(matrix)
                 
+                # Verify data is on GPU
+                if self.backend == 'cupy':
+                    if not isinstance(gpu_matrix, cp.ndarray):
+                        raise RuntimeError("Matrix not on GPU (CuPy)")
+                elif self.backend == 'torch':
+                    if not isinstance(gpu_matrix, torch.Tensor) or gpu_matrix.device.type != self.device.type:
+                        raise RuntimeError(f"Matrix not on GPU (PyTorch): device={gpu_matrix.device if isinstance(gpu_matrix, torch.Tensor) else 'not tensor'}")
+                
                 # Center the data
                 if self.backend == 'cupy':
                     mean = cp.mean(gpu_matrix, axis=0)
@@ -302,6 +334,11 @@ class GPUAccelerator:
                     U, S, Vt = torch.linalg.svd(centered, full_matrices=False)
                     # Transform: U @ diag(S)
                     transformed = U @ torch.diag(S)
+                    # Synchronize GPU operations
+                    if self.device.type == 'cuda':
+                        torch.cuda.synchronize()
+                    elif self.device.type == 'mps':
+                        torch.mps.synchronize()
                 else:
                     raise ValueError(f"Unknown backend: {self.backend}")
                 
@@ -330,10 +367,22 @@ class GPUAccelerator:
                 a_gpu = self.to_gpu(a) if isinstance(a, np.ndarray) else a
                 b_gpu = self.to_gpu(b) if isinstance(b, np.ndarray) else b
                 
+                # Verify inputs are on GPU
+                if self.backend == 'torch':
+                    if isinstance(a_gpu, torch.Tensor) and a_gpu.device.type != self.device.type:
+                        raise RuntimeError(f"Tensor a not on GPU: {a_gpu.device}")
+                    if isinstance(b_gpu, torch.Tensor) and b_gpu.device.type != self.device.type:
+                        raise RuntimeError(f"Tensor b not on GPU: {b_gpu.device}")
+                
                 if self.backend == 'cupy':
                     result = cp.matmul(a_gpu, b_gpu)
                 elif self.backend == 'torch':
                     result = torch.matmul(a_gpu, b_gpu)
+                    # Synchronize GPU operations
+                    if self.device.type == 'cuda':
+                        torch.cuda.synchronize()
+                    elif self.device.type == 'mps':
+                        torch.mps.synchronize()
                 else:
                     raise ValueError(f"Unknown backend: {self.backend}")
                 

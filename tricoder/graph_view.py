@@ -1210,10 +1210,10 @@ def build_adjacency_matrix(edges: List[Tuple[int, int, str, float]], num_nodes: 
         rows = []
         cols = []
         data = []
-        for (src_idx, dst_idx), weight in edge_weights.items():
-            rows.append(src_idx)
-            cols.append(dst_idx)
-            data.append(weight)
+    for (src_idx, dst_idx), weight in edge_weights.items():
+        rows.append(src_idx)
+        cols.append(dst_idx)
+        data.append(weight)
 
     # Create symmetric matrix (undirected graph)
     rows_sym = rows + cols

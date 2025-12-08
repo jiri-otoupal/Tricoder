@@ -415,7 +415,7 @@ def train_model(nodes_path: str,
         progress.update(task1, completed=True)
         progress.remove_task(task1)
         console.print(f"  [dim]✓ Loaded {num_nodes:,} nodes[/dim]")
-        
+
         if num_nodes == 0:
             raise ValueError("No nodes found in input file")
 
@@ -745,7 +745,7 @@ def train_model(nodes_path: str,
         embeddings_list = [X_graph, X_w2v]
         if X_types is not None:
             embeddings_list.append(X_types)
-        
+
         input_dims = [graph_dim, context_dim]
         if X_types is not None:
             input_dims.append(typed_dim)
@@ -768,7 +768,7 @@ def train_model(nodes_path: str,
         mean_norm = float(np.mean(np.linalg.norm(E_before_norm, axis=1)))
         progress.update(task7b, completed=True)
         progress.remove_task(task7b)
-        
+
         console.print(f"  [dim]✓ Fused embeddings: {E.shape} (reduced from {total_input_dim}D)[/dim]")
         console.print(f"  [dim]✓ Mean norm: {mean_norm:.4f}[/dim]")
 
@@ -974,7 +974,7 @@ def train_model(nodes_path: str,
 
         # Save Word2Vec
         word2vec_kv.save(os.path.join(output_dir, 'word2vec.kv'))
-        
+
         # Save retrieval indices
         task_save3 = progress.add_task("[cyan]Saving retrieval indices...", total=None)
         console.print(f"  [dim]  → Saving lexical index...[/dim]")

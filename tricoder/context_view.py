@@ -307,7 +307,7 @@ def generate_random_walks(edges: List[Tuple[int, int, str, float]],
         # Parallel processing - use standard Pool which works on all platforms
         # Use larger chunksize for better load balancing
         chunksize = max(1, len(args_list) // (n_jobs * 4))
-        
+
         # Use imap_unordered for progress tracking
         walks = []
         with Pool(processes=n_jobs) as pool:
@@ -322,7 +322,7 @@ def generate_random_walks(edges: List[Tuple[int, int, str, float]],
     # Update progress to complete
     if progress_callback:
         progress_callback(total_nodes_to_process, total_nodes_to_process)
-    
+
     return walks
 
 
