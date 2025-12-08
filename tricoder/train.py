@@ -693,7 +693,7 @@ def train_model(nodes_path: str,
         X_w2v, word2vec_kv = compute_context_view(
             expanded_edges, final_num_nodes, context_dim, num_walks, walk_length, random_state, 
             n_jobs=n_jobs, progress_callback=walk_progress_cb,
-            word2vec_progress_callback=word2vec_progress_cb
+            word2vec_progress_callback=word2vec_progress_cb, use_gpu=use_gpu
         )
         progress.update(task_context1, completed=True)
         progress.remove_task(task_context1)

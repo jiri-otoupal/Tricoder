@@ -1,7 +1,7 @@
 """Context view: Node2Vec-style random walks and Word2Vec."""
 import random
 from multiprocessing import Pool, cpu_count
-from typing import List, Tuple, Set, Dict
+from typing import List, Tuple, Set, Dict, Optional
 
 import numpy as np
 from gensim.models import Word2Vec
@@ -9,6 +9,18 @@ from gensim.models.keyedvectors import KeyedVectors
 from numba import jit, prange
 
 from .graph_config import RANDOM_WALK_MAX_NEIGHBORS, RANDOM_WALK_MIN_NODES_FOR_PARALLEL
+
+# Try PyTorch for GPU acceleration
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+    torch = None
+    nn = None
+    optim = None
 
 
 def _get_num_workers() -> int:
@@ -314,11 +326,142 @@ def generate_random_walks(edges: List[Tuple[int, int, str, float]],
     return walks
 
 
+class SkipGramModel(nn.Module):
+    """PyTorch SkipGram model with negative sampling for GPU acceleration."""
+    def __init__(self, vocab_size: int, embedding_dim: int):
+        super(SkipGramModel, self).__init__()
+        self.vocab_size = vocab_size
+        self.embedding_dim = embedding_dim
+        self.in_embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.out_embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.in_embedding.weight.data.uniform_(-0.5 / embedding_dim, 0.5 / embedding_dim)
+        self.out_embedding.weight.data.zero_()
+    
+    def forward(self, center_words, context_words, negative_words):
+        """Forward pass: compute positive and negative log probabilities."""
+        center_emb = self.in_embedding(center_words)  # [batch_size, dim]
+        context_emb = self.out_embedding(context_words)  # [batch_size, dim]
+        neg_emb = self.out_embedding(negative_words)  # [batch_size, num_neg, dim]
+        
+        # Positive score: dot product between center and context
+        pos_score = torch.sum(center_emb * context_emb, dim=1)  # [batch_size]
+        pos_loss = -torch.log(torch.sigmoid(pos_score) + 1e-10)
+        
+        # Negative scores: dot products between center and negative samples
+        neg_score = torch.bmm(neg_emb, center_emb.unsqueeze(2)).squeeze(2)  # [batch_size, num_neg]
+        neg_loss = -torch.sum(torch.log(torch.sigmoid(-neg_score) + 1e-10), dim=1)  # [batch_size]
+        
+        return (pos_loss + neg_loss).mean()
+
+
+def _train_word2vec_pytorch(walks: List[List[str]], dim: int, window: int = 7,
+                            negative: int = 3, epochs: int = 3, random_state: int = 42,
+                            batch_size: int = 10000, use_gpu: bool = True) -> KeyedVectors:
+    """Train Word2Vec using PyTorch with GPU acceleration."""
+    if not TORCH_AVAILABLE:
+        raise RuntimeError("PyTorch is not available. Install torch to use GPU acceleration.")
+    
+    device = torch.device('cuda' if (use_gpu and torch.cuda.is_available()) else 'cpu')
+    
+    # Build vocabulary
+    vocab = {}
+    for walk in walks:
+        for word in walk:
+            if word not in vocab:
+                vocab[word] = len(vocab)
+    
+    vocab_size = len(vocab)
+    word_to_idx = vocab
+    idx_to_word = {idx: word for word, idx in word_to_idx.items()}
+    
+    # Prepare training data: (center_word, context_word) pairs
+    training_pairs = []
+    for walk in walks:
+        for i, center_word in enumerate(walk):
+            # Get context words within window
+            start = max(0, i - window)
+            end = min(len(walk), i + window + 1)
+            for j in range(start, end):
+                if i != j:
+                    training_pairs.append((word_to_idx[center_word], word_to_idx[walk[j]]))
+    
+    if not training_pairs:
+        # Fallback: create empty embeddings
+        kv = KeyedVectors(vector_size=dim)
+        for word in vocab:
+            kv.add_vector(word, np.random.normal(0, 0.01, dim).astype(np.float32))
+        return kv
+    
+    # Initialize model
+    model = SkipGramModel(vocab_size, dim).to(device)
+    optimizer = optim.SGD(model.parameters(), lr=0.025)
+    
+    # Negative sampling: use unigram distribution raised to 3/4 power
+    word_counts = {}
+    for walk in walks:
+        for word in walk:
+            word_counts[word] = word_counts.get(word, 0) + 1
+    
+    # Build negative sampling distribution
+    counts = np.array([word_counts.get(idx_to_word[i], 1) for i in range(vocab_size)], dtype=np.float32)
+    neg_dist = np.power(counts, 0.75)
+    neg_dist = neg_dist / neg_dist.sum()
+    neg_dist = torch.from_numpy(neg_dist).to(device)
+    
+    # Training loop
+    np.random.seed(random_state)
+    torch.manual_seed(random_state)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(random_state)
+    
+    model.train()
+    for epoch in range(epochs):
+        # Shuffle training pairs
+        indices = np.random.permutation(len(training_pairs))
+        total_loss = 0.0
+        num_batches = 0
+        
+        for batch_start in range(0, len(training_pairs), batch_size):
+            batch_end = min(batch_start + batch_size, len(training_pairs))
+            batch_indices = indices[batch_start:batch_end]
+            
+            center_words = torch.tensor([training_pairs[i][0] for i in batch_indices], dtype=torch.long).to(device)
+            context_words = torch.tensor([training_pairs[i][1] for i in batch_indices], dtype=torch.long).to(device)
+            
+            # Sample negative words
+            negative_words = torch.multinomial(neg_dist, negative * len(center_words), replacement=True)
+            negative_words = negative_words.view(len(center_words), negative).to(device)
+            
+            optimizer.zero_grad()
+            loss = model(center_words, context_words, negative_words)
+            loss.backward()
+            optimizer.step()
+            
+            total_loss += loss.item()
+            num_batches += 1
+        
+        # Decay learning rate
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = 0.025 * (1.0 - epoch / epochs)
+    
+    # Extract embeddings
+    model.eval()
+    with torch.no_grad():
+        embeddings_np = model.in_embedding.weight.cpu().numpy()
+    
+    # Create KeyedVectors object
+    kv = KeyedVectors(vector_size=dim)
+    for idx, word in idx_to_word.items():
+        kv.add_vector(word, embeddings_np[idx].astype(np.float32))
+    
+    return kv
+
+
 def train_word2vec(walks: List[List[str]], dim: int, window: int = 7,
                    negative: int = 3, epochs: int = 3, random_state: int = 42,
-                   n_jobs: int = -1, batch_words: int = 10000) -> KeyedVectors:
+                   n_jobs: int = -1, batch_words: int = 10000, use_gpu: bool = False) -> KeyedVectors:
     """
-    Train Word2Vec SkipGram model on random walks with multiprocessing.
+    Train Word2Vec SkipGram model on random walks with GPU acceleration support.
     Optimized defaults: window=7 (was 10), negative=3 (was 5) for faster training.
     
     Args:
@@ -328,12 +471,18 @@ def train_word2vec(walks: List[List[str]], dim: int, window: int = 7,
         negative: number of negative samples (reduced default: 3)
         epochs: number of training epochs
         random_state: random seed
-        n_jobs: number of parallel workers (-1 for all cores - 1)
+        n_jobs: number of parallel workers (-1 for all cores - 1) - only used for CPU
         batch_words: words per batch (larger = faster but more memory)
+        use_gpu: if True, use PyTorch GPU acceleration (requires torch and CUDA)
     
     Returns:
         Trained KeyedVectors model
     """
+    # Use PyTorch GPU if requested and available
+    if use_gpu and TORCH_AVAILABLE and torch.cuda.is_available():
+        return _train_word2vec_pytorch(walks, dim, window, negative, epochs, random_state, batch_words, use_gpu=True)
+    
+    # Fallback to gensim (CPU)
     if n_jobs == -1:
         n_jobs = _get_num_workers()
 
@@ -365,14 +514,15 @@ def compute_context_view(edges: List[Tuple[int, int, str, float]],
                          random_state: int = 42,
                          n_jobs: int = -1,
                          progress_callback=None,
-                         word2vec_progress_callback=None) -> Tuple[np.ndarray, KeyedVectors]:
+                         word2vec_progress_callback=None,
+                         use_gpu: bool = False) -> Tuple[np.ndarray, KeyedVectors]:
     """
     Compute context view embeddings using Node2Vec + Word2Vec with multiprocessing.
     
     Args:
         progress_callback: callback for random walk generation progress (current, total)
         word2vec_progress_callback: callback to signal Word2Vec training start/end
-        console: Rich console for logging (optional)
+        use_gpu: if True, use GPU acceleration for Word2Vec training (requires torch and CUDA)
     
     Returns:
         embeddings: node embeddings from context view
@@ -388,7 +538,7 @@ def compute_context_view(edges: List[Tuple[int, int, str, float]],
     
     # Word2Vec training happens here - this is the actual learning step
     # Note: gensim Word2Vec doesn't support progress callbacks, so training happens synchronously
-    kv = train_word2vec(walks, dim, random_state=random_state, n_jobs=n_jobs)
+    kv = train_word2vec(walks, dim, random_state=random_state, n_jobs=n_jobs, use_gpu=use_gpu)
     
     # Signal Word2Vec training is complete
     if word2vec_progress_callback:

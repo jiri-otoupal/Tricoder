@@ -1,5 +1,5 @@
 """Package metadata for TriCoder."""
-__version__ = "1.3.2"
+__version__ = "1.3.3"
 __author__ = "Jiri Otoupal"
 __email__ = "j.f.otoupal@gmail.com"
 __license__ = "Non-Commercial License"

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tricoder"
-version = "1.3.2"
+version = "1.3.3"
 description = "TriVector Code Intelligence - Multi-view code relationship model with advanced semantic embeddings"
 authors = ["Jiri Otoupal <j.f.otoupal@gmail.com>"]
 readme = "README.md"
