@@ -1,6 +1,7 @@
 """GPU acceleration utilities using CuPy (CUDA) or PyTorch (MPS for Mac)."""
 import warnings
 import platform
+import sys
 from typing import Optional, Tuple
 
 import numpy as np
@@ -20,9 +21,62 @@ except ImportError:
 try:
     import torch
     TORCH_AVAILABLE = True
+    TORCH_VERSION = torch.__version__
 except ImportError:
     TORCH_AVAILABLE = False
+    TORCH_VERSION = None
     torch = None
+
+
+def diagnose_gpu_support() -> dict:
+    """
+    Diagnose GPU support availability and provide helpful information.
+    
+    Returns:
+        Dictionary with diagnostic information
+    """
+    diagnostics = {
+        'platform': platform.system(),
+        'is_mac': platform.system() == 'Darwin',
+        'python_version': sys.version,
+        'cupy_available': CUPY_AVAILABLE,
+        'torch_available': TORCH_AVAILABLE,
+        'torch_version': TORCH_VERSION,
+        'gpu_backends': []
+    }
+    
+    # Check CuPy/CUDA
+    if CUPY_AVAILABLE:
+        try:
+            _ = cp.array([1, 2, 3])
+            device = cp.cuda.Device(0)
+            device.use()
+            diagnostics['gpu_backends'].append('CUDA (CuPy)')
+        except Exception as e:
+            diagnostics['cupy_error'] = str(e)
+    
+    # Check PyTorch MPS (Mac)
+    if TORCH_AVAILABLE and diagnostics['is_mac']:
+        try:
+            if hasattr(torch.backends, 'mps') and hasattr(torch.backends.mps, 'is_available'):
+                if torch.backends.mps.is_available():
+                    diagnostics['gpu_backends'].append('MPS (Mac)')
+                else:
+                    diagnostics['mps_unavailable_reason'] = 'MPS backend not available (requires macOS 12.3+ and Apple Silicon)'
+            else:
+                diagnostics['mps_unavailable_reason'] = f'PyTorch {TORCH_VERSION} does not support MPS (requires PyTorch 1.12+)'
+        except Exception as e:
+            diagnostics['mps_error'] = str(e)
+    
+    # Check PyTorch CUDA
+    if TORCH_AVAILABLE:
+        try:
+            if torch.cuda.is_available():
+                diagnostics['gpu_backends'].append('CUDA (PyTorch)')
+        except Exception:
+            pass
+    
+    return diagnostics
 
 
 class GPUAccelerator:
@@ -60,16 +114,23 @@ class GPUAccelerator:
                 pass
         
         # Try PyTorch MPS (Mac GPU)
-        if TORCH_AVAILABLE and torch.backends.mps.is_available():
+        if TORCH_AVAILABLE and is_mac:
             try:
-                self.device = torch.device('mps')
-                # Test with a small operation
-                test_tensor = torch.tensor([1.0, 2.0, 3.0], device=self.device)
-                _ = test_tensor * 2
-                self.use_gpu = True
-                self.device_type = 'mps'
-                self.backend = 'torch'
-                return
+                # Check if MPS backend is available (requires PyTorch 1.12+ and macOS 12.3+)
+                if hasattr(torch.backends, 'mps') and hasattr(torch.backends.mps, 'is_available'):
+                    if torch.backends.mps.is_available():
+                        self.device = torch.device('mps')
+                        # Test with a small operation
+                        test_tensor = torch.tensor([1.0, 2.0, 3.0], device=self.device)
+                        _ = test_tensor * 2
+                        self.use_gpu = True
+                        self.device_type = 'mps'
+                        self.backend = 'torch'
+                        return
+                    else:
+                        warnings.warn("MPS backend is not available. This requires macOS 12.3+ and Apple Silicon (M1/M2/M3). Falling back to CPU.")
+                else:
+                    warnings.warn("PyTorch MPS backend not available. Please upgrade PyTorch to version 1.12+ for Mac GPU support. Falling back to CPU.")
             except Exception as e:
                 warnings.warn(f"MPS GPU acceleration failed: {e}. Falling back to CPU.")
         

@@ -237,13 +237,43 @@ def train_model(nodes_path: str,
     # Initialize GPU accelerator if requested
     gpu_accelerator = None
     if use_gpu:
-        from .gpu_utils import GPUAccelerator
-        gpu_accelerator = GPUAccelerator(use_gpu=True)
-        if gpu_accelerator.use_gpu:
-            backend_name = "CUDA (NVIDIA)" if gpu_accelerator.device_type == 'cuda' else "MPS (Mac)"
-            console.print(f"[bold green]✓ GPU acceleration enabled ({backend_name})[/bold green]\n")
+        from .gpu_utils import GPUAccelerator, TORCH_AVAILABLE, TORCH_VERSION, diagnose_gpu_support
+        import platform
+        
+        is_mac = platform.system() == 'Darwin'
+        if is_mac and not TORCH_AVAILABLE:
+            console.print(f"[yellow]⚠ PyTorch not installed. Install with: pip install torch[/yellow]")
+            console.print(f"[yellow]   GPU acceleration requires PyTorch for Mac MPS support. Using CPU.[/yellow]\n")
         else:
-            console.print(f"[yellow]⚠ GPU acceleration requested but not available, using CPU[/yellow]\n")
+            gpu_accelerator = GPUAccelerator(use_gpu=True)
+            if gpu_accelerator.use_gpu:
+                backend_name = "CUDA (NVIDIA)" if gpu_accelerator.device_type == 'cuda' else "MPS (Mac)"
+                console.print(f"[bold green]✓ GPU acceleration enabled ({backend_name})[/bold green]\n")
+            else:
+                if is_mac:
+                    # Provide detailed diagnostics
+                    diagnostics = diagnose_gpu_support()
+                    console.print(f"[yellow]⚠ GPU acceleration requested but MPS not available.[/yellow]")
+                    if not TORCH_AVAILABLE:
+                        console.print(f"[yellow]   PyTorch is not installed. Install with: pip install torch[/yellow]")
+                    elif TORCH_VERSION:
+                        # Simple version check (compare first two parts)
+                        try:
+                            version_parts = TORCH_VERSION.split('.')
+                            major = int(version_parts[0])
+                            minor = int(version_parts[1]) if len(version_parts) > 1 else 0
+                            if major < 1 or (major == 1 and minor < 12):
+                                console.print(f"[yellow]   PyTorch version {TORCH_VERSION} is too old. Upgrade to 1.12+ for MPS support.[/yellow]")
+                                console.print(f"[yellow]   Upgrade with: pip install --upgrade torch[/yellow]")
+                        except (ValueError, IndexError):
+                            pass  # Skip version check if parsing fails
+                    elif 'mps_unavailable_reason' in diagnostics:
+                        console.print(f"[yellow]   {diagnostics['mps_unavailable_reason']}[/yellow]")
+                    else:
+                        console.print(f"[yellow]   Requirements: macOS 12.3+, Apple Silicon (M1/M2/M3), PyTorch 1.12+[/yellow]")
+                    console.print(f"[yellow]   Using CPU.[/yellow]\n")
+                else:
+                    console.print(f"[yellow]⚠ GPU acceleration requested but not available, using CPU[/yellow]\n")
     
     # Set random seeds
     np.random.seed(random_state)

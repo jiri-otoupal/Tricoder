@@ -2,11 +2,13 @@
 """Command-line interface for TriCoder."""
 import os
 import shlex
+from typing import List
 
 import click
 from rich import box
 from rich.console import Console
 from rich.table import Table
+from rich.prompt import Prompt
 
 from .git_tracker import (
     get_git_commit_hash, get_git_commit_timestamp, get_changed_files_for_retraining,
@@ -18,6 +20,67 @@ from .train import train_model
 console = Console()
 
 
+def get_tricoder_dir() -> str:
+    """Get the default .tricoder directory path and ensure it exists."""
+    cwd = os.getcwd()
+    tricoder_dir = os.path.join(cwd, '.tricoder')
+    os.makedirs(tricoder_dir, exist_ok=True)
+    return tricoder_dir
+
+
+def get_model_dir() -> str:
+    """Get the default model directory path and ensure it exists."""
+    tricoder_dir = get_tricoder_dir()
+    model_dir = os.path.join(tricoder_dir, 'model')
+    os.makedirs(model_dir, exist_ok=True)
+    return model_dir
+
+
+def is_valid_model_dir(path: str) -> bool:
+    """Check if a directory contains a valid model."""
+    embeddings_path = os.path.join(path, 'embeddings.npy')
+    metadata_path = os.path.join(path, 'metadata.json')
+    return os.path.exists(embeddings_path) and os.path.exists(metadata_path)
+
+
+def discover_models(root_dir: str) -> List[str]:
+    """
+    Recursively discover all model directories starting from root_dir.
+    
+    Args:
+        root_dir: Root directory to search for models
+        
+    Returns:
+        List of model directory paths (sorted, with root_dir first if it's a model)
+    """
+    models = []
+    
+    if not os.path.exists(root_dir):
+        return models
+    
+    # Check if root_dir itself is a model
+    if is_valid_model_dir(root_dir):
+        models.append(root_dir)
+    
+    # Recursively search subdirectories
+    for root, dirs, files in os.walk(root_dir):
+        # Skip hidden directories
+        dirs[:] = [d for d in dirs if not d.startswith('.')]
+        
+        for d in dirs:
+            subdir = os.path.join(root, d)
+            if is_valid_model_dir(subdir):
+                models.append(subdir)
+    
+    # Sort: root_dir first if it's a model, then alphabetically
+    def sort_key(path):
+        if path == root_dir:
+            return (0, path)
+        return (1, path)
+    
+    return sorted(models, key=sort_key)
+
+
 @click.group()
 def cli():
     """TriCoder - TriVector Code Intelligence for semantic code analysis."""
@@ -25,14 +88,14 @@ def cli():
 
 
 @cli.command(name='train')
-@click.option('--nodes', '-n', default='nodes.jsonl', type=click.Path(),
-              help='Path to nodes.jsonl file containing symbol definitions (default: nodes.jsonl).')
-@click.option('--edges', '-e', default='edges.jsonl', type=click.Path(),
-              help='Path to edges.jsonl file containing symbol relationships (default: edges.jsonl).')
-@click.option('--types', '-t', default='types.jsonl', type=click.Path(),
-              help='[Optional] Path to types.jsonl file containing type token information (default: types.jsonl).')
-@click.option('--out', '-o', required=True, type=click.Path(),
-              help='Output directory where the trained model will be saved.')
+@click.option('--nodes', '-n', default=None, type=click.Path(),
+              help='Path to nodes.jsonl file (default: .tricoder/nodes.jsonl).')
+@click.option('--edges', '-e', default=None, type=click.Path(),
+              help='Path to edges.jsonl file (default: .tricoder/edges.jsonl).')
+@click.option('--types', '-t', default=None, type=click.Path(),
+              help='[Optional] Path to types.jsonl file (default: .tricoder/types.jsonl).')
+@click.option('--out', '-o', default=None, type=click.Path(),
+              help='Output directory for trained model (default: .tricoder/model).')
 @click.option('--graph-dim', default=None, type=int, show_default=False,
               help='Dimensionality for the graph view embeddings.')
 @click.option('--context-dim', default=None, type=int, show_default=False,
@@ -56,14 +119,22 @@ def cli():
 def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim,
           num_walks, walk_length, train_ratio, random_state, fast, use_gpu):
     """Train TriCoder model on codebase symbols and relationships."""
+    # Use default .tricoder directory if paths not specified
+    tricoder_dir = get_tricoder_dir()
+    nodes_path = nodes if nodes else os.path.join(tricoder_dir, 'nodes.jsonl')
+    edges_path = edges if edges else os.path.join(tricoder_dir, 'edges.jsonl')
+    types_path = types if types else os.path.join(tricoder_dir, 'types.jsonl')
+    output_dir = out if out else get_model_dir()
+    
     # Handle optional types file - only use if it exists
-    types_path = types if types and os.path.exists(types) else None
+    if not os.path.exists(types_path):
+        types_path = None
 
     train_model(
-        nodes_path=nodes,
-        edges_path=edges,
+        nodes_path=nodes_path,
+        edges_path=edges_path,
         types_path=types_path,
-        output_dir=out,
+        output_dir=output_dir,
         graph_dim=graph_dim,
         context_dim=context_dim,
         typed_dim=typed_dim,
@@ -79,17 +150,17 @@ def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim
     # Save git metadata after training
     commit_hash = get_git_commit_hash()
     commit_timestamp = get_git_commit_timestamp()
-    files_trained = extract_files_from_jsonl(nodes)
-    files_trained.update(extract_files_from_jsonl(edges))
+    files_trained = extract_files_from_jsonl(nodes_path)
+    files_trained.update(extract_files_from_jsonl(edges_path))
     if types_path and os.path.exists(types_path):
         files_trained.update(extract_files_from_jsonl(types_path))
 
-    save_training_metadata(out, commit_hash, commit_timestamp, files_trained)
+    save_training_metadata(output_dir, commit_hash, commit_timestamp, files_trained)
     console.print(f"[dim]Saved training metadata (commit: {commit_hash[:8] if commit_hash else 'N/A'})[/dim]")
 
 
 @cli.command(name='query')
-@click.option('--model-dir', '-m', required=True, help='Path to model directory')
+@click.option('--model-dir', '-m', default=None, help='Path to model directory (default: discovers models in .tricoder/model)')
 @click.option('--symbol', '-s', help='Symbol ID to query')
 @click.option('--keywords', '-w', help='Keywords to search for (use quotes for multi-word: "my function")')
 @click.option('--top-k', '-k', default=10, help='Number of results to return')
@@ -97,9 +168,86 @@ def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim
               help='Additional keywords to exclude from search (can be specified multiple times). '
                    'These are appended to the default excluded keywords (Python builtins, etc.)')
 @click.option('--interactive', '-i', is_flag=True, help='Interactive mode')
-def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive):
+@click.option('--no-recursive', '--no-discover', is_flag=True, default=False,
+              help='Disable recursive model discovery. Only use the base model directory directly.')
+def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive, no_recursive):
     """Query the TriCoder model for similar symbols."""
-    console.print(f"[bold green]Loading model from {model_dir}...[/bold green]")
+    # Discover models if not specified
+    if model_dir is None:
+        base_model_dir = get_model_dir()
+        if no_recursive:
+            # Only check the base directory itself, don't search recursively
+            if is_valid_model_dir(base_model_dir):
+                discovered_models = [base_model_dir]
+            else:
+                discovered_models = []
+        else:
+            discovered_models = discover_models(base_model_dir)
+        
+        if not discovered_models:
+            console.print(f"[bold red]No models found in {base_model_dir}[/bold red]")
+            console.print(f"[yellow]Please train a model first using: tricoder train[/yellow]")
+            return
+        
+        # Print one-liner summary at the beginning
+        if len(discovered_models) > 1:
+            console.print(f"[dim]Found {len(discovered_models)} models[/dim]")
+        
+        if len(discovered_models) == 1:
+            # Only one model found, use it automatically
+            model_dir = discovered_models[0]
+            console.print(f"[dim]Found 1 model: {os.path.relpath(model_dir)}[/dim]")
+        else:
+            # Multiple models found, ask user to select
+            console.print(f"[bold cyan]Found {len(discovered_models)} models:[/bold cyan]\n")
+            
+            # Display models in a tree-like structure
+            try:
+                base_path = os.path.commonpath([base_model_dir] + discovered_models)
+            except ValueError:
+                # Fallback if paths are on different drives (Windows) or can't find common path
+                base_path = base_model_dir
+            
+            for idx, model_path in enumerate(discovered_models, 1):
+                try:
+                    rel_path = os.path.relpath(model_path, base_path)
+                    # Normalize path separators for display
+                    rel_path = rel_path.replace('\\', '/')
+                    if rel_path == '.':
+                        rel_path = 'model'
+                except ValueError:
+                    rel_path = os.path.basename(model_path) or model_path
+                
+                # Count symbols in model
+                num_nodes = 0
+                try:
+                    import json
+                    metadata_path = os.path.join(model_path, 'metadata.json')
+                    if os.path.exists(metadata_path):
+                        with open(metadata_path, 'r') as f:
+                            metadata = json.load(f)
+                            num_nodes = metadata.get('num_nodes', 0)
+                except Exception:
+                    pass
+                
+                if num_nodes > 0:
+                    console.print(f"  [cyan]{idx}.[/cyan] [white]{rel_path}[/white] [dim]({num_nodes:,} symbols)[/dim]")
+                else:
+                    console.print(f"  [cyan]{idx}.[/cyan] [white]{rel_path}[/white]")
+            
+            console.print()
+            try:
+                choice = Prompt.ask(
+                    "[bold cyan]Select model to query[/bold cyan]",
+                    default="1",
+                    choices=[str(i) for i in range(1, len(discovered_models) + 1)]
+                )
+                model_dir = discovered_models[int(choice) - 1]
+            except (ValueError, IndexError, KeyboardInterrupt):
+                console.print("[bold yellow]Cancelled[/bold yellow]")
+                return
+    
+    console.print(f"[bold green]Loading model from {os.path.relpath(model_dir)}...[/bold green]")
 
     try:
         model = SymbolModel()
@@ -302,18 +450,24 @@ def interactive_mode(model, excluded_keywords: set = None):
 @click.option('--exclude-keywords', '--exclude', multiple=True,
               help='Symbol names to exclude from extraction (can be specified multiple times). '
                    'These are appended to the default excluded keywords (Python builtins, etc.).')
-@click.option('--output-nodes', '-n', default='nodes.jsonl',
-              help='Output file for nodes (default: nodes.jsonl)')
-@click.option('--output-edges', '-d', default='edges.jsonl',
-              help='Output file for edges (default: edges.jsonl)')
-@click.option('--output-types', '-t', default='types.jsonl',
-              help='Output file for types (default: types.jsonl)')
+@click.option('--output-nodes', '-n', default=None,
+              help='Output file for nodes (default: .tricoder/nodes.jsonl)')
+@click.option('--output-edges', '-d', default=None,
+              help='Output file for edges (default: .tricoder/edges.jsonl)')
+@click.option('--output-types', '-t', default=None,
+              help='Output file for types (default: .tricoder/types.jsonl)')
 @click.option('--no-gitignore', is_flag=True, default=False,
               help='Disable .gitignore filtering (enabled by default)')
 def extract(input_dir, include_dirs, exclude_dirs, extensions, exclude_keywords, output_nodes, output_edges, output_types, no_gitignore):
     """Extract symbols and relationships from codebase."""
     from .extract import extract_from_directory
     from .model import DEFAULT_EXCLUDED_KEYWORDS
+
+    # Use default .tricoder directory if paths not specified
+    tricoder_dir = get_tricoder_dir()
+    output_nodes_path = output_nodes if output_nodes else os.path.join(tricoder_dir, 'nodes.jsonl')
+    output_edges_path = output_edges if output_edges else os.path.join(tricoder_dir, 'edges.jsonl')
+    output_types_path = output_types if output_types else os.path.join(tricoder_dir, 'types.jsonl')
 
     # Parse extensions: split by comma, strip whitespace, remove dots if present
     ext_list = [ext.strip().lstrip('.') for ext in extensions.split(',') if ext.strip()]
@@ -335,20 +489,20 @@ def extract(input_dir, include_dirs, exclude_dirs, extensions, exclude_keywords,
         exclude_dirs=list(exclude_dirs) if exclude_dirs else [],
         extensions=ext_list,
         excluded_keywords=excluded_keywords_set,
-        output_nodes=output_nodes,
-        output_edges=output_edges,
-        output_types=output_types,
+        output_nodes=output_nodes_path,
+        output_edges=output_edges_path,
+        output_types=output_types_path,
         use_gitignore=not no_gitignore
     )
 
 
 @cli.command(name='optimize')
-@click.option('--nodes', '-n', default='nodes.jsonl', type=click.Path(exists=True),
-              help='Path to nodes.jsonl file (default: nodes.jsonl)')
-@click.option('--edges', '-e', default='edges.jsonl', type=click.Path(exists=True),
-              help='Path to edges.jsonl file (default: edges.jsonl)')
-@click.option('--types', '-t', default='types.jsonl', type=click.Path(exists=True),
-              help='Path to types.jsonl file (default: types.jsonl, optional)')
+@click.option('--nodes', '-n', default=None, type=click.Path(),
+              help='Path to nodes.jsonl file (default: .tricoder/nodes.jsonl)')
+@click.option('--edges', '-e', default=None, type=click.Path(),
+              help='Path to edges.jsonl file (default: .tricoder/edges.jsonl)')
+@click.option('--types', '-t', default=None, type=click.Path(),
+              help='Path to types.jsonl file (default: .tricoder/types.jsonl, optional)')
 @click.option('--output-nodes', '-N', default=None, type=click.Path(),
               help='Output path for optimized nodes (default: overwrites input)')
 @click.option('--output-edges', '-E', default=None, type=click.Path(),
@@ -382,10 +536,29 @@ def optimize(nodes, edges, types, output_nodes, output_edges, output_types,
     from .optimize import optimize_nodes_and_edges
     from .model import DEFAULT_EXCLUDED_KEYWORDS
     
+    # Use default .tricoder directory if paths not specified
+    tricoder_dir = get_tricoder_dir()
+    nodes_path = nodes if nodes else os.path.join(tricoder_dir, 'nodes.jsonl')
+    edges_path = edges if edges else os.path.join(tricoder_dir, 'edges.jsonl')
+    types_path = types if types else os.path.join(tricoder_dir, 'types.jsonl')
+    
+    # Default output paths: overwrite input if not specified
+    output_nodes_path = output_nodes if output_nodes else nodes_path
+    output_edges_path = output_edges if output_edges else edges_path
+    output_types_path = output_types if output_types else types_path
+    
     # Build excluded keywords set
     excluded_keywords_set = DEFAULT_EXCLUDED_KEYWORDS
     if exclude_keywords:
         excluded_keywords_set = excluded_keywords_set | {kw.lower() for kw in exclude_keywords}
+    
+    # Check if input files exist
+    if not os.path.exists(nodes_path):
+        console.print(f"[bold red]Error: Nodes file not found: {nodes_path}[/bold red]")
+        return
+    if not os.path.exists(edges_path):
+        console.print(f"[bold red]Error: Edges file not found: {edges_path}[/bold red]")
+        return
     
     # Handle flags
     remove_isolated_nodes = remove_isolated and not keep_isolated
@@ -399,12 +572,12 @@ def optimize(nodes, edges, types, output_nodes, output_edges, output_types,
     
     try:
         nodes_removed, edges_removed, types_removed, stats = optimize_nodes_and_edges(
-            nodes_path=nodes,
-            edges_path=edges,
-            types_path=types if types and os.path.exists(types) else None,
-            output_nodes=output_nodes,
-            output_edges=output_edges,
-            output_types=output_types,
+            nodes_path=nodes_path,
+            edges_path=edges_path,
+            types_path=types_path if types_path and os.path.exists(types_path) else None,
+            output_nodes=output_nodes_path,
+            output_edges=output_edges_path,
+            output_types=output_types_path,
             min_edge_weight=min_edge_weight,
             remove_isolated=remove_isolated_nodes,
             remove_generic_names=remove_generic_names,
@@ -492,13 +665,10 @@ def optimize(nodes, edges, types, output_nodes, output_edges, output_types,
         console.print(kind_table)
         
         # Show output paths
-        output_nodes_path = output_nodes or nodes
-        output_edges_path = output_edges or edges
         console.print(f"\n[dim]Optimized files written to:[/dim]")
         console.print(f"  [dim]Nodes: {output_nodes_path}[/dim]")
         console.print(f"  [dim]Edges: {output_edges_path}[/dim]")
-        if output_types or (types and os.path.exists(types)):
-            output_types_path = output_types or types
+        if output_types_path and os.path.exists(output_types_path):
             console.print(f"  [dim]Types: {output_types_path}[/dim]")
         
     except Exception as e:
@@ -511,12 +681,12 @@ def optimize(nodes, edges, types, output_nodes, output_edges, output_types,
               help='Path to existing model directory')
 @click.option('--codebase-dir', '-c', default='.', type=click.Path(exists=True, file_okay=False),
               help='Path to codebase root directory (default: current directory)')
-@click.option('--output-nodes', '-n', default='nodes_retrain.jsonl',
-              help='Temporary output file for nodes (default: nodes_retrain.jsonl)')
-@click.option('--output-edges', '-d', default='edges_retrain.jsonl',
-              help='Temporary output file for edges (default: edges_retrain.jsonl)')
-@click.option('--output-types', '-t', default='types_retrain.jsonl',
-              help='Temporary output file for types (default: types_retrain.jsonl)')
+@click.option('--output-nodes', '-n', default=None,
+              help='Temporary output file for nodes (default: .tricoder/nodes_retrain.jsonl)')
+@click.option('--output-edges', '-d', default=None,
+              help='Temporary output file for edges (default: .tricoder/edges_retrain.jsonl)')
+@click.option('--output-types', '-t', default=None,
+              help='Temporary output file for types (default: .tricoder/types_retrain.jsonl)')
 @click.option('--graph-dim', default=None, type=int, show_default=False,
               help='Dimensionality for the graph view embeddings (uses model default if not specified).')
 @click.option('--context-dim', default=None, type=int, show_default=False,
@@ -542,6 +712,14 @@ def retrain(model_dir, codebase_dir, output_nodes, output_edges, output_types,
     from .git_tracker import load_training_metadata
     from .extract import extract_from_directory
     import json
+
+    # Use default .tricoder directory if paths not specified
+    if model_dir is None:
+        model_dir = get_model_dir()
+    tricoder_dir = get_tricoder_dir()
+    output_nodes_path = output_nodes if output_nodes else os.path.join(tricoder_dir, 'nodes_retrain.jsonl')
+    output_edges_path = output_edges if output_edges else os.path.join(tricoder_dir, 'edges_retrain.jsonl')
+    output_types_path = output_types if output_types else os.path.join(tricoder_dir, 'types_retrain.jsonl')
 
     console.print("[bold cyan]TriCoder Incremental Retraining[/bold cyan]\n")
 
@@ -581,22 +759,22 @@ def retrain(model_dir, codebase_dir, output_nodes, output_edges, output_types,
         root_dir=codebase_dir,
         include_dirs=[],
         exclude_dirs=['.venv', '__pycache__', '.git', 'node_modules', '.pytest_cache'],
-        output_nodes=output_nodes,
-        output_edges=output_edges,
-        output_types=output_types,
+        output_nodes=output_nodes_path,
+        output_edges=output_edges_path,
+        output_types=output_types_path,
         use_gitignore=True
     )
 
     # Filter extracted data to only include changed files
     console.print("[cyan]Filtering extracted data to changed files...[/cyan]")
-    filtered_nodes = output_nodes + '.filtered'
-    filtered_edges = output_edges + '.filtered'
-    filtered_types = output_types + '.filtered'
+    filtered_nodes = output_nodes_path + '.filtered'
+    filtered_edges = output_edges_path + '.filtered'
+    filtered_types = output_types_path + '.filtered'
 
     # Filter nodes
     node_count = 0
     with open(filtered_nodes, 'w') as out_f:
-        with open(output_nodes, 'r') as in_f:
+        with open(output_nodes_path, 'r') as in_f:
             for line in in_f:
                 if not line.strip():
                     continue
@@ -626,7 +804,7 @@ def retrain(model_dir, codebase_dir, output_nodes, output_edges, output_types,
                     continue
 
     with open(filtered_edges, 'w') as out_f:
-        with open(output_edges, 'r') as in_f:
+        with open(output_edges_path, 'r') as in_f:
             for line in in_f:
                 if not line.strip():
                     continue
@@ -643,9 +821,9 @@ def retrain(model_dir, codebase_dir, output_nodes, output_edges, output_types,
 
     # Filter types
     type_count = 0
-    if os.path.exists(output_types):
+    if os.path.exists(output_types_path):
         with open(filtered_types, 'w') as out_f:
-            with open(output_types, 'r') as in_f:
+            with open(output_types_path, 'r') as in_f:
                 for line in in_f:
                     if not line.strip():
                         continue
@@ -664,7 +842,7 @@ def retrain(model_dir, codebase_dir, output_nodes, output_edges, output_types,
     if node_count == 0:
         console.print("[bold yellow]No nodes found in changed files. Nothing to retrain.[/bold yellow]")
         # Cleanup
-        for f in [output_nodes, output_edges, output_types, filtered_nodes, filtered_edges, filtered_types]:
+        for f in [output_nodes_path, output_edges_path, output_types_path, filtered_nodes, filtered_edges, filtered_types]:
             if os.path.exists(f):
                 os.remove(f)
         return
@@ -701,7 +879,7 @@ def retrain(model_dir, codebase_dir, output_nodes, output_edges, output_types,
 
     # Cleanup temporary files
     console.print("\n[cyan]Cleaning up temporary files...[/cyan]")
-    for f in [output_nodes, output_edges, output_types, filtered_nodes, filtered_edges, filtered_types]:
+    for f in [output_nodes_path, output_edges_path, output_types_path, filtered_nodes, filtered_edges, filtered_types]:
         if os.path.exists(f):
             os.remove(f)
 
