@@ -4,7 +4,9 @@ import os
 import shlex
 
 import click
+from rich import box
 from rich.console import Console
+from rich.table import Table
 
 from .git_tracker import (
     get_git_commit_hash, get_git_commit_timestamp, get_changed_files_for_retraining,
@@ -320,6 +322,170 @@ def extract(input_dir, include_dirs, exclude_dirs, extensions, exclude_keywords,
         output_types=output_types,
         use_gitignore=not no_gitignore
     )
+
+
+@cli.command(name='optimize')
+@click.option('--nodes', '-n', default='nodes.jsonl', type=click.Path(exists=True),
+              help='Path to nodes.jsonl file (default: nodes.jsonl)')
+@click.option('--edges', '-e', default='edges.jsonl', type=click.Path(exists=True),
+              help='Path to edges.jsonl file (default: edges.jsonl)')
+@click.option('--types', '-t', default='types.jsonl', type=click.Path(exists=True),
+              help='Path to types.jsonl file (default: types.jsonl, optional)')
+@click.option('--output-nodes', '-N', default=None, type=click.Path(),
+              help='Output path for optimized nodes (default: overwrites input)')
+@click.option('--output-edges', '-E', default=None, type=click.Path(),
+              help='Output path for optimized edges (default: overwrites input)')
+@click.option('--output-types', '-T', default=None, type=click.Path(),
+              help='Output path for optimized types (default: overwrites input)')
+@click.option('--min-edge-weight', default=0.3, type=float,
+              help='Minimum edge weight to keep (default: 0.3)')
+@click.option('--remove-isolated', is_flag=True, default=True,
+              help='Remove nodes with no edges (default: True)')
+@click.option('--keep-isolated', is_flag=True, default=False,
+              help='Keep isolated nodes (overrides --remove-isolated)')
+@click.option('--remove-generic', is_flag=True, default=True,
+              help='Remove nodes with generic names (default: True)')
+@click.option('--keep-generic', is_flag=True, default=False,
+              help='Keep generic names (overrides --remove-generic)')
+@click.option('--exclude-keywords', '--exclude', multiple=True,
+              help='Additional keywords to exclude (can be specified multiple times)')
+def optimize(nodes, edges, types, output_nodes, output_edges, output_types,
+             min_edge_weight, remove_isolated, keep_isolated, remove_generic, keep_generic, exclude_keywords):
+    """Optimize nodes and edges by filtering out low-value entries.
+    
+    This command removes:
+    - Nodes with generic names (single letters, common names like 'temp', 'var', etc.)
+    - Isolated nodes (nodes with no edges)
+    - Low-weight edges (below minimum threshold)
+    - Nodes matching excluded keywords
+    
+    This reduces the graph size while preserving meaningful relationships.
+    """
+    from .optimize import optimize_nodes_and_edges
+    from .model import DEFAULT_EXCLUDED_KEYWORDS
+    
+    # Build excluded keywords set
+    excluded_keywords_set = DEFAULT_EXCLUDED_KEYWORDS
+    if exclude_keywords:
+        excluded_keywords_set = excluded_keywords_set | {kw.lower() for kw in exclude_keywords}
+    
+    # Handle flags
+    remove_isolated_nodes = remove_isolated and not keep_isolated
+    remove_generic_names = remove_generic and not keep_generic
+    
+    console.print("[bold cyan]Optimizing nodes and edges...[/bold cyan]\n")
+    console.print(f"[dim]Min edge weight: {min_edge_weight}[/dim]")
+    console.print(f"[dim]Remove isolated nodes: {remove_isolated_nodes}[/dim]")
+    console.print(f"[dim]Remove generic names: {remove_generic_names}[/dim]")
+    console.print(f"[dim]Excluded keywords: {len(excluded_keywords_set)}[/dim]\n")
+    
+    try:
+        nodes_removed, edges_removed, types_removed, stats = optimize_nodes_and_edges(
+            nodes_path=nodes,
+            edges_path=edges,
+            types_path=types if types and os.path.exists(types) else None,
+            output_nodes=output_nodes,
+            output_edges=output_edges,
+            output_types=output_types,
+            min_edge_weight=min_edge_weight,
+            remove_isolated=remove_isolated_nodes,
+            remove_generic_names=remove_generic_names,
+            excluded_keywords=excluded_keywords_set
+        )
+        
+        console.print(f"\n[bold green]✓ Optimization complete![/bold green]\n")
+        
+        # Overall statistics
+        from rich.table import Table
+        stats_table = Table(title="Optimization Statistics", box=box.ROUNDED, show_header=True)
+        stats_table.add_column("Metric", style="cyan", width=25)
+        stats_table.add_column("Original", style="white", justify="right", width=12)
+        stats_table.add_column("Final", style="green", justify="right", width=12)
+        stats_table.add_column("Removed", style="yellow", justify="right", width=12)
+        stats_table.add_column("Reduction", style="dim", justify="right", width=12)
+        
+        # Calculate percentages
+        node_reduction = (nodes_removed / stats['original']['nodes'] * 100) if stats['original']['nodes'] > 0 else 0
+        edge_reduction = (edges_removed / stats['original']['edges'] * 100) if stats['original']['edges'] > 0 else 0
+        type_reduction = (types_removed / stats['original']['types'] * 100) if stats['original']['types'] > 0 else 0
+        
+        stats_table.add_row(
+            "Nodes",
+            f"{stats['original']['nodes']:,}",
+            f"{stats['final']['nodes']:,}",
+            f"{stats['removed']['nodes']:,}",
+            f"{node_reduction:.1f}%"
+        )
+        stats_table.add_row(
+            "Edges",
+            f"{stats['original']['edges']:,}",
+            f"{stats['final']['edges']:,}",
+            f"{stats['removed']['edges']:,}",
+            f"{edge_reduction:.1f}%"
+        )
+        if stats['original']['types'] > 0:
+            stats_table.add_row(
+                "Types",
+                f"{stats['original']['types']:,}",
+                f"{stats['final']['types']:,}",
+                f"{stats['removed']['types']:,}",
+                f"{type_reduction:.1f}%"
+            )
+        
+        console.print(stats_table)
+        
+        # Removal reasons
+        console.print(f"\n[bold cyan]Removal Breakdown:[/bold cyan]")
+        reasons_table = Table(show_header=False, box=None)
+        reasons_table.add_column("Reason", style="dim", width=30)
+        reasons_table.add_column("Count", style="yellow", justify="right", width=15)
+        
+        if stats['removal_reasons']['excluded_keywords'] > 0:
+            reasons_table.add_row("Excluded keywords", f"{stats['removal_reasons']['excluded_keywords']:,}")
+        if stats['removal_reasons']['generic_names'] > 0:
+            reasons_table.add_row("Generic names", f"{stats['removal_reasons']['generic_names']:,}")
+        if stats['removal_reasons']['isolated'] > 0:
+            reasons_table.add_row("Isolated nodes", f"{stats['removal_reasons']['isolated']:,}")
+        if stats['removal_reasons']['orphaned_edges'] > 0:
+            reasons_table.add_row("Orphaned edges (node removed)", f"{stats['removal_reasons']['orphaned_edges']:,}")
+        if stats['removal_reasons']['low_weight_edges'] > 0:
+            reasons_table.add_row(f"Low-weight edges (<{min_edge_weight})", f"{stats['removal_reasons']['low_weight_edges']:,}")
+        
+        console.print(reasons_table)
+        
+        # Statistics by kind
+        console.print(f"\n[bold cyan]Statistics by Kind:[/bold cyan]")
+        kind_table = Table(show_header=True, box=box.ROUNDED)
+        kind_table.add_column("Kind", style="cyan", width=15)
+        kind_table.add_column("Original", style="white", justify="right", width=12)
+        kind_table.add_column("Removed", style="yellow", justify="right", width=12)
+        kind_table.add_column("Final", style="green", justify="right", width=12)
+        
+        for kind in sorted(stats['by_kind'].keys()):
+            kind_stats = stats['by_kind'][kind]
+            if kind_stats['original'] > 0:
+                kind_table.add_row(
+                    kind,
+                    f"{kind_stats['original']:,}",
+                    f"{kind_stats['removed']:,}",
+                    f"{kind_stats['final']:,}"
+                )
+        
+        console.print(kind_table)
+        
+        # Show output paths
+        output_nodes_path = output_nodes or nodes
+        output_edges_path = output_edges or edges
+        console.print(f"\n[dim]Optimized files written to:[/dim]")
+        console.print(f"  [dim]Nodes: {output_nodes_path}[/dim]")
+        console.print(f"  [dim]Edges: {output_edges_path}[/dim]")
+        if output_types or (types and os.path.exists(types)):
+            output_types_path = output_types or types
+            console.print(f"  [dim]Types: {output_types_path}[/dim]")
+        
+    except Exception as e:
+        console.print(f"[bold red]Error during optimization: {e}[/bold red]")
+        raise
 
 
 @cli.command(name='retrain')
