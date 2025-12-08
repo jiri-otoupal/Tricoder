@@ -675,8 +675,11 @@ def train_model(nodes_path: str,
         progress.update(task_context1, completed=True)
         progress.remove_task(task_context1)
         
+        # Word2Vec training happens inside compute_context_view, show it's complete
         task_context2 = progress.add_task("[cyan]Training Word2Vec model...", total=None)
         console.print(f"  [dim]  → Training SkipGram model (window={7 if not fast_mode else 5}, epochs={3 if not fast_mode else 2})...[/dim]")
+        # Note: Word2Vec training already completed inside compute_context_view
+        # We show it here for clarity, but it's already done
         progress.update(task_context2, completed=True)
         progress.remove_task(task_context2)
         
@@ -774,8 +777,13 @@ def train_model(nodes_path: str,
         console.print(f"  [dim]Calibrating temperature with {tau_candidates_count} candidates, "
                      f"{num_negatives} negatives/edge, {len(val_edges):,} validation edges...[/dim]")
         
-        task8a = progress.add_task("[cyan]  → Evaluating tau candidates...", total=None)
+        task8a = progress.add_task("[cyan]  → Evaluating tau candidates...", total=tau_candidates_count)
         tau_candidates = np.logspace(-2, 2, num=tau_candidates_count)
+        
+        # Create progress callback for calibration
+        def calibration_progress_cb(current, total):
+            progress.update(task8a, completed=current, total=total)
+        
         tau = learn_temperature(
             E, val_edges, final_num_nodes, 
             num_negatives=num_negatives,
@@ -783,7 +791,8 @@ def train_model(nodes_path: str,
             random_state=random_state, n_jobs=n_jobs,
             node_metadata=node_metadata,
             node_file_info=node_file_info,
-            idx_to_node=idx_to_node
+            idx_to_node=idx_to_node,
+            progress_callback=calibration_progress_cb
         )
         progress.update(task8a, completed=True)
         progress.remove_task(task8a)

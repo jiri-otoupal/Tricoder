@@ -218,6 +218,7 @@ def train_word2vec(walks: List[List[str]], dim: int, window: int = 7,
     # For gensim 4.x, use workers parameter
     workers = max(1, n_jobs)
     
+    # Word2Vec training happens here - this is the actual learning step
     model = Word2Vec(
         sentences=walks,
         vector_size=dim,
@@ -252,6 +253,8 @@ def compute_context_view(edges: List[Tuple[int, int, str, float]],
     walks = generate_random_walks(edges, num_nodes, num_walks, walk_length,
                                   random_state=random_state, n_jobs=n_jobs,
                                   progress_callback=progress_callback)
+    # Word2Vec training happens here - this is the actual learning step
+    # Note: gensim Word2Vec doesn't support progress callbacks, so training happens synchronously
     kv = train_word2vec(walks, dim, random_state=random_state, n_jobs=n_jobs)
 
     # Extract embeddings for all nodes

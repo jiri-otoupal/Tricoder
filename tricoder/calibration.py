@@ -210,7 +210,8 @@ def learn_temperature(embeddings: np.ndarray,
                       n_jobs: int = -1,
                       node_metadata: List[Dict] = None,
                       node_file_info: Dict[str, Tuple[str, str, str]] = None,
-                      idx_to_node: Dict[int, str] = None) -> float:
+                      idx_to_node: Dict[int, str] = None,
+                      progress_callback=None) -> float:
     """
     Learn optimal temperature parameter via parallel grid search with improved negative sampling.
     
@@ -255,20 +256,26 @@ def learn_temperature(embeddings: np.ndarray,
         args_list = [(tau, embeddings, positive_pairs, negative_pairs) for tau in tau_candidates]
         chunksize = max(1, len(args_list) // (n_jobs * 2))
         with Pool(processes=n_jobs) as pool:
-            results = pool.map(_evaluate_single_tau, args_list, chunksize=chunksize)
-
-        best_tau = 1.0
-        best_score = -np.inf
-        for tau, score in results:
-            if score > best_score:
-                best_score = score
-                best_tau = tau
+            results = pool.imap_unordered(_evaluate_single_tau, args_list, chunksize=chunksize)
+            
+            best_tau = 1.0
+            best_score = -np.inf
+            completed = 0
+            for tau, score in results:
+                completed += 1
+                if progress_callback:
+                    progress_callback(completed, len(tau_candidates))
+                if score > best_score:
+                    best_score = score
+                    best_tau = tau
     else:
         # Sequential evaluation for small cases
         best_tau = 1.0
         best_score = -np.inf
-        for tau in tau_candidates:
+        for idx, tau in enumerate(tau_candidates):
             score = evaluate_tau(embeddings, positive_pairs, negative_pairs, tau)
+            if progress_callback:
+                progress_callback(idx + 1, len(tau_candidates))
             if score > best_score:
                 best_score = score
                 best_tau = tau
