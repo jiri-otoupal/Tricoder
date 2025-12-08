@@ -88,8 +88,11 @@ def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim
 @click.option('--symbol', '-s', help='Symbol ID to query')
 @click.option('--keywords', '-w', help='Keywords to search for (use quotes for multi-word: "my function")')
 @click.option('--top-k', '-k', default=10, help='Number of results to return')
+@click.option('--exclude-keywords', '--exclude', multiple=True,
+              help='Additional keywords to exclude from search (can be specified multiple times). '
+                   'These are appended to the default excluded keywords (Python builtins, etc.)')
 @click.option('--interactive', '-i', is_flag=True, help='Interactive mode')
-def query(model_dir, symbol, keywords, top_k, interactive):
+def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive):
     """Query the TriCoder model for similar symbols."""
     console.print(f"[bold green]Loading model from {model_dir}...[/bold green]")
 
@@ -101,14 +104,22 @@ def query(model_dir, symbol, keywords, top_k, interactive):
         console.print(f"[bold red]Error loading model: {e}[/bold red]")
         return
 
+    # Build excluded keywords set (default + user-provided)
+    excluded_keywords_set = None
+    if exclude_keywords:
+        from .model import DEFAULT_EXCLUDED_KEYWORDS
+        excluded_keywords_set = DEFAULT_EXCLUDED_KEYWORDS | {kw.lower() for kw in exclude_keywords}
+        console.print(f"[dim]Excluding {len(excluded_keywords_set)} keywords "
+                     f"({len(exclude_keywords)} user-added)[/dim]\n")
+
     if interactive:
-        interactive_mode(model)
+        interactive_mode(model, excluded_keywords_set)
     elif symbol:
         display_results(model, symbol, top_k)
     elif keywords:
         # Parse keywords (handle quoted strings)
         keywords_parsed = parse_keywords(keywords)
-        search_and_display_results(model, keywords_parsed, top_k)
+        search_and_display_results(model, keywords_parsed, top_k, excluded_keywords_set)
     else:
         console.print("[bold yellow]Please provide --symbol, --keywords, or use --interactive mode[/bold yellow]")
 
@@ -170,12 +181,31 @@ def parse_keywords(keywords_str: str) -> str:
         return keywords_str.strip()
 
 
-def search_and_display_results(model, keywords: str, top_k: int):
+def search_and_display_results(model, keywords: str, top_k: int, excluded_keywords: set = None):
     """Search for symbols by keywords and display results."""
-    matches = model.search_by_keywords(keywords, top_k)
+    from .model import DEFAULT_EXCLUDED_KEYWORDS
+    
+    # Use provided excluded keywords or default
+    if excluded_keywords is None:
+        excluded_keywords = DEFAULT_EXCLUDED_KEYWORDS
+    
+    # Check if any keywords are excluded
+    keyword_words = keywords.lower().split()
+    excluded_found = [w for w in keyword_words if w in excluded_keywords]
+    
+    matches = model.search_by_keywords(keywords, top_k, excluded_keywords=excluded_keywords)
+    
+    # Show warning if excluded keywords were filtered
+    if excluded_found:
+        console.print(f"[yellow]Note: Filtered out excluded keywords: {', '.join(excluded_found)}[/yellow]")
+        console.print("[dim]These are Python builtins/keywords that don't provide useful search results.[/dim]\n")
     
     if not matches:
-        console.print(f"[bold yellow]No symbols found matching keywords: {keywords}[/bold yellow]")
+        if excluded_found and len(excluded_found) == len(keyword_words):
+            console.print(f"[bold yellow]All keywords were filtered out (Python builtins/keywords).[/bold yellow]")
+            console.print(f"[dim]Try searching for user-defined code patterns instead of language constructs.[/dim]")
+        else:
+            console.print(f"[bold yellow]No symbols found matching keywords: {keywords}[/bold yellow]")
         return
     
     console.print(f"\n[bold cyan]Search Results for:[/bold cyan] \"{keywords}\"")
@@ -201,10 +231,17 @@ def search_and_display_results(model, keywords: str, top_k: int):
         console.print(f"[dim]Tip: Query similar symbols with: --symbol {first_match['symbol']}[/dim]\n")
 
 
-def interactive_mode(model):
+def interactive_mode(model, excluded_keywords: set = None):
     """Interactive query mode."""
+    from .model import DEFAULT_EXCLUDED_KEYWORDS
+    
+    # Use provided excluded keywords or default
+    if excluded_keywords is None:
+        excluded_keywords = DEFAULT_EXCLUDED_KEYWORDS
+    
     console.print("[bold green]Entering interactive mode. Type 'quit' or 'exit' to quit.[/bold green]")
-    console.print("[dim]You can search by symbol ID or keywords (use quotes for multi-word)[/dim]\n")
+    console.print("[dim]You can search by symbol ID or keywords (use quotes for multi-word)[/dim]")
+    console.print(f"[dim]Excluding {len(excluded_keywords)} keywords (Python builtins, etc.)[/dim]\n")
 
     while True:
         try:
@@ -222,7 +259,7 @@ def interactive_mode(model):
             else:
                 # Try as keywords
                 keywords_parsed = parse_keywords(query_input)
-                search_and_display_results(model, keywords_parsed, top_k)
+                search_and_display_results(model, keywords_parsed, top_k, excluded_keywords)
 
         except KeyboardInterrupt:
             console.print("\n[bold yellow]Goodbye![/bold yellow]")
@@ -234,12 +271,14 @@ def interactive_mode(model):
 @cli.command(name='extract')
 @click.option('--input-dir', '--root', '-r', default='.',
               type=click.Path(exists=True, file_okay=False, dir_okay=True),
-              help='Input directory to scan for Python files.')
+              help='Input directory to scan for files.')
 @click.option('--include-dirs', '-i', multiple=True,
               help='Include only these subdirectories (can be specified multiple times).')
 @click.option('--exclude-dirs', '-e', multiple=True,
               default=['.venv', '__pycache__', '.git', 'node_modules', '.pytest_cache'],
               help='Exclude these directories (can be specified multiple times).')
+@click.option('--extensions', '--ext', default='py',
+              help='Comma-separated list of file extensions to process (e.g., "py,js,ts"). Default: py')
 @click.option('--output-nodes', '-n', default='nodes.jsonl',
               help='Output file for nodes (default: nodes.jsonl)')
 @click.option('--output-edges', '-d', default='edges.jsonl',
@@ -248,14 +287,20 @@ def interactive_mode(model):
               help='Output file for types (default: types.jsonl)')
 @click.option('--no-gitignore', is_flag=True, default=False,
               help='Disable .gitignore filtering (enabled by default)')
-def extract(input_dir, include_dirs, exclude_dirs, output_nodes, output_edges, output_types, no_gitignore):
-    """Extract symbols and relationships from Python codebase."""
+def extract(input_dir, include_dirs, exclude_dirs, extensions, output_nodes, output_edges, output_types, no_gitignore):
+    """Extract symbols and relationships from codebase."""
     from .extract import extract_from_directory
+
+    # Parse extensions: split by comma, strip whitespace, remove dots if present
+    ext_list = [ext.strip().lstrip('.') for ext in extensions.split(',') if ext.strip()]
+    if not ext_list:
+        ext_list = ['py']  # Default to Python if empty
 
     extract_from_directory(
         root_dir=input_dir,
         include_dirs=list(include_dirs) if include_dirs else [],
         exclude_dirs=list(exclude_dirs) if exclude_dirs else [],
+        extensions=ext_list,
         output_nodes=output_nodes,
         output_edges=output_edges,
         output_types=output_types,

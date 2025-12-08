@@ -1,11 +1,67 @@
 """SymbolModel: main model class for loading and querying."""
 import json
 import os
-from typing import List, Dict
+from typing import List, Dict, Set
 
 import numpy as np
 from annoy import AnnoyIndex
 from gensim.models.keyedvectors import KeyedVectors
+
+# Default excluded keywords: Python keywords, builtins, and common library names
+# These don't provide value for code intelligence as they're language constructs
+# rather than user-defined code patterns
+DEFAULT_EXCLUDED_KEYWORDS: Set[str] = {
+    # Python keywords
+    'import', 'from', 'as', 'def', 'class', 'if', 'else', 'elif', 'for', 'while',
+    'try', 'except', 'finally', 'with', 'return', 'pass', 'break', 'continue',
+    'yield', 'lambda', 'del', 'global', 'nonlocal', 'assert', 'raise', 'and',
+    'or', 'not', 'in', 'is', 'None', 'True', 'False',
+    
+    # Common builtin functions/types
+    'print', 'len', 'str', 'int', 'float', 'bool', 'list', 'dict', 'tuple',
+    'set', 'frozenset', 'type', 'isinstance', 'hasattr', 'getattr', 'setattr',
+    'delattr', 'dir', 'vars', 'locals', 'globals', 'eval', 'exec', 'compile',
+    'open', 'file', 'range', 'enumerate', 'zip', 'map', 'filter', 'reduce',
+    'sorted', 'reversed', 'iter', 'next', 'all', 'any', 'sum', 'max', 'min',
+    'abs', 'round', 'divmod', 'pow', 'bin', 'hex', 'oct', 'ord', 'chr',
+    'repr', 'ascii', 'format', 'hash', 'id', 'slice', 'super', 'property',
+    'staticmethod', 'classmethod', 'object', 'Exception', 'BaseException',
+    
+    # Common standard library module names
+    'os', 'sys', 'json', 're', 'datetime', 'time', 'random', 'math', 'collections',
+    'itertools', 'functools', 'operator', 'string', 'textwrap', 'unicodedata',
+    'stringprep', 'readline', 'rlcompleter', 'struct', 'codecs', 'types', 'copy',
+    'pprint', 'reprlib', 'enum', 'numbers', 'cmath', 'decimal', 'fractions',
+    'statistics', 'array', 'bisect', 'heapq', 'weakref', 'gc', 'inspect',
+    'site', 'fpectl', 'atexit', 'traceback', 'future', 'importlib', 'pkgutil',
+    'modulefinder', 'runpy', 'pickle', 'copyreg', 'shelve', 'marshal', 'dbm',
+    'sqlite3', 'zlib', 'gzip', 'bz2', 'lzma', 'zipfile', 'tarfile', 'csv',
+    'configparser', 'netrc', 'xdrlib', 'plistlib', 'hashlib', 'hmac', 'secrets',
+    'io', 'argparse', 'getopt', 'logging', 'getpass', 'curses', 'platform',
+    'errno', 'ctypes', 'threading', 'multiprocessing', 'concurrent', 'subprocess',
+    'sched', 'queue', 'select', 'selectors', 'asyncio', 'socket', 'ssl', 'email',
+    'urllib', 'http', 'html', 'xml', 'webbrowser', 'tkinter', 'turtle', 'cmd',
+    'shlex', 'configparser', 'fileinput', 'linecache', 'shutil', 'tempfile',
+    'glob', 'fnmatch', 'linecache', 'shutil', 'macpath', 'pathlib', 'stat',
+    'filecmp', 'mmap', 'codecs', 'unicodedata', 'stringprep', 'readline',
+    'rlcompleter', 'ast', 'symtable', 'symbol', 'token', 'tokenize', 'keyword',
+    'parser', 'dis', 'pickletools', 'doctest', 'unittest', 'test', 'lib2to3',
+    'typing', 'pydoc', 'doctest', 'unittest', 'test', 'lib2to3', 'distutils',
+    'ensurepip', 'venv', 'zipapp', 'faulthandler', 'pdb', 'profile', 'pstats',
+    'timeit', 'trace', 'tracemalloc', 'gc', 'inspect', 'site', 'fpectl',
+    'warnings', 'contextlib', 'abc', 'atexit', 'traceback', 'future', '__future__',
+    'importlib', 'pkgutil', 'modulefinder', 'runpy', 'zipimport', 'pkgutil',
+    'modulefinder', 'runpy', 'zipimport', 'pkgutil', 'modulefinder', 'runpy',
+    
+    # Common dunder methods (though these might be useful, excluding common ones)
+    '__init__', '__main__', '__name__', '__file__', '__doc__', '__package__',
+    '__builtins__', '__dict__', '__class__', '__module__', '__qualname__',
+    
+    # Common variable names that aren't useful
+    'self', 'cls', 'args', 'kwargs', 'data', 'result', 'value', 'item',
+    'key', 'val', 'obj', 'instance', 'cls', 'self', 'other', 'x', 'y', 'z',
+    'i', 'j', 'k', 'n', 'm', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w',
+}
 
 
 class SymbolModel:
@@ -271,13 +327,15 @@ class SymbolModel:
 
         return results
 
-    def search_by_keywords(self, keywords: str, top_k: int = 10) -> List[Dict]:
+    def search_by_keywords(self, keywords: str, top_k: int = 10, 
+                          excluded_keywords: Set[str] = None) -> List[Dict]:
         """
         Search for symbols by keywords (name matching).
         
         Args:
             keywords: space-separated keywords or quoted string to search for
             top_k: number of results to return
+            excluded_keywords: set of keywords to exclude (defaults to DEFAULT_EXCLUDED_KEYWORDS)
         
         Returns:
             List of matching symbol dictionaries with symbol, score, meta
@@ -285,9 +343,23 @@ class SymbolModel:
         if not self.metadata_lookup:
             return []
         
+        # Use default excluded keywords if not provided
+        if excluded_keywords is None:
+            excluded_keywords = DEFAULT_EXCLUDED_KEYWORDS
+        
         # Normalize keywords (case-insensitive)
         keywords_lower = keywords.lower().strip()
         keyword_words = keywords_lower.split()
+        
+        # Filter out excluded keywords from search query
+        filtered_keyword_words = [w for w in keyword_words if w not in excluded_keywords]
+        
+        # If all keywords were filtered out, return empty results
+        if not filtered_keyword_words:
+            return []
+        
+        # Rebuild keywords string from filtered words
+        filtered_keywords_lower = ' '.join(filtered_keyword_words)
         
         # Find matching symbols
         matches = []
@@ -298,30 +370,34 @@ class SymbolModel:
             name = meta.get('name', '').lower()
             kind = meta.get('kind', '').lower()
             
+            # Skip symbols whose names are in excluded keywords (they're not useful)
+            if name in excluded_keywords:
+                continue
+            
             # Calculate a simple relevance score
             score = 0.0
             
             # Check exact phrase match first (highest priority)
-            if keywords_lower == name:
+            if filtered_keywords_lower == name:
                 score = 1.0  # Exact name match
-            elif name.startswith(keywords_lower):
+            elif name.startswith(filtered_keywords_lower):
                 score = 0.8  # Name starts with keywords
-            elif keywords_lower in name:
+            elif filtered_keywords_lower in name:
                 score = 0.6  # Keywords contained in name
             # For multi-word queries, check if all words appear in name
-            elif len(keyword_words) > 1:
+            elif len(filtered_keyword_words) > 1:
                 # Check if all words appear in the name
-                all_words_in_name = all(word in name for word in keyword_words)
+                all_words_in_name = all(word in name for word in filtered_keyword_words)
                 if all_words_in_name:
                     # Count how many words match
-                    matching_words = sum(1 for word in keyword_words if word in name)
-                    score = 0.5 + (0.2 * matching_words / len(keyword_words))  # 0.5-0.7 range
+                    matching_words = sum(1 for word in filtered_keyword_words if word in name)
+                    score = 0.5 + (0.2 * matching_words / len(filtered_keyword_words))  # 0.5-0.7 range
                 # Also check if all words appear in kind
-                elif all(word in kind for word in keyword_words):
+                elif all(word in kind for word in filtered_keyword_words):
                     score = 0.3
             # Single word queries
-            elif len(keyword_words) == 1:
-                word = keyword_words[0]
+            elif len(filtered_keyword_words) == 1:
+                word = filtered_keyword_words[0]
                 if word == name:
                     score = 1.0  # Exact name match
                 elif name.startswith(word):

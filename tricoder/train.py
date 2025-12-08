@@ -219,15 +219,22 @@ def train_model(nodes_path: str,
             console=console
     ) as progress:
         # Load data first to compute dimensions
-        task1 = progress.add_task("[cyan]Loading data to compute dimensions...", total=None)
+        task1 = progress.add_task("[cyan]Loading nodes...", total=None)
         node_to_idx, node_metadata, node_subtokens, node_file_info = load_nodes(nodes_path)
-        edges, num_nodes = load_edges(edges_path, node_to_idx)
+        num_nodes = len(node_to_idx)
         progress.update(task1, completed=True)
-
+        console.print(f"  [dim]✓ Loaded {num_nodes:,} nodes[/dim]")
+        
         if num_nodes == 0:
             raise ValueError("No nodes found in input file")
 
-        if len(edges) == 0:
+        task1b = progress.add_task("[cyan]Loading edges...", total=None)
+        edges, _ = load_edges(edges_path, node_to_idx)
+        num_edges = len(edges)
+        progress.update(task1b, completed=True)
+        console.print(f"  [dim]✓ Loaded {num_edges:,} edges[/dim]")
+
+        if num_edges == 0:
             raise ValueError("No edges found in input file")
 
         # Load types if available
@@ -239,6 +246,9 @@ def train_model(nodes_path: str,
             node_types, type_to_idx = load_types(types_path, node_to_idx)
             num_types = len(type_to_idx)
             progress.update(task2, completed=True)
+            console.print(f"  [dim]✓ Loaded {num_types:,} type tokens[/dim]")
+        else:
+            console.print(f"  [dim]⊘ No types file provided[/dim]")
 
         # Compute default dimensions if not provided
         defaults = compute_default_dimensions(num_nodes, len(edges), num_types)
@@ -314,9 +324,11 @@ def train_model(nodes_path: str,
         # Split edges for calibration
         # In fast mode, use less validation data for faster calibration
         calibration_train_ratio = train_ratio if not fast_mode else min(0.9, train_ratio + 0.05)
-        task3 = progress.add_task("[cyan]Splitting edges...", total=None)
+        task3 = progress.add_task("[cyan]Splitting edges for training/validation...", total=None)
         train_edges, val_edges = split_edges(edges, calibration_train_ratio, random_state)
         progress.update(task3, completed=True)
+        console.print(f"  [dim]✓ Split edges: {len(train_edges):,} training, {len(val_edges):,} validation "
+                      f"({calibration_train_ratio:.1%}/{1-calibration_train_ratio:.1%})[/dim]")
 
         # Get number of workers (all cores - 1, but use all cores on Windows for better performance)
         from multiprocessing import cpu_count
@@ -351,9 +363,12 @@ def train_model(nodes_path: str,
         # Step 1: Compute graph view with all enhancements
         # This task runs completely and sequentially before moving to the next one
         # This ensures full parallelization can be used for graph view operations
+        console.print(f"\n[bold cyan]Step 1/5: Graph View[/bold cyan]")
+        console.print(f"  [dim]Computing graph embeddings (dim={graph_dim}) with {n_jobs} workers...[/dim]")
+        
+        task4a = progress.add_task("[cyan]  → Expanding call graph...", total=None)
         task4 = progress.add_task(
-            f"[cyan]Step 1/5: Computing graph view (PPMI + SVD + enhancements) [{n_jobs} workers]...",
-            total=None)
+            f"[cyan]  → Building adjacency matrix & computing PPMI...", total=None)
         X_graph, svd_components_graph, final_num_nodes, subtoken_to_idx, expanded_edges = compute_graph_view(
             train_edges, num_nodes, graph_dim, random_state, n_jobs=n_jobs,
             node_to_idx=node_to_idx,
@@ -368,19 +383,37 @@ def train_model(nodes_path: str,
             context_window=context_window_size,
             max_depth=call_graph_depth
         )
+        progress.update(task4a, completed=True)
         progress.update(task4, completed=True)
+        
+        num_subtokens = len(subtoken_to_idx) if subtoken_to_idx else 0
+        expanded_edges_count = len(expanded_edges)
+        console.print(f"  [dim]✓ Expanded to {final_num_nodes:,} nodes ({num_nodes:,} original + {num_subtokens:,} subtokens)[/dim]")
+        console.print(f"  [dim]✓ Expanded to {expanded_edges_count:,} edges ({len(train_edges):,} original)[/dim]")
+        console.print(f"  [dim]✓ Computed graph embeddings: {X_graph.shape}[/dim]")
         # Graph view is now complete - all resources released before next task
 
         # Step 2: Compute context view using expanded edges (includes subtokens)
         # This task runs completely after graph view finishes
         # This ensures full parallelization can be used for context view operations
+        console.print(f"\n[bold cyan]Step 2/5: Context View[/bold cyan]")
+        console.print(f"  [dim]Computing context embeddings (dim={context_dim}) with {n_jobs} workers...[/dim]")
+        console.print(f"  [dim]Parameters: {num_walks} walks/node, length={walk_length}[/dim]")
+        
+        task5a = progress.add_task("[cyan]  → Generating random walks...", total=None)
         task5 = progress.add_task(
-            f"[cyan]Step 2/5: Computing context view (Node2Vec + Word2Vec) [{n_jobs} workers]...", total=None)
+            f"[cyan]  → Training Word2Vec model...", total=None)
         # Use expanded_edges which includes subtokens and all enhancements
         X_w2v, word2vec_kv = compute_context_view(
             expanded_edges, final_num_nodes, context_dim, num_walks, walk_length, random_state, n_jobs=n_jobs
         )
+        progress.update(task5a, completed=True)
         progress.update(task5, completed=True)
+        
+        total_walks = final_num_nodes * num_walks
+        console.print(f"  [dim]✓ Generated {total_walks:,} random walks[/dim]")
+        console.print(f"  [dim]✓ Trained Word2Vec model (vocab size: {len(word2vec_kv.key_to_index):,})[/dim]")
+        console.print(f"  [dim]✓ Computed context embeddings: {X_w2v.shape}[/dim]")
         # Context view is now complete - all resources released before next task
 
         # Step 3: Compute typed view if available (with type expansion)
@@ -389,56 +422,80 @@ def train_model(nodes_path: str,
         svd_components_types = None
         final_type_to_idx = None
         if node_types is not None and type_to_idx is not None:
+            console.print(f"\n[bold cyan]Step 3/5: Typed View[/bold cyan]")
+            console.print(f"  [dim]Computing typed embeddings (dim={typed_dim}) with {n_jobs} workers...[/dim]")
+            
+            task6a = progress.add_task("[cyan]  → Building type-token matrix...", total=None)
             task6 = progress.add_task(
-                f"[cyan]Step 3/5: Computing typed view (PPMI + SVD + type expansion) [{n_jobs} workers]...",
-                total=None)
+                f"[cyan]  → Computing PPMI & SVD...", total=None)
             X_types, svd_components_types, final_type_to_idx = compute_typed_view(
                 node_types, type_to_idx, final_num_nodes, typed_dim, random_state, n_jobs=n_jobs,
                 expand_types=True
             )
+            progress.update(task6a, completed=True)
             progress.update(task6, completed=True)
+            
+            final_type_count = len(final_type_to_idx) if final_type_to_idx else num_types
+            console.print(f"  [dim]✓ Expanded to {final_type_count:,} type tokens ({num_types:,} original)[/dim]")
+            console.print(f"  [dim]✓ Computed typed embeddings: {X_types.shape}[/dim]")
             # Typed view is now complete - all resources released before next task
+        else:
+            console.print(f"\n[bold cyan]Step 3/5: Typed View[/bold cyan]")
+            console.print(f"  [dim]⊘ Skipped (no types provided)[/dim]")
 
         # Step 4: Fuse embeddings
         # This task runs completely after typed view finishes (if available)
-        task7 = progress.add_task(
-            f"[cyan]Step 4/5: Fusing embeddings (PCA + Normalize) [{n_jobs} workers]...", total=None)
+        console.print(f"\n[bold cyan]Step 4/5: Fusion[/bold cyan]")
+        input_dims = [graph_dim, context_dim]
+        if X_types is not None:
+            input_dims.append(typed_dim)
+        total_input_dim = sum(input_dims)
+        console.print(f"  [dim]Fusing {len(embeddings_list)} views (total input dim={total_input_dim}) → {final_dim}...[/dim]")
+        
         embeddings_list = [X_graph, X_w2v]
         if X_types is not None:
             embeddings_list.append(X_types)
 
+        task7a = progress.add_task("[cyan]  → Concatenating views & applying PCA...", total=None)
         E, pca_components, pca_mean = fuse_embeddings(
             embeddings_list, final_num_nodes, final_dim, random_state, n_jobs=n_jobs
         )
+        progress.update(task7a, completed=True)
 
         # Store embeddings before normalization for mean_norm computation
         E_before_norm = E.copy()
 
         # Compute mean_norm for length penalty
+        task7b = progress.add_task("[cyan]  → Normalizing embeddings...", total=None)
         mean_norm = float(np.mean(np.linalg.norm(E_before_norm, axis=1)))
-
-        progress.update(task7, completed=True)
+        progress.update(task7b, completed=True)
+        
+        console.print(f"  [dim]✓ Fused embeddings: {E.shape} (reduced from {total_input_dim}D)[/dim]")
+        console.print(f"  [dim]✓ Mean norm: {mean_norm:.4f}[/dim]")
 
         # Apply iterative embedding smoothing (diffusion)
         # This runs after fusion completes
         if smoothing_iterations > 0:
-            task7b = progress.add_task(f"[cyan]Applying embedding smoothing (diffusion) [{n_jobs} workers]...",
-                                       total=None)
+            console.print(f"  [dim]Applying smoothing (iterations={smoothing_iterations}, beta=0.35)...[/dim]")
+            task7c = progress.add_task(f"[cyan]  → Smoothing embeddings via diffusion...", total=None)
             E = iterative_embedding_smoothing(
                 E, expanded_edges, final_num_nodes,
                 num_iterations=smoothing_iterations, beta=0.35, random_state=random_state
             )
-            progress.update(task7b, completed=True)
+            progress.update(task7c, completed=True)
+            console.print(f"  [dim]✓ Applied {smoothing_iterations} smoothing iteration(s)[/dim]")
         # Smoothing is now complete - all resources released before next task
 
         # Step 5: Learn temperature with improved negative sampling
         # This task runs completely after smoothing finishes
         # In fast mode, use fewer tau candidates and negatives for faster calibration
+        console.print(f"\n[bold cyan]Step 5/5: Temperature Calibration[/bold cyan]")
         num_negatives = 3 if fast_mode else 5
         tau_candidates_count = 20 if fast_mode else 30
-        task8 = progress.add_task(
-            f"[cyan]Step 5/5: Learning temperature parameter (improved negative sampling) [{n_jobs} workers]...",
-            total=None)
+        console.print(f"  [dim]Calibrating temperature with {tau_candidates_count} candidates, "
+                     f"{num_negatives} negatives/edge, {len(val_edges):,} validation edges...[/dim]")
+        
+        task8a = progress.add_task("[cyan]  → Evaluating tau candidates...", total=None)
         tau_candidates = np.logspace(-2, 2, num=tau_candidates_count)
         tau = learn_temperature(
             E, val_edges, final_num_nodes, 
@@ -449,25 +506,36 @@ def train_model(nodes_path: str,
             node_file_info=node_file_info,
             idx_to_node=idx_to_node
         )
-        progress.update(task8, completed=True)
+        progress.update(task8a, completed=True)
+        console.print(f"  [dim]✓ Learned optimal temperature: τ = {tau:.6f}[/dim]")
 
         # Build ANN index (only for original nodes, not subtokens)
-        task9 = progress.add_task(f"[cyan]Building ANN index ({ann_trees} trees)...", total=None)
+        console.print(f"\n[bold cyan]Building ANN Index[/bold cyan]")
+        console.print(f"  [dim]Building approximate nearest neighbor index ({ann_trees} trees)...[/dim]")
+        task9a = progress.add_task("[cyan]  → Adding nodes to index...", total=None)
         ann_index = AnnoyIndex(final_dim, 'angular')
         # Only index original nodes (not subtokens)
         for i in range(num_nodes):
             ann_index.add_item(i, E[i])
+        progress.update(task9a, completed=True)
+        
+        task9b = progress.add_task("[cyan]  → Building index trees...", total=None)
         ann_index.build(ann_trees)  # Reduced trees in fast mode
-        progress.update(task9, completed=True)
+        progress.update(task9b, completed=True)
+        console.print(f"  [dim]✓ Built ANN index with {ann_trees} trees for {num_nodes:,} nodes[/dim]")
 
         # Save model
-        task10 = progress.add_task("[cyan]Saving model...", total=None)
+        console.print(f"\n[bold cyan]Saving Model[/bold cyan]")
+        console.print(f"  [dim]Writing model files to {output_dir}...[/dim]")
+        task10a = progress.add_task("[cyan]  → Saving embeddings & components...", total=None)
         os.makedirs(output_dir, exist_ok=True)
 
         # Save embeddings (only original nodes for query, but keep full for future use)
         # Save full embeddings including subtokens
         np.save(os.path.join(output_dir, 'embeddings.npy'), E)
-
+        progress.update(task10a, completed=True)
+        
+        task10b = progress.add_task("[cyan]  → Saving metadata & indices...", total=None)
         # Save temperature
         np.save(os.path.join(output_dir, 'tau.npy'), np.array(tau))
 
@@ -532,7 +600,8 @@ def train_model(nodes_path: str,
             with open(os.path.join(output_dir, 'type_token_map.json'), 'w') as f:
                 json.dump(type_to_idx, f, indent=2)
 
-        progress.update(task10, completed=True)
+        progress.update(task10b, completed=True)
+        console.print(f"  [dim]✓ Saved {len(os.listdir(output_dir))} model files[/dim]")
 
     # Calculate elapsed time
     end_time = time.time()

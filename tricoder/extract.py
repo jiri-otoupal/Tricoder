@@ -399,7 +399,11 @@ def should_process_file(file_path: str, include_dirs: List[str],
 
 
 def extract_from_file(file_path: str) -> Tuple[List[Dict], List[Dict], List[Dict]]:
-    """Extract symbols, edges, and types from a Python file."""
+    """Extract symbols, edges, and types from a source file.
+    
+    Note: Currently only supports Python files (uses AST parsing).
+    For other languages, additional parsers would need to be implemented.
+    """
     try:
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
@@ -435,6 +439,7 @@ def extract_from_file(file_path: str) -> Tuple[List[Dict], List[Dict], List[Dict
 
 def extract_from_directory(root_dir: str, include_dirs: List[str] = None,
                            exclude_dirs: List[str] = None,
+                           extensions: List[str] = None,
                            output_nodes: str = "nodes.jsonl",
                            output_edges: str = "edges.jsonl",
                            output_types: str = "types.jsonl",
@@ -446,6 +451,8 @@ def extract_from_directory(root_dir: str, include_dirs: List[str] = None,
         include_dirs = []
     if exclude_dirs is None:
         exclude_dirs = ['.venv', '__pycache__', '.git', 'node_modules', '.pytest_cache']
+    if extensions is None:
+        extensions = ['py']  # Default to Python files
 
     root_path = Path(root_dir).resolve()
     all_symbols = []
@@ -466,9 +473,13 @@ def extract_from_directory(root_dir: str, include_dirs: List[str] = None,
     click.echo(f"Scanning directory: {root_dir}")
     click.echo(f"Include dirs: {include_dirs if include_dirs else 'all'}")
     click.echo(f"Exclude dirs: {exclude_dirs}")
+    click.echo(f"Extensions: {', '.join(extensions)}")
     click.echo(f"Gitignore: {'enabled' if use_gitignore else 'disabled'}")
 
-    python_files = []
+    # Normalize extensions: ensure they start with dot
+    normalized_extensions = [ext if ext.startswith('.') else f'.{ext}' for ext in extensions]
+    
+    source_files = []
     skipped_gitignore = 0
 
     for root, dirs, files in os.walk(root_path):
@@ -489,7 +500,10 @@ def extract_from_directory(root_dir: str, include_dirs: List[str] = None,
             dirs.remove(d)
 
         for file in files:
-            if file.endswith('.py'):
+            # Check if file has one of the allowed extensions
+            file_path_obj = Path(file)
+            file_ext = file_path_obj.suffix.lower()
+            if file_ext in normalized_extensions:
                 file_path = Path(root) / file
                 file_path_str = str(file_path)
 
@@ -499,13 +513,14 @@ def extract_from_directory(root_dir: str, include_dirs: List[str] = None,
                     continue
 
                 if should_process_file(file_path_str, include_dirs, exclude_dirs, gitignore_matcher):
-                    python_files.append(file_path_str)
+                    source_files.append(file_path_str)
 
-    click.echo(f"Found {len(python_files)} Python files to process")
+    ext_display = ', '.join(extensions)
+    click.echo(f"Found {len(source_files)} file(s) with extensions [{ext_display}] to process")
     if skipped_gitignore > 0:
         click.echo(f"Skipped {skipped_gitignore} files/directories due to .gitignore")
 
-    with click.progressbar(python_files, label='Processing files') as bar:
+    with click.progressbar(source_files, label='Processing files') as bar:
         for file_path in bar:
             symbols, edges, types = extract_from_file(file_path)
 
