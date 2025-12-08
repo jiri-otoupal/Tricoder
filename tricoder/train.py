@@ -388,6 +388,26 @@ def train_model(nodes_path: str,
             TimeElapsedColumn(),
             console=console
     ) as progress:
+        # Check if input files exist
+        import os
+        missing_files = []
+        if not os.path.exists(nodes_path):
+            missing_files.append(f"nodes: {nodes_path}")
+        if not os.path.exists(edges_path):
+            missing_files.append(f"edges: {edges_path}")
+        if types_path and not os.path.exists(types_path):
+            missing_files.append(f"types: {types_path}")
+        
+        if missing_files:
+            console.print("\n[bold red]Error: Required input files not found[/bold red]")
+            console.print("\nMissing files:")
+            for file_desc in missing_files:
+                console.print(f"  • {file_desc}")
+            console.print("\n[yellow]Please extract the symbol data first using:[/yellow]")
+            console.print(f"  [cyan]tricoder extract --output .tricoder[/cyan]")
+            console.print("\nOr specify the correct paths with --nodes and --edges options.\n")
+            raise FileNotFoundError(f"Missing required files: {', '.join(missing_files)}")
+        
         # Load data first to compute dimensions
         task1 = progress.add_task("[cyan]Loading nodes...", total=None)
         node_to_idx, node_metadata, node_subtokens, node_file_info = load_nodes(nodes_path)
