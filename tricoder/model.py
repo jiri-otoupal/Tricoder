@@ -361,6 +361,33 @@ class SymbolModel:
         # Rebuild keywords string from filtered words
         filtered_keywords_lower = ' '.join(filtered_keyword_words)
         
+        # Get type tokens for this symbol (if available)
+        def get_type_tokens(node_id: str) -> List[str]:
+            """Get all type tokens for a symbol, including expanded primitives."""
+            if not self.node_types or node_id not in self.node_types:
+                return []
+            
+            type_tokens = []
+            for type_token, count in self.node_types[node_id].items():
+                # Add the full type token
+                type_tokens.append(type_token.lower())
+                
+                # Also parse composite types to extract primitives (e.g., "List[bool]" -> ["bool"])
+                # This allows matching "bool" when searching for "bool variable"
+                if '[' in type_token and ']' in type_token:
+                    # Extract content between brackets
+                    start = type_token.find('[')
+                    end = type_token.rfind(']')
+                    if start < end:
+                        inner = type_token[start+1:end].strip()
+                        # Split by comma and add individual types
+                        for part in inner.split(','):
+                            part = part.strip().lower()
+                            if part and part not in type_tokens:
+                                type_tokens.append(part)
+            
+            return type_tokens
+        
         # Find matching symbols
         matches = []
         for node_id, meta in self.metadata_lookup.items():
@@ -374,6 +401,10 @@ class SymbolModel:
             if name in excluded_keywords:
                 continue
             
+            # Get type tokens for this symbol
+            type_tokens = get_type_tokens(node_id)
+            type_tokens_str = ' '.join(type_tokens)  # Combined string for matching
+            
             # Calculate a simple relevance score
             score = 0.0
             
@@ -384,7 +415,7 @@ class SymbolModel:
                 score = 0.8  # Name starts with keywords
             elif filtered_keywords_lower in name:
                 score = 0.6  # Keywords contained in name
-            # For multi-word queries, check if all words appear in name
+            # For multi-word queries, check if all words appear in name, kind, or types
             elif len(filtered_keyword_words) > 1:
                 # Check if all words appear in the name
                 all_words_in_name = all(word in name for word in filtered_keyword_words)
@@ -392,9 +423,19 @@ class SymbolModel:
                     # Count how many words match
                     matching_words = sum(1 for word in filtered_keyword_words if word in name)
                     score = 0.5 + (0.2 * matching_words / len(filtered_keyword_words))  # 0.5-0.7 range
-                # Also check if all words appear in kind
-                elif all(word in kind for word in filtered_keyword_words):
-                    score = 0.3
+                # Check if words match name + type (e.g., "bool variable")
+                else:
+                    # Try to match some words in name/kind and some in types
+                    name_kind_matches = sum(1 for word in filtered_keyword_words if word in name or word in kind)
+                    type_matches = sum(1 for word in filtered_keyword_words if word in type_tokens_str)
+                    
+                    if name_kind_matches > 0 and type_matches > 0:
+                        # Combined match: name/kind + type (e.g., "bool variable")
+                        score = 0.4 + (0.2 * (name_kind_matches + type_matches) / len(filtered_keyword_words))
+                    elif all(word in kind for word in filtered_keyword_words):
+                        score = 0.3  # All words in kind
+                    elif all(word in type_tokens_str for word in filtered_keyword_words):
+                        score = 0.35  # All words in types
             # Single word queries
             elif len(filtered_keyword_words) == 1:
                 word = filtered_keyword_words[0]
@@ -408,6 +449,8 @@ class SymbolModel:
                     score = 0.4  # Kind match
                 elif word in kind:
                     score = 0.2  # Word in kind
+                elif word in type_tokens_str:
+                    score = 0.3  # Word in type tokens
             
             if score > 0:
                 matches.append({

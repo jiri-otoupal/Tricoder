@@ -9,13 +9,13 @@ import os
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Set
 
 
 class SymbolExtractor(ast.NodeVisitor):
     """AST visitor to extract symbols and relationships."""
 
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, excluded_keywords: Set[str] = None):
         self.file_path = file_path
         self.symbols = []
         self.edges = []
@@ -27,18 +27,42 @@ class SymbolExtractor(ast.NodeVisitor):
         self.type_tokens = defaultdict(int)
         self.added_symbol_ids = set()  # Track which symbol IDs have been added
         self.edge_weights = {}  # Track edge weights for aggregation: (src, dst, rel) -> weight
+        self.excluded_keywords = excluded_keywords or set()  # Symbol names to exclude
 
+    def _sanitize_name(self, name: str) -> str:
+        """Sanitize symbol name for use in ID (remove/replace invalid characters)."""
+        # Replace spaces and special characters with underscores
+        sanitized = re.sub(r'[^a-zA-Z0-9_]', '_', name)
+        # Remove consecutive underscores
+        sanitized = re.sub(r'_+', '_', sanitized)
+        # Remove leading/trailing underscores
+        sanitized = sanitized.strip('_')
+        # Limit length to avoid very long IDs
+        if len(sanitized) > 50:
+            sanitized = sanitized[:50]
+        # Ensure it's not empty
+        if not sanitized:
+            sanitized = 'unnamed'
+        return sanitized.lower()
+    
     def _get_symbol_id(self, name: str, kind: str) -> str:
-        """Generate unique symbol ID."""
+        """Generate unique symbol ID with descriptive name."""
         key = f"{self.file_path}:{kind}:{name}"
         if key not in self.symbol_map:
             self.symbol_counter += 1
-            self.symbol_map[key] = f"sym_{self.symbol_counter:04d}"
+            sanitized_name = self._sanitize_name(name)
+            sanitized_kind = kind.lower()
+            # Format: {kind}_{name}_{counter}
+            self.symbol_map[key] = f"{sanitized_kind}_{sanitized_name}_{self.symbol_counter:04d}"
         return self.symbol_map[key]
 
     def _add_symbol(self, name: str, kind: str, lineno: int,
                     extra_meta: Optional[Dict] = None):
         """Add a symbol to the collection."""
+        # Skip if symbol name is in excluded keywords
+        if name.lower() in self.excluded_keywords:
+            return None
+        
         symbol_id = self._get_symbol_id(name, kind)
         
         # Skip if symbol already added (prevents duplicates)
@@ -230,12 +254,32 @@ class SymbolExtractor(ast.NodeVisitor):
                     file_symbol = self._get_symbol_id(os.path.basename(self.file_path), "file")
                     self._add_edge(file_symbol, var_id, "defines_in_file", 1.0)
 
-                # Extract type annotation if present
-                if isinstance(target, ast.AnnAssign) and target.annotation:
-                    var_type = self._extract_type_annotation(target.annotation)
-                    if var_type:
-                        self._add_type_token(var_id, var_type, 1)
-
+        self.generic_visit(node)
+    
+    def visit_AnnAssign(self, node):
+        """Visit annotated assignment (e.g., x: int = 5)."""
+        if isinstance(node.target, ast.Name):
+            var_id = self._add_symbol(
+                node.target.id,
+                "var",
+                node.lineno
+            )
+            
+            # Link variable to containing function/class/file
+            if self.current_function:
+                self._add_edge(self.current_function, var_id, "defines_in_file", 1.0)
+            elif self.current_class:
+                self._add_edge(self.current_class, var_id, "defines_in_file", 1.0)
+            else:
+                file_symbol = self._get_symbol_id(os.path.basename(self.file_path), "file")
+                self._add_edge(file_symbol, var_id, "defines_in_file", 1.0)
+            
+            # Extract type annotation
+            if node.annotation:
+                var_type = self._extract_type_annotation(node.annotation)
+                if var_type:
+                    self._add_type_token(var_id, var_type, 1)
+        
         self.generic_visit(node)
 
     def visit_Name(self, node):
@@ -398,18 +442,22 @@ def should_process_file(file_path: str, include_dirs: List[str],
     return False
 
 
-def extract_from_file(file_path: str) -> Tuple[List[Dict], List[Dict], List[Dict]]:
+def extract_from_file(file_path: str, excluded_keywords: Set[str] = None) -> Tuple[List[Dict], List[Dict], List[Dict]]:
     """Extract symbols, edges, and types from a source file.
     
     Note: Currently only supports Python files (uses AST parsing).
     For other languages, additional parsers would need to be implemented.
+    
+    Args:
+        file_path: Path to the source file
+        excluded_keywords: Set of symbol names to exclude from extraction
     """
     try:
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
 
         tree = ast.parse(content, filename=file_path)
-        extractor = SymbolExtractor(file_path)
+        extractor = SymbolExtractor(file_path, excluded_keywords=excluded_keywords)
         extractor.visit(tree)
 
         # Convert aggregated edges from dictionary to list format
@@ -440,11 +488,24 @@ def extract_from_file(file_path: str) -> Tuple[List[Dict], List[Dict], List[Dict
 def extract_from_directory(root_dir: str, include_dirs: List[str] = None,
                            exclude_dirs: List[str] = None,
                            extensions: List[str] = None,
+                           excluded_keywords: Set[str] = None,
                            output_nodes: str = "nodes.jsonl",
                            output_edges: str = "edges.jsonl",
                            output_types: str = "types.jsonl",
                            use_gitignore: bool = True):
-    """Extract symbols from directory recursively."""
+    """Extract symbols from directory recursively.
+    
+    Args:
+        root_dir: Root directory to scan
+        include_dirs: List of directories to include (empty = all)
+        exclude_dirs: List of directories to exclude
+        extensions: List of file extensions to process
+        excluded_keywords: Set of symbol names to exclude from extraction
+        output_nodes: Output file for nodes
+        output_edges: Output file for edges
+        output_types: Output file for types
+        use_gitignore: Whether to use .gitignore filtering
+    """
     import click
 
     if include_dirs is None:
@@ -453,6 +514,8 @@ def extract_from_directory(root_dir: str, include_dirs: List[str] = None,
         exclude_dirs = ['.venv', '__pycache__', '.git', 'node_modules', '.pytest_cache']
     if extensions is None:
         extensions = ['py']  # Default to Python files
+    if excluded_keywords is None:
+        excluded_keywords = set()
 
     root_path = Path(root_dir).resolve()
     all_symbols = []
@@ -474,6 +537,8 @@ def extract_from_directory(root_dir: str, include_dirs: List[str] = None,
     click.echo(f"Include dirs: {include_dirs if include_dirs else 'all'}")
     click.echo(f"Exclude dirs: {exclude_dirs}")
     click.echo(f"Extensions: {', '.join(extensions)}")
+    if excluded_keywords:
+        click.echo(f"Excluded keywords: {len(excluded_keywords)} symbol names")
     click.echo(f"Gitignore: {'enabled' if use_gitignore else 'disabled'}")
 
     # Normalize extensions: ensure they start with dot
@@ -522,7 +587,7 @@ def extract_from_directory(root_dir: str, include_dirs: List[str] = None,
 
     with click.progressbar(source_files, label='Processing files') as bar:
         for file_path in bar:
-            symbols, edges, types = extract_from_file(file_path)
+            symbols, edges, types = extract_from_file(file_path, excluded_keywords=excluded_keywords)
 
             # Deduplicate symbols by ID
             for symbol in symbols:
@@ -534,8 +599,9 @@ def extract_from_directory(root_dir: str, include_dirs: List[str] = None,
             all_edges.extend(edges)
             all_types.extend(types)
 
+    excluded_msg = f" (excluded symbol names: {len(excluded_keywords)} keywords)" if excluded_keywords else ""
     click.echo(
-        f"\nExtracted {len(all_symbols)} symbols, {len(all_edges)} edges, {len(all_types)} type tokens")
+        f"\nExtracted {len(all_symbols)} symbols, {len(all_edges)} edges, {len(all_types)} type tokens{excluded_msg}")
 
     # Write output files
     click.echo(f"Writing {output_nodes}...")

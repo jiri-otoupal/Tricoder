@@ -279,6 +279,9 @@ def interactive_mode(model, excluded_keywords: set = None):
               help='Exclude these directories (can be specified multiple times).')
 @click.option('--extensions', '--ext', default='py',
               help='Comma-separated list of file extensions to process (e.g., "py,js,ts"). Default: py')
+@click.option('--exclude-keywords', '--exclude', multiple=True,
+              help='Symbol names to exclude from extraction (can be specified multiple times). '
+                   'These are appended to the default excluded keywords (Python builtins, etc.).')
 @click.option('--output-nodes', '-n', default='nodes.jsonl',
               help='Output file for nodes (default: nodes.jsonl)')
 @click.option('--output-edges', '-d', default='edges.jsonl',
@@ -287,20 +290,31 @@ def interactive_mode(model, excluded_keywords: set = None):
               help='Output file for types (default: types.jsonl)')
 @click.option('--no-gitignore', is_flag=True, default=False,
               help='Disable .gitignore filtering (enabled by default)')
-def extract(input_dir, include_dirs, exclude_dirs, extensions, output_nodes, output_edges, output_types, no_gitignore):
+def extract(input_dir, include_dirs, exclude_dirs, extensions, exclude_keywords, output_nodes, output_edges, output_types, no_gitignore):
     """Extract symbols and relationships from codebase."""
     from .extract import extract_from_directory
+    from .model import DEFAULT_EXCLUDED_KEYWORDS
 
     # Parse extensions: split by comma, strip whitespace, remove dots if present
     ext_list = [ext.strip().lstrip('.') for ext in extensions.split(',') if ext.strip()]
     if not ext_list:
         ext_list = ['py']  # Default to Python if empty
 
+    # Build excluded keywords set (default + user-provided)
+    excluded_keywords_set = None
+    if exclude_keywords:
+        excluded_keywords_set = DEFAULT_EXCLUDED_KEYWORDS | {kw.lower() for kw in exclude_keywords}
+        console.print(f"[dim]Excluding {len(excluded_keywords_set)} symbol names "
+                     f"({len(exclude_keywords)} user-added)[/dim]\n")
+    else:
+        excluded_keywords_set = DEFAULT_EXCLUDED_KEYWORDS
+
     extract_from_directory(
         root_dir=input_dir,
         include_dirs=list(include_dirs) if include_dirs else [],
         exclude_dirs=list(exclude_dirs) if exclude_dirs else [],
         extensions=ext_list,
+        excluded_keywords=excluded_keywords_set,
         output_nodes=output_nodes,
         output_edges=output_edges,
         output_types=output_types,
