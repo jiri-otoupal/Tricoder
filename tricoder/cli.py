@@ -146,8 +146,15 @@ def display_results(model, symbol_id, top_k):
     if query_meta:
         console.print(f"  [dim]Kind:[/dim] {query_meta.get('kind', 'unknown')}")
         console.print(f"  [dim]Name:[/dim] {query_meta.get('name', 'unknown')}")
-        if query_meta.get('meta', {}).get('file'):
-            console.print(f"  [dim]File:[/dim] {query_meta['meta']['file']}")
+        query_meta_dict = query_meta.get('meta', {})
+        if isinstance(query_meta_dict, dict):
+            query_file = query_meta_dict.get('file', '')
+            query_lineno = query_meta_dict.get('lineno', None)
+            if query_file:
+                if query_lineno is not None and query_lineno >= 0:
+                    console.print(f"  [dim]File:[/dim] {query_file}:{query_lineno}")
+                else:
+                    console.print(f"  [dim]File:[/dim] {query_file}")
 
     console.print(f"\n[bold cyan]Top {len(results)} Similar Symbols:[/bold cyan]\n")
 
@@ -155,6 +162,7 @@ def display_results(model, symbol_id, top_k):
         meta = result.get('meta', {})
         meta_dict = meta.get('meta', {}) if isinstance(meta.get('meta'), dict) else {}
         file_path = meta_dict.get('file', '') if meta_dict.get('file') else ''
+        lineno = meta_dict.get('lineno', None)
 
         console.print(f"[dim]{idx}.[/dim] [cyan]{result['symbol']:15}[/cyan] "
                       f"[green]Score: {result['score']:8.4f}[/green] "
@@ -162,7 +170,10 @@ def display_results(model, symbol_id, top_k):
                       f"[blue]{meta.get('kind', 'unknown'):10}[/blue] "
                       f"[white]{meta.get('name', ''):30}[/white]")
         if file_path:
-            console.print(f"     [dim]→ {file_path}[/dim]")
+            if lineno is not None and lineno >= 0:
+                console.print(f"     [dim]→ {file_path}:{lineno}[/dim]")
+            else:
+                console.print(f"     [dim]→ {file_path}[/dim]")
 
     console.print()
 
@@ -220,13 +231,17 @@ def search_and_display_results(model, keywords: str, top_k: int, excluded_keywor
         meta = match.get('meta', {})
         meta_dict = meta.get('meta', {}) if isinstance(meta.get('meta'), dict) else {}
         file_path = meta_dict.get('file', '') if meta_dict.get('file') else ''
+        lineno = meta_dict.get('lineno', None)
         
         console.print(f"[dim]{idx}.[/dim] [cyan]{match['symbol']:15}[/cyan] "
                       f"[green]Relevance: {match['score']:6.4f}[/green] "
                       f"[blue]{meta.get('kind', 'unknown'):10}[/blue] "
                       f"[white]{meta.get('name', ''):30}[/white]")
         if file_path:
-            console.print(f"     [dim]→ {file_path}[/dim]")
+            if lineno is not None and lineno >= 0:
+                console.print(f"     [dim]→ {file_path}:{lineno}[/dim]")
+            else:
+                console.print(f"     [dim]→ {file_path}[/dim]")
     
     console.print()
     
