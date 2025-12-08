@@ -6,6 +6,7 @@ from typing import List, Tuple, Set, Dict
 import numpy as np
 from gensim.models import Word2Vec
 from gensim.models.keyedvectors import KeyedVectors
+from numba import jit, prange
 
 from .graph_config import RANDOM_WALK_MAX_NEIGHBORS, RANDOM_WALK_MIN_NODES_FOR_PARALLEL
 
@@ -13,6 +14,113 @@ from .graph_config import RANDOM_WALK_MAX_NEIGHBORS, RANDOM_WALK_MIN_NODES_FOR_P
 def _get_num_workers() -> int:
     """Get number of workers (all cores - 1, minimum 1)."""
     return max(1, cpu_count() - 1)
+
+
+@jit(nopython=True)
+def _weighted_choice_numba(probs):
+    """Weighted random choice using cumulative probabilities (Numba-compatible)."""
+    r = np.random.random()
+    cumsum = 0.0
+    for i in range(len(probs)):
+        cumsum += probs[i]
+        if r <= cumsum:
+            return i
+    return len(probs) - 1
+
+
+@jit(nopython=True)
+def _generate_walk_step_numba(neighbor_indices, neighbor_weights, num_neighbors,
+                               prev_node, prev_neighbors_set, p, q):
+    """Generate next step in walk using Node2Vec probabilities (Numba-optimized)."""
+    max_check = min(num_neighbors, RANDOM_WALK_MAX_NEIGHBORS)
+    if max_check == 0:
+        return -1
+    
+    if prev_node == -1:
+        return neighbor_indices[np.random.randint(0, max_check)]
+    
+    probs = np.zeros(max_check, dtype=np.float64)
+    nodes = np.zeros(max_check, dtype=np.int32)
+    
+    for i in range(max_check):
+        neighbor_idx = neighbor_indices[i]
+        weight = neighbor_weights[i]
+        nodes[i] = neighbor_idx
+        
+        if neighbor_idx == prev_node:
+            probs[i] = weight / p
+        elif neighbor_idx < len(prev_neighbors_set) and prev_neighbors_set[neighbor_idx] > 0:
+            probs[i] = weight
+        else:
+            probs[i] = weight / q
+        probs[i] = max(probs[i], 1e-10)
+    
+    probs_sum = np.sum(probs)
+    if probs_sum > 0:
+        probs = probs / probs_sum
+        idx = _weighted_choice_numba(probs)
+        return nodes[idx]
+    else:
+        return neighbor_indices[np.random.randint(0, max_check)]
+
+
+@jit(nopython=True)
+def _generate_walks_sequential_numba(nodes_to_process, neighbor_indices_array, neighbor_weights_array,
+                                     neighbor_counts, prev_neighbors_array, num_walks, walk_length,
+                                     p, q, random_seed, max_degree, num_nodes):
+    """Generate all walks using Numba (sequential with progress tracking)."""
+    np.random.seed(random_seed)
+    num_start_nodes = len(nodes_to_process)
+    total_walks = num_walks * num_start_nodes
+    
+    max_walks = total_walks
+    walks_data = np.zeros(max_walks * walk_length, dtype=np.int32)
+    walk_lengths = np.zeros(max_walks, dtype=np.int32)
+    
+    walk_data_idx = 0
+    for walk_idx in range(total_walks):
+        start_node_idx = walk_idx % num_start_nodes
+        start_node = nodes_to_process[start_node_idx]
+        
+        walk_start = walk_data_idx
+        walks_data[walk_data_idx] = start_node
+        walk_data_idx += 1
+        walk_len = 1
+        prev = -1
+        
+        for step in range(walk_length - 1):
+            curr = walks_data[walk_start + walk_len - 1]
+            if curr >= num_nodes or neighbor_counts[curr] == 0:
+                break
+            
+            neighbor_start = curr * max_degree
+            neighbor_count = neighbor_counts[curr]
+            
+            if prev >= 0 and prev < num_nodes:
+                prev_base = prev * num_nodes
+            else:
+                prev_base = -1
+            
+            next_node = _generate_walk_step_numba(
+                neighbor_indices_array[neighbor_start:neighbor_start + neighbor_count],
+                neighbor_weights_array[neighbor_start:neighbor_start + neighbor_count],
+                neighbor_count,
+                prev,
+                prev_neighbors_array[prev_base:prev_base + num_nodes] if prev_base >= 0 else np.zeros(num_nodes, dtype=np.int32),
+                p, q
+            )
+            
+            if next_node == -1:
+                break
+            
+            walks_data[walk_data_idx] = next_node
+            walk_data_idx += 1
+            walk_len += 1
+            prev = curr
+        
+        walk_lengths[walk_idx] = walk_len
+    
+    return walks_data, walk_lengths, total_walks
 
 
 def _generate_walks_for_node(args):
@@ -129,49 +237,54 @@ def generate_random_walks(edges: List[Tuple[int, int, str, float]],
     # Use parallel processing if we have enough nodes (overhead not worth it for small cases)
     use_parallel = (n_jobs > 1 and len(nodes_to_process) >= RANDOM_WALK_MIN_NODES_FOR_PARALLEL)
     
+    # Convert adjacency structures to flat NumPy arrays for Numba
+    max_degree = max(len(adj_list[i]) for i in range(num_nodes)) if num_nodes > 0 else 0
+    max_degree = min(max_degree, RANDOM_WALK_MAX_NEIGHBORS)
+    
+    neighbor_indices_array = np.zeros(num_nodes * max_degree, dtype=np.int32)
+    neighbor_weights_array = np.zeros(num_nodes * max_degree, dtype=np.float64)
+    neighbor_counts = np.zeros(num_nodes, dtype=np.int32)
+    
+    for node_id in range(num_nodes):
+        neighbors = adj_list[node_id]
+        count = min(len(neighbors), RANDOM_WALK_MAX_NEIGHBORS)
+        neighbor_counts[node_id] = count
+        
+        base_idx = node_id * max_degree
+        for i in range(count):
+            neighbor_indices_array[base_idx + i] = neighbors[i][0]
+            neighbor_weights_array[base_idx + i] = neighbors[i][1]
+    
+    # Convert sets to flat array for fast lookup
+    prev_neighbors_array = np.zeros(num_nodes * num_nodes, dtype=np.int32)
+    for node_id in range(num_nodes):
+        if node_id in adj_sets:
+            neighbors_set = adj_sets[node_id]
+            base_idx = node_id * num_nodes
+            for n in neighbors_set:
+                if n < num_nodes:
+                    prev_neighbors_array[base_idx + n] = 1
+    
+    nodes_to_process_arr = np.array(nodes_to_process, dtype=np.int32)
+    
     if not use_parallel:
-        # Sequential processing for small cases
-        random.seed(random_state)
-        np.random.seed(random_state)
+        # Sequential processing with Numba
+        walks_data, walk_lengths, total_walks = _generate_walks_sequential_numba(
+            nodes_to_process_arr, neighbor_indices_array, neighbor_weights_array,
+            neighbor_counts, prev_neighbors_array, num_walks, walk_length, p, q, random_state, max_degree, num_nodes
+        )
+        
         walks = []
-        processed_count = 0
-        for walk_idx in range(num_walks):
-            for node_idx, start_node in enumerate(nodes_to_process):
-                # Update progress
-                if progress_callback and walk_idx == 0:  # Only update on first walk to avoid double counting
-                    processed_count += 1
-                    progress_callback(processed_count, total_nodes_to_process)
-                walk = [start_node]
-                for _ in range(walk_length - 1):
-                    curr = walk[-1]
-                    neighbors = adj_list[curr]
-                    if not neighbors:
-                        break
-
-                    # Limit neighbors to check (prevents slow probability calculation)
-                    neighbors_to_check = neighbors[:RANDOM_WALK_MAX_NEIGHBORS] if len(neighbors) > RANDOM_WALK_MAX_NEIGHBORS else neighbors
-                    
-                    if len(walk) == 1:
-                        next_node = random.choice(neighbors_to_check)[0]
-                    else:
-                        prev = walk[-2]
-                        prev_neighbors_set = adj_sets[prev]  # Fast set lookup
-                        probs = []
-                        nodes = []
-                        for neighbor, weight in neighbors_to_check:
-                            nodes.append(neighbor)
-                            if neighbor == prev:
-                                prob = weight / p
-                            elif neighbor in prev_neighbors_set:
-                                prob = weight
-                            else:
-                                prob = weight / q
-                            probs.append(max(prob, 1e-10))
-                        probs = np.array(probs, dtype=np.float64)
-                        probs = probs / probs.sum()
-                        next_node = np.random.choice(nodes, p=probs)
-                    walk.append(next_node)
-                walks.append([str(node) for node in walk])
+        walk_idx = 0
+        for i in range(total_walks):
+            walk_len = int(walk_lengths[i])
+            walk = walks_data[walk_idx:walk_idx + walk_len]
+            walks.append([str(node) for node in walk])
+            walk_idx += walk_len
+        
+        if progress_callback:
+            for i in range(total_nodes_to_process):
+                progress_callback(i + 1, total_nodes_to_process)
     else:
         # Parallel processing with progress tracking
         args_list = [
