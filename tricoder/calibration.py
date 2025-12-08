@@ -236,7 +236,8 @@ def learn_temperature(embeddings: np.ndarray,
 
     if tau_candidates is None:
         # Reduced from 50 to 30 for faster training (still good coverage)
-        tau_candidates = np.logspace(-2, 2, num=30)
+        # Use logspace from 0.1 to 10 (exclude very small values like 0.01 that cause numerical issues)
+        tau_candidates = np.logspace(-1, 1, num=30)
 
     positive_pairs = [(src, dst) for src, dst, _, _ in val_edges]
     negative_pairs = sample_negatives(

@@ -1,10 +1,10 @@
 {
   "file_benchmark_training_py_0001": [
-    "train",
-    "benchmark_training.py",
-    "training.py",
     "benchmark",
-    "py"
+    "py",
+    "benchmark_training.py",
+    "train",
+    "training.py"
   ],
   "var_console_0019": [
     "console"
@@ -29,29 +29,29 @@
     "nodes"
   ],
   "var_edges_path_0033": [
+    "edges_path",
     "path",
-    "edges",
-    "edges_path"
+    "edges"
   ],
   "var_types_path_0034": [
-    "types",
     "path",
+    "types",
     "types_path"
   ],
   "var_node_types_0042": [
+    "node_types",
     "types",
-    "node",
-    "node_types"
+    "node"
   ],
   "var_type_to_idx_0043": [
-    "idx",
     "type_to_idx",
+    "type",
     "to",
-    "type"
+    "idx"
   ],
   "var_num_types_0044": [
-    "types",
     "num",
+    "types",
     "num_types"
   ],
   "var_n_jobs_0054": [
@@ -63,44 +63,44 @@
     "defaults"
   ],
   "var_graph_dim_0063": [
-    "dim",
+    "graph",
     "graph_dim",
-    "graph"
+    "dim"
   ],
   "var_context_dim_0064": [
-    "dim",
     "context_dim",
-    "context"
+    "context",
+    "dim"
   ],
   "var_typed_dim_0065": [
-    "dim",
     "typed_dim",
-    "typ"
+    "typ",
+    "dim"
   ],
   "var_final_dim_0066": [
-    "dim",
+    "final_dim",
     "final",
-    "final_dim"
+    "dim"
   ],
   "var_typed_time_0072": [
-    "typed_time",
+    "time",
     "typ",
-    "time"
+    "typed_time"
   ],
   "var_x_types_0073": [
-    "types",
     "x_types",
+    "types",
     "x"
   ],
   "var_svd_types_0074": [
+    "svd_types",
     "types",
-    "svd",
-    "svd_types"
+    "svd"
   ],
   "var_embeddings_list_0076": [
     "list",
-    "embeddings_list",
-    "embeddings"
+    "embeddings",
+    "embeddings_list"
   ],
   "var_total_time_0086": [
     "total_time",
@@ -108,8 +108,8 @@
     "total"
   ],
   "var_results_table_0087": [
-    "results_t",
     "results",
+    "results_t",
     "table"
   ],
   "var_components_0092": [
@@ -119,46 +119,46 @@
     "percentage"
   ],
   "var_graph_base_0099": [
-    "graph_base",
     "base",
-    "graph"
+    "graph",
+    "graph_base"
   ],
   "var_total_walks_0100": [
-    "walks",
     "total_walks",
-    "total"
+    "total",
+    "walks"
   ],
   "var_walk_base_0101": [
     "walk",
-    "base",
-    "walk_base"
+    "walk_base",
+    "base"
   ],
   "var_total_input_dim_0102": [
-    "dim",
     "total_input_dim",
     "input",
-    "total"
+    "total",
+    "dim"
   ],
   "var_fusion_base_0103": [
     "fusion",
-    "base",
-    "fusion_base"
+    "fusion_base",
+    "base"
   ],
   "var_val_edges_count_0104": [
-    "val",
-    "edges",
+    "count",
     "val_edges_count",
-    "count"
+    "edges",
+    "val"
   ],
   "var_calib_base_0105": [
-    "calib",
     "base",
-    "calib_base"
+    "calib_base",
+    "calib"
   ],
   "var_coeff_table_0106": [
-    "coeff_t",
+    "table",
     "coeff",
-    "table"
+    "coeff_t"
   ],
   "var_typed_base_0109": [
     "base",
@@ -172,50 +172,50 @@
   ],
   "file_extract_symbols_py_0001": [
     "extract_symbols.py",
-    "extract",
-    "symbols",
     "symbols.py",
-    "py"
+    "extract",
+    "py",
+    "symbols"
   ],
   "class_symbolextractor_0016": [
-    "symbolextractor",
     "extractor",
+    "symbolextractor",
     "symbol"
   ],
   "function_get_symbol_id_0024": [
-    "get_symbol_id",
-    "id",
     "get",
-    "symbol"
+    "get_symbol_id",
+    "symbol",
+    "id"
   ],
   "function_add_symbol_0028": [
+    "add",
     "symbol",
-    "add_symbol",
-    "add"
+    "add_symbol"
   ],
   "var_symbol_id_0031": [
     "symbol_id",
-    "id",
-    "symbol"
+    "symbol",
+    "id"
   ],
   "var_meta_0033": [
     "meta"
   ],
   "function_add_edge_0037": [
-    "edge",
     "add_edge",
-    "add"
+    "add",
+    "edge"
   ],
   "function_add_type_token_0043": [
     "token",
-    "add_type_token",
     "type",
+    "add_type_token",
     "add"
   ],
   "function_visit_module_0046": [
-    "visit",
     "visit_module",
-    "module"
+    "module",
+    "visit"
   ],
   "var_file_symbol_0047": [
     "file_symbol",
@@ -223,23 +223,23 @@
     "symbol"
   ],
   "function_visit_classdef_0054": [
+    "visit_classdef",
     "class",
     "def",
-    "visit",
     "classdef",
-    "visit_classdef"
+    "visit"
   ],
   "var_bases_0055": [
     "bases"
   ],
   "var_class_id_0062": [
     "class",
-    "class_id",
-    "id"
+    "id",
+    "class_id"
   ],
   "var_base_name_0064": [
-    "base_name",
     "base",
+    "base_name",
     "name"
   ],
   "var_base_id_0065": [
@@ -248,49 +248,49 @@
     "id"
   ],
   "var_old_class_0066": [
-    "old",
     "class",
-    "old_class"
+    "old_class",
+    "old"
   ],
   "function_visit_functiondef_0067": [
-    "def",
-    "visit_functiondef",
-    "functiondef",
     "func",
-    "visit"
+    "def",
+    "visit",
+    "visit_functiondef",
+    "functiondef"
   ],
   "var_func_id_0068": [
-    "func_id",
     "func",
+    "func_id",
     "id"
   ],
   "var_return_type_0071": [
-    "return_type",
     "return",
+    "return_type",
     "type"
   ],
   "var_param_type_0075": [
+    "param",
     "param_type",
-    "type",
-    "param"
+    "type"
   ],
   "var_old_function_0076": [
-    "old",
     "old_func",
+    "old",
     "func"
   ],
   "function_visit_asyncfunctiondef_0077": [
     "async",
-    "def",
     "func",
     "visit_asyncfunctiondef",
     "asyncfunctiondef",
+    "def",
     "visit"
   ],
   "function_visit_import_0079": [
-    "visit",
     "import",
-    "visit_import"
+    "visit_import",
+    "visit"
   ],
   "var_module_name_0080": [
     "module_name",
@@ -298,36 +298,36 @@
     "name"
   ],
   "var_import_name_0082": [
-    "import_name",
+    "name",
     "import",
-    "name"
+    "import_name"
   ],
   "var_import_id_0083": [
-    "import_id",
+    "id",
     "import",
-    "id"
+    "import_id"
   ],
   "function_visit_importfrom_0084": [
-    "visit_importfrom",
     "importfrom",
+    "visit",
+    "visit_importfrom",
     "import",
-    "from",
-    "visit"
+    "from"
   ],
   "function_visit_call_0085": [
-    "visit",
+    "visit_call",
     "call",
-    "visit_call"
+    "visit"
   ],
   "var_caller_id_0086": [
-    "caller_id",
+    "call",
     "id",
-    "call"
+    "caller_id"
   ],
   "var_callee_name_0087": [
-    "name",
+    "callee_name",
     "callee",
-    "callee_name"
+    "name"
   ],
   "var_callee_id_0088": [
     "callee_id",
@@ -335,19 +335,19 @@
     "id"
   ],
   "var_obj_name_0089": [
-    "obj_name",
     "obj",
-    "name"
+    "name",
+    "obj_name"
   ],
   "var_method_name_0090": [
+    "method",
     "name",
-    "method_name",
-    "method"
+    "method_name"
   ],
   "var_method_id_0091": [
+    "method",
     "method_id",
-    "id",
-    "method"
+    "id"
   ],
   "var_var_id_0092": [
     "var",
@@ -355,9 +355,9 @@
     "id"
   ],
   "function_visit_assign_0093": [
-    "visit",
     "visit_assign",
-    "assign"
+    "assign",
+    "visit"
   ],
   "var_var_type_0095": [
     "var",
@@ -365,34 +365,34 @@
     "type"
   ],
   "function_visit_name_0096": [
-    "visit",
+    "visit_name",
     "name",
-    "visit_name"
+    "visit"
   ],
   "var_referencer_id_0097": [
     "referencer_id",
-    "referenc",
-    "id"
+    "id",
+    "referenc"
   ],
   "function_extract_type_annotation_0098": [
     "extract_type_annota",
     "annota",
-    "extract",
-    "type"
+    "type",
+    "extract"
   ],
   "var_base_0058": [
     "base"
   ],
   "class_gitignorematcher_0099": [
     "ignore",
+    "match",
     "git",
-    "gitignorematch",
-    "match"
+    "gitignorematch"
   ],
   "function_load_patterns_0105": [
     "load_patterns",
-    "load",
-    "patterns"
+    "patterns",
+    "load"
   ],
   "var_line_0110": [
     "line"
@@ -412,14 +412,14 @@
     "file_path"
   ],
   "var_rel_path_0118": [
+    "path",
     "rel_path",
-    "rel",
-    "path"
+    "rel"
   ],
   "var_rel_str_0121": [
-    "rel",
     "str",
-    "rel_str"
+    "rel_str",
+    "rel"
   ],
   "var_parts_0122": [
     "parts"
@@ -428,24 +428,24 @@
     "match"
   ],
   "function_match_pattern_0127": [
-    "pattern",
     "match",
+    "pattern",
     "match_pattern"
   ],
   "var_regex_pattern_0135": [
-    "regex_pattern",
     "regex",
-    "pattern"
+    "pattern",
+    "regex_pattern"
   ],
   "function_match_glob_0143": [
-    "glob",
     "match",
+    "glob",
     "match_glob"
   ],
   "function_find_gitignore_0145": [
-    "gitignore",
+    "find_gitignore",
     "find",
-    "find_gitignore"
+    "gitignore"
   ],
   "var_current_0146": [
     "current"
@@ -454,18 +454,18 @@
     "gitignore"
   ],
   "function_should_process_file_0149": [
-    "should_process_file",
-    "should",
     "file",
-    "process"
+    "should",
+    "process",
+    "should_process_file"
   ],
   "var_path_0151": [
     "path"
   ],
   "function_extract_from_file_0159": [
     "from",
-    "extract_from_file",
     "file",
+    "extract_from_file",
     "extract"
   ],
   "var_content_0160": [
@@ -484,18 +484,18 @@
     "directory"
   ],
   "var_include_dirs_0157": [
-    "dirs",
     "include_dirs",
+    "dirs",
     "include"
   ],
   "var_exclude_dirs_0155": [
-    "dirs",
     "exclude_dirs",
-    "exclude"
+    "exclude",
+    "dirs"
   ],
   "var_root_path_0102": [
-    "path",
     "root",
+    "path",
     "root_path"
   ],
   "var_all_symbols_0177": [
@@ -504,66 +504,66 @@
     "all_symbols"
   ],
   "var_all_edges_0178": [
-    "all_edges",
+    "edges",
     "all",
-    "edges"
+    "all_edges"
   ],
   "var_all_types_0179": [
+    "all_types",
     "types",
-    "all",
-    "all_types"
+    "all"
   ],
   "var_seen_symbols_0180": [
-    "seen_symbols",
+    "seen",
     "symbols",
-    "seen"
+    "seen_symbols"
   ],
   "var_gitignore_matcher_0153": [
+    "match",
     "gitignore",
-    "gitignore_match",
-    "match"
+    "gitignore_match"
   ],
   "var_gitignore_path_0104": [
-    "gitignore",
     "path",
-    "gitignore_path"
+    "gitignore_path",
+    "gitignore"
   ],
   "var_python_files_0186": [
     "python",
-    "python_files",
-    "files"
+    "files",
+    "python_files"
   ],
   "var_skipped_gitignore_0187": [
     "gitignore",
-    "skipped_gitignore",
-    "skipp"
+    "skipp",
+    "skipped_gitignore"
   ],
   "var_dirs_to_remove_0189": [
+    "dirs_to_remove",
     "dirs",
     "to",
-    "dirs_to_remove",
     "remove"
   ],
   "var_dir_path_0191": [
     "path",
-    "dir",
-    "dir_path"
+    "dir_path",
+    "dir"
   ],
   "var_file_path_str_0199": [
     "path",
     "file",
-    "file_path_str",
-    "str"
+    "str",
+    "file_path_str"
   ],
   "function_main_0220": [
     "main"
   ],
   "file_query_tvci_py_0001": [
-    "tvci",
-    "tvci.py",
-    "query_tvci.py",
     "query",
-    "py"
+    "py",
+    "query_tvci.py",
+    "tvci",
+    "tvci.py"
   ],
   "var_console_0007": [
     "console"
@@ -575,17 +575,17 @@
     "model"
   ],
   "function_display_results_0021": [
-    "display",
+    "results",
     "display_results",
-    "results"
+    "display"
   ],
   "var_results_0027": [
     "results"
   ],
   "var_query_meta_0030": [
-    "meta",
+    "query_meta",
     "query",
-    "query_meta"
+    "meta"
   ],
   "var_meta_0036": [
     "meta"
@@ -601,19 +601,19 @@
     "file_path"
   ],
   "function_interactive_mode_0018": [
+    "mode",
     "interactive",
-    "interactive_mode",
-    "mode"
+    "interactive_mode"
   ],
   "var_symbol_id_0029": [
     "symbol_id",
-    "id",
-    "symbol"
+    "symbol",
+    "id"
   ],
   "var_top_k_0022": [
     "top",
-    "k",
-    "top_k"
+    "top_k",
+    "k"
   ],
   "file_setup_py_0001": [
     "setup",
@@ -621,19 +621,19 @@
     "py"
   ],
   "file_train_tvci_py_0001": [
-    "tvci",
-    "tvci.py",
     "train",
+    "py",
     "train_tvci.py",
-    "py"
+    "tvci",
+    "tvci.py"
   ],
   "file_validate_extracted_data_py_0001": [
-    "extract",
-    "validate_extracted_data.py",
-    "data.py",
     "validate",
     "data",
-    "py"
+    "py",
+    "validate_extracted_data.py",
+    "data.py",
+    "extract"
   ],
   "var_console_0010": [
     "console"
@@ -650,33 +650,33 @@
     "issues"
   ],
   "var_required_fields_0015": [
-    "required_fields",
     "fields",
-    "requir"
+    "requir",
+    "required_fields"
   ],
   "var_required_meta_fields_0016": [
-    "meta",
     "fields",
-    "required_meta_fields",
-    "requir"
+    "meta",
+    "requir",
+    "required_meta_fields"
   ],
   "var_node_0025": [
     "node"
   ],
   "var_missing_fields_0028": [
+    "miss",
     "fields",
-    "missing_fields",
-    "miss"
+    "missing_fields"
   ],
   "var_missing_meta_0037": [
+    "miss",
     "meta",
-    "missing_meta",
-    "miss"
+    "missing_meta"
   ],
   "function_validate_edges_0041": [
-    "validate_edges",
     "edges",
-    "validate"
+    "validate",
+    "validate_edges"
   ],
   "var_edges_0042": [
     "edges"
@@ -686,58 +686,58 @@
   ],
   "function_validate_types_0051": [
     "types",
-    "validate_types",
-    "validate"
+    "validate",
+    "validate_types"
   ],
   "var_type_entry_0053": [
-    "entry",
     "type_entry",
-    "type"
+    "type",
+    "entry"
   ],
   "function_check_data_consistency_0059": [
-    "check_data_consistency",
-    "data",
     "consistency",
-    "check"
+    "check",
+    "data",
+    "check_data_consistency"
   ],
   "var_node_ids_0060": [
-    "ids",
+    "node_ids",
     "node",
-    "node_ids"
+    "ids"
   ],
   "var_edge_src_ids_0061": [
-    "ids",
+    "edge_src_ids",
     "edge",
     "src",
-    "edge_src_ids"
+    "ids"
   ],
   "var_edge_dst_ids_0062": [
-    "ids",
+    "dst",
     "edge_dst_ids",
     "edge",
-    "dst"
+    "ids"
   ],
   "var_missing_src_0063": [
+    "miss",
     "missing_src",
-    "src",
-    "miss"
+    "src"
   ],
   "var_missing_dst_0064": [
+    "miss",
     "missing_dst",
-    "dst",
-    "miss"
+    "dst"
   ],
   "var_type_symbol_ids_0067": [
-    "ids",
-    "symbol",
     "type_symbol_ids",
-    "type"
+    "type",
+    "symbol",
+    "ids"
   ],
   "var_missing_type_symbols_0069": [
-    "missing_type_symbols",
+    "miss",
     "symbols",
     "type",
-    "miss"
+    "missing_type_symbols"
   ],
   "function_main_0070": [
     "main"
@@ -748,60 +748,60 @@
     "nodes"
   ],
   "var_edges_path_0043": [
+    "edges_path",
     "path",
-    "edges",
-    "edges_path"
+    "edges"
   ],
   "var_types_path_0052": [
-    "types",
     "path",
+    "types",
     "types_path"
   ],
   "var_type_issues_0082": [
-    "type_issues",
+    "type",
     "issues",
-    "type"
+    "type_issues"
   ],
   "var_consistency_issues_0085": [
-    "issues",
     "consistency",
+    "issues",
     "consistency_issues"
   ],
   "var_stats_table_0087": [
-    "stats",
+    "table",
     "stats_t",
-    "table"
+    "stats"
   ],
   "var_kind_counts_0093": [
-    "kind",
+    "counts",
     "kind_counts",
-    "counts"
+    "kind"
   ],
   "var_rel_counts_0099": [
-    "rel",
+    "counts",
     "rel_counts",
-    "counts"
+    "rel"
   ],
   "var_files_0102": [
     "files"
   ],
   "var_total_issues_0103": [
-    "issues",
     "total_issues",
-    "total"
+    "total",
+    "issues"
   ],
   "file_visualize_stats_py_0001": [
     "stats.py",
-    "stats",
     "visualize_stats.py",
+    "py",
     "visual",
-    "py"
+    "stats"
   ],
   "class_graphstatsvisualizer_0029": [
     "stats",
     "graphstatsvisualiz",
-    "visualiz",
-    "graph"
+    "graph",
+    "visualiz"
   ],
   "function_load_data_0042": [
     "data",
@@ -809,14 +809,14 @@
     "load_data"
   ],
   "function_init_ui_0052": [
+    "init",
     "ui",
-    "init_ui",
-    "init"
+    "init_ui"
   ],
   "var_central_widget_0053": [
     "widget",
-    "central",
-    "central_widget"
+    "central_widget",
+    "central"
   ],
   "var_layout_0057": [
     "layout"
@@ -828,8 +828,8 @@
     "tabs"
   ],
   "function_create_nodes_tab_0073": [
-    "tab",
     "create",
+    "tab",
     "nodes",
     "create_nodes_tab"
   ],
@@ -837,9 +837,9 @@
     "widget"
   ],
   "var_kind_counts_0075": [
-    "kind",
+    "counts",
     "kind_counts",
-    "counts"
+    "kind"
   ],
   "var_chart_0080": [
     "chart"
@@ -857,56 +857,56 @@
   ],
   "var_axis_x_0098": [
     "axis",
-    "axis_x",
-    "x"
+    "x",
+    "axis_x"
   ],
   "var_axis_y_0105": [
     "axis",
-    "y",
-    "axis_y"
+    "axis_y",
+    "y"
   ],
   "var_chart_view_0112": [
-    "view",
     "chart_view",
+    "view",
     "chart"
   ],
   "var_table_0116": [
     "table"
   ],
   "function_create_edges_tab_0133": [
-    "tab",
     "create",
     "edges",
-    "create_edges_tab"
+    "create_edges_tab",
+    "tab"
   ],
   "var_rel_counts_0134": [
-    "rel",
+    "counts",
     "rel_counts",
-    "counts"
+    "rel"
   ],
   "var_weights_0140": [
     "weights"
   ],
   "var_weight_stats_0141": [
-    "stats",
     "weight_stats",
-    "weight"
+    "weight",
+    "stats"
   ],
   "function_create_types_tab_0151": [
-    "types",
+    "create_types_tab",
     "create",
-    "tab",
-    "create_types_tab"
+    "types",
+    "tab"
   ],
   "var_type_counts_0152": [
     "type_counts",
-    "counts",
-    "type"
+    "type",
+    "counts"
   ],
   "function_create_summary_tab_0158": [
-    "tab",
     "create",
     "create_summary_tab",
+    "tab",
     "summary"
   ],
   "var_summary_0159": [
@@ -925,21 +925,21 @@
     "window"
   ],
   "file_calibration_py_0001": [
+    "py",
     "calibra",
-    "calibration.py",
-    "py"
+    "calibration.py"
   ],
   "function_get_num_workers_0010": [
-    "workers",
-    "get_num_workers",
     "num",
-    "get"
+    "get",
+    "workers",
+    "get_num_workers"
   ],
   "function_evaluate_single_tau_0016": [
-    "evaluate",
-    "evaluate_single_tau",
+    "tau",
     "single",
-    "tau"
+    "evaluate",
+    "evaluate_single_tau"
   ],
   "function_split_edges_0024": [
     "split",
@@ -955,19 +955,19 @@
     "idx"
   ],
   "var_train_edges_0042": [
-    "train",
+    "edges",
     "train_edges",
-    "edges"
+    "train"
   ],
   "var_val_edges_0043": [
     "val_edges",
-    "val",
-    "edges"
+    "edges",
+    "val"
   ],
   "function_sample_negatives_0044": [
+    "negatives",
     "sample_negatives",
-    "sample",
-    "negatives"
+    "sample"
   ],
   "var_positive_set_0046": [
     "set",
@@ -980,47 +980,47 @@
     "negative"
   ],
   "var_nodes_by_directory_0049": [
-    "by",
     "nodes",
-    "nodes_by_directory",
-    "directory"
+    "directory",
+    "by",
+    "nodes_by_directory"
   ],
   "var_nodes_by_file_0053": [
     "file",
-    "by",
     "nodes",
+    "by",
     "nodes_by_file"
   ],
   "var_node_id_0060": [
-    "node",
+    "id",
     "node_id",
-    "id"
+    "node"
   ],
   "var_src_node_id_0065": [
     "node",
+    "id",
     "src_node_id",
-    "src",
-    "id"
+    "src"
   ],
   "var_src_dir_0067": [
-    "dir",
+    "src_dir",
     "src",
-    "src_dir"
+    "dir"
   ],
   "var_src_file_0068": [
-    "src",
     "file",
-    "src_file"
+    "src_file",
+    "src"
   ],
   "var_neg_dst_0070": [
-    "neg",
+    "dst",
     "neg_dst",
-    "dst"
+    "neg"
   ],
   "var_rand_val_0071": [
-    "rand_val",
+    "rand",
     "val",
-    "rand"
+    "rand_val"
   ],
   "var_candidates_0072": [
     "candidates"
@@ -1029,10 +1029,10 @@
     "attempts"
   ],
   "function_compute_calibrated_score_0076": [
-    "calibrat",
     "compute",
     "compute_calibrated_score",
-    "score"
+    "score",
+    "calibrat"
   ],
   "var_dot_product_0077": [
     "dot_product",
@@ -1046,46 +1046,46 @@
   ],
   "var_exp_scores_0082": [
     "scores",
-    "exp",
-    "exp_scores"
+    "exp_scores",
+    "exp"
   ],
   "function_evaluate_tau_0019": [
+    "tau",
     "evaluate",
-    "evaluate_tau",
-    "tau"
+    "evaluate_tau"
   ],
   "var_pos_scores_0087": [
-    "scores",
     "pos_scores",
+    "scores",
     "pos"
   ],
   "var_score_0088": [
     "score"
   ],
   "var_neg_scores_0092": [
-    "neg",
+    "neg_scores",
     "scores",
-    "neg_scores"
+    "neg"
   ],
   "var_total_prob_0094": [
-    "total_prob",
     "total",
-    "prob"
+    "prob",
+    "total_prob"
   ],
   "var_start_idx_0097": [
+    "start_idx",
     "idx",
-    "start",
-    "start_idx"
+    "start"
   ],
   "var_end_idx_0099": [
+    "end_idx",
     "idx",
-    "end",
-    "end_idx"
+    "end"
   ],
   "var_relevant_negatives_0100": [
-    "relevant_negatives",
     "negatives",
-    "relevant"
+    "relevant",
+    "relevant_negatives"
   ],
   "var_all_scores_0101": [
     "scores",
@@ -1093,22 +1093,22 @@
     "all_scores"
   ],
   "var_neg_score_0102": [
-    "neg",
+    "neg_score",
     "score",
-    "neg_score"
+    "neg"
   ],
   "var_probs_0105": [
     "probs"
   ],
   "function_learn_temperature_0108": [
-    "learn",
+    "learn_temperature",
     "temperature",
-    "learn_temperature"
+    "learn"
   ],
   "var_tau_candidates_0109": [
-    "candidates",
+    "tau",
     "tau_candidates",
-    "tau"
+    "candidates"
   ],
   "var_positive_pairs_0021": [
     "pairs",
@@ -1121,9 +1121,9 @@
     "n_jobs"
   ],
   "var_args_list_0114": [
-    "list",
+    "args",
     "args_list",
-    "args"
+    "list"
   ],
   "var_chunksize_0115": [
     "chunks"
@@ -1137,64 +1137,64 @@
     "best"
   ],
   "var_best_score_0123": [
+    "best",
     "score",
-    "best_score",
-    "best"
+    "best_score"
   ],
   "file_cli_py_0001": [
-    "cli",
+    "py",
     "cli.py",
-    "py"
+    "cli"
   ],
   "var_console_0018": [
     "console"
   ],
   "function_get_tricoder_dir_0019": [
-    "dir",
+    "get",
     "get_tricoder_dir",
     "tricod",
-    "get"
+    "dir"
   ],
   "var_cwd_0020": [
     "cwd"
   ],
   "var_tricoder_dir_0023": [
-    "dir",
+    "tricoder_dir",
     "tricod",
-    "tricoder_dir"
+    "dir"
   ],
   "function_get_model_dir_0026": [
-    "model",
-    "dir",
+    "get",
     "get_model_dir",
-    "get"
+    "dir",
+    "model"
   ],
   "var_model_dir_0028": [
-    "model",
     "dir",
-    "model_dir"
+    "model_dir",
+    "model"
   ],
   "function_is_valid_model_dir_0029": [
-    "valid",
     "is",
     "model",
     "dir",
+    "valid",
     "is_valid_model_dir"
   ],
   "var_embeddings_path_0030": [
+    "embeddings_path",
     "path",
-    "embeddings",
-    "embeddings_path"
+    "embeddings"
   ],
   "var_metadata_path_0032": [
     "metadata",
-    "path",
-    "metadata_path"
+    "metadata_path",
+    "path"
   ],
   "function_discover_models_0034": [
-    "models",
+    "discover_models",
     "discov",
-    "discover_models"
+    "models"
   ],
   "var_models_0035": [
     "models"
@@ -1203,9 +1203,9 @@
     "subdir"
   ],
   "function_sort_key_0045": [
+    "sort",
     "sort_key",
-    "key",
-    "sort"
+    "key"
   ],
   "function_cli_0050": [
     "cli"
@@ -1219,63 +1219,63 @@
     "nodes"
   ],
   "var_edges_path_0056": [
+    "edges_path",
     "path",
-    "edges",
-    "edges_path"
+    "edges"
   ],
   "var_types_path_0058": [
-    "types",
     "path",
+    "types",
     "types_path"
   ],
   "var_output_dir_0060": [
     "output_dir",
-    "output",
-    "dir"
+    "dir",
+    "output"
   ],
   "var_commit_hash_0075": [
     "commit_hash",
-    "commit",
-    "hash"
+    "hash",
+    "commit"
   ],
   "var_commit_timestamp_0078": [
     "timestamp",
-    "commit_timestamp",
-    "commit"
+    "commit",
+    "commit_timestamp"
   ],
   "var_files_trained_0081": [
-    "files_train",
     "train",
-    "files"
+    "files",
+    "files_train"
   ],
   "function_query_0094": [
     "query"
   ],
   "var_base_model_dir_0095": [
-    "model",
-    "dir",
     "base",
-    "base_model_dir"
+    "base_model_dir",
+    "dir",
+    "model"
   ],
   "var_discovered_models_0097": [
-    "models",
+    "discovered_models",
     "discover",
-    "discovered_models"
+    "models"
   ],
   "var_base_path_0101": [
-    "path",
     "base",
+    "path",
     "base_path"
   ],
   "var_rel_path_0105": [
+    "path",
     "rel_path",
-    "rel",
-    "path"
+    "rel"
   ],
   "var_num_nodes_0108": [
+    "num",
     "num_nodes",
-    "nodes",
-    "num"
+    "nodes"
   ],
   "var_metadata_0112": [
     "metadata"
@@ -1287,68 +1287,68 @@
     "model"
   ],
   "var_excluded_keywords_set_0134": [
-    "keywords",
     "set",
-    "exclud",
-    "excluded_keywords_set"
+    "keywords",
+    "excluded_keywords_set",
+    "exclud"
   ],
   "var_keywords_parsed_0149": [
-    "keywords",
     "pars",
+    "keywords",
     "keywords_pars"
   ],
   "function_get_code_snippet_0154": [
-    "snippet",
     "get_code_snippet",
-    "code",
-    "get"
+    "get",
+    "snippet",
+    "code"
   ],
   "var_end_line_0157": [
+    "line",
     "end_line",
-    "end",
-    "line"
+    "end"
   ],
   "var_lines_0158": [
     "lines"
   ],
   "var_start_idx_0160": [
+    "start_idx",
     "idx",
-    "start",
-    "start_idx"
+    "start"
   ],
   "var_end_idx_0163": [
+    "end_idx",
     "idx",
-    "end",
-    "end_idx"
+    "end"
   ],
   "var_snippet_lines_0166": [
-    "snippet",
+    "snippet_lines",
     "lines",
-    "snippet_lines"
+    "snippet"
   ],
   "function_display_results_0145": [
-    "display",
+    "results",
     "display_results",
-    "results"
+    "display"
   ],
   "var_results_0167": [
     "results"
   ],
   "var_query_meta_0170": [
-    "meta",
+    "query_meta",
     "query",
-    "query_meta"
+    "meta"
   ],
   "var_query_meta_dict_0172": [
+    "query",
     "meta",
     "query_meta_dict",
-    "query",
     "dict"
   ],
   "var_query_file_0176": [
-    "query",
+    "query_file",
     "file",
-    "query_file"
+    "query"
   ],
   "var_query_lineno_0178": [
     "query",
@@ -1372,32 +1372,32 @@
     "lineno"
   ],
   "var_end_lineno_0186": [
+    "lineno",
     "end_lineno",
-    "end",
-    "lineno"
+    "end"
   ],
   "var_snippet_0188": [
     "snippet"
   ],
   "function_parse_keywords_0150": [
-    "keywords",
     "parse",
+    "keywords",
     "parse_keywords"
   ],
   "var_parts_0193": [
     "parts"
   ],
   "function_search_and_display_results_0152": [
-    "display",
     "search_and_display_results",
-    "and",
     "results",
-    "search"
+    "search",
+    "and",
+    "display"
   ],
   "var_excluded_keywords_0199": [
+    "excluded_keywords",
     "keywords",
-    "exclud",
-    "excluded_keywords"
+    "exclud"
   ],
   "var_keyword_words_0200": [
     "words",
@@ -1405,108 +1405,108 @@
     "keyword_words"
   ],
   "var_excluded_found_0202": [
+    "excluded_found",
     "found",
-    "exclud",
-    "excluded_found"
+    "exclud"
   ],
   "var_matches_0204": [
     "matches"
   ],
   "var_first_match_0208": [
-    "first_match",
     "first",
-    "match"
+    "match",
+    "first_match"
   ],
   "function_interactive_mode_0141": [
+    "mode",
     "interactive",
-    "interactive_mode",
-    "mode"
+    "interactive_mode"
   ],
   "var_query_input_0209": [
-    "input",
     "query",
+    "input",
     "query_input"
   ],
   "var_top_k_0146": [
     "top",
-    "k",
-    "top_k"
+    "top_k",
+    "k"
   ],
   "function_extract_0213": [
     "extract"
   ],
   "var_output_nodes_path_0215": [
-    "output",
     "output_nodes_path",
+    "path",
     "nodes",
-    "path"
+    "output"
   ],
   "var_output_edges_path_0217": [
+    "path",
     "output_edges_path",
-    "output",
     "edges",
-    "path"
+    "output"
   ],
   "var_output_types_path_0219": [
-    "types",
-    "output",
     "output_types_path",
-    "path"
+    "path",
+    "types",
+    "output"
   ],
   "var_ext_list_0221": [
-    "list",
+    "ext_list",
     "ext",
-    "ext_list"
+    "list"
   ],
   "function_optimize_0234": [
     "optim"
   ],
   "var_remove_isolated_nodes_0236": [
     "nodes",
-    "remove_isolated_nodes",
     "isolat",
+    "remove_isolated_nodes",
     "remove"
   ],
   "var_remove_generic_names_0239": [
     "generic",
-    "remove_generic_names",
     "names",
+    "remove_generic_names",
     "remove"
   ],
   "var_stats_table_0245": [
-    "stats",
+    "table",
     "stats_t",
-    "table"
+    "stats"
   ],
   "var_node_reduction_0250": [
-    "node",
+    "reduc",
     "node_reduc",
-    "reduc"
+    "node"
   ],
   "var_edge_reduction_0253": [
+    "reduc",
     "edge_reduc",
-    "edge",
-    "reduc"
+    "edge"
   ],
   "var_type_reduction_0255": [
     "reduc",
-    "type_reduc",
-    "type"
+    "type",
+    "type_reduc"
   ],
   "var_reasons_table_0258": [
-    "reasons_t",
     "reasons",
+    "reasons_t",
     "table"
   ],
   "var_kind_table_0261": [
+    "table",
     "kind_t",
-    "kind",
-    "table"
+    "kind"
   ],
   "var_kind_stats_0263": [
     "stats",
-    "kind",
-    "kind_stats"
+    "kind_stats",
+    "kind"
   ],
   "function_retrain_0266": [
     "retrain"
@@ -1523,33 +1523,33 @@
   ],
   "var_filtered_edges_0278": [
     "filter",
-    "edges",
-    "filtered_edges"
+    "filtered_edges",
+    "edges"
   ],
   "var_filtered_types_0279": [
-    "types",
     "filter",
-    "filtered_types"
+    "filtered_types",
+    "types"
   ],
   "var_node_count_0280": [
+    "count",
     "node",
-    "node_count",
-    "count"
+    "node_count"
   ],
   "var_normalized_path_0286": [
-    "normaliz",
+    "path",
     "normalized_path",
-    "path"
+    "normaliz"
   ],
   "var_edge_count_0293": [
+    "count",
     "edge_count",
-    "edge",
-    "count"
+    "edge"
   ],
   "var_node_ids_from_changed_0294": [
-    "from",
-    "node_ids_from_chang",
     "ids",
+    "node_ids_from_chang",
+    "from",
     "chang",
     "node"
   ],
@@ -1560,33 +1560,33 @@
     "dst"
   ],
   "var_type_count_0299": [
-    "type_count",
     "count",
-    "type"
+    "type",
+    "type_count"
   ],
   "var_symbol_id_0169": [
     "symbol_id",
-    "id",
-    "symbol"
+    "symbol",
+    "id"
   ],
   "var_all_files_0301": [
-    "all",
     "all_files",
+    "all",
     "files"
   ],
   "file_context_view_py_0001": [
+    "view",
+    "py",
     "view.py",
     "context_view.py",
-    "view",
-    "context",
-    "py"
+    "context"
   ],
   "function_generate_walks_for_node_0016": [
+    "for",
     "generate_walks_for_node",
     "walks",
     "generate",
-    "node",
-    "for"
+    "node"
   ],
   "var_walks_0023": [
     "walks"
@@ -1601,9 +1601,9 @@
     "neighbors"
   ],
   "var_next_node_0034": [
-    "node",
     "next_node",
-    "next"
+    "next",
+    "node"
   ],
   "var_prev_0036": [
     "prev"
@@ -1618,15 +1618,15 @@
     "prob"
   ],
   "function_generate_random_walks_0053": [
-    "walks",
-    "generate_random_walks",
     "random",
-    "generate"
+    "generate",
+    "generate_random_walks",
+    "walks"
   ],
   "var_adj_list_0027": [
-    "list",
+    "adj",
     "adj_list",
-    "adj"
+    "list"
   ],
   "var_n_jobs_0062": [
     "n",
@@ -1634,15 +1634,15 @@
     "n_jobs"
   ],
   "var_nodes_to_process_0066": [
-    "to",
     "nodes_to_process",
     "nodes",
+    "to",
     "process"
   ],
   "var_args_list_0068": [
-    "list",
+    "args",
     "args_list",
-    "args"
+    "list"
   ],
   "var_chunksize_0071": [
     "chunks"
@@ -1651,12 +1651,12 @@
     "results"
   ],
   "function_train_word2vec_0080": [
-    "word2vec",
-    "vec",
+    "train_word2vec",
     "train",
-    "word",
+    "word2vec",
     "2",
-    "train_word2vec"
+    "vec",
+    "word"
   ],
   "var_workers_0081": [
     "workers"
@@ -1677,26 +1677,26 @@
     "embeddings"
   ],
   "var_node_str_0097": [
-    "node",
     "str",
+    "node",
     "node_str"
   ],
   "file_data_loader_py_0001": [
-    "data_loader.py",
-    "loader.py",
     "data",
     "load",
-    "py"
+    "py",
+    "data_loader.py",
+    "loader.py"
   ],
   "function_load_nodes_0009": [
-    "load_nodes",
     "nodes",
-    "load"
+    "load",
+    "load_nodes"
   ],
   "var_node_to_idx_0011": [
-    "idx",
-    "node",
     "to",
+    "node",
+    "idx",
     "node_to_idx"
   ],
   "var_node_metadata_0012": [
@@ -1705,23 +1705,23 @@
     "node_metadata"
   ],
   "var_node_subtokens_0013": [
-    "node",
+    "node_subtokens",
     "subtokens",
-    "node_subtokens"
+    "node"
   ],
   "var_node_file_info_0014": [
-    "node",
-    "info",
     "file",
-    "node_file_info"
+    "info",
+    "node_file_info",
+    "node"
   ],
   "var_node_0021": [
     "node"
   ],
   "var_node_id_0024": [
-    "node",
+    "id",
     "node_id",
-    "id"
+    "node"
   ],
   "var_idx_0025": [
     "idx"
@@ -1738,10 +1738,10 @@
     "file_path"
   ],
   "var_meta_with_subtokens_0044": [
-    "meta",
-    "meta_with_subtokens",
     "with",
-    "subtokens"
+    "meta_with_subtokens",
+    "subtokens",
+    "meta"
   ],
   "function_load_edges_0052": [
     "edges",
@@ -1752,32 +1752,32 @@
     "edges"
   ],
   "var_seen_nodes_0054": [
-    "seen_nodes",
+    "seen",
     "nodes",
-    "seen"
+    "seen_nodes"
   ],
   "var_edge_0058": [
     "edge"
   ],
   "var_src_id_0059": [
-    "src_id",
+    "id",
     "src",
-    "id"
+    "src_id"
   ],
   "var_dst_id_0060": [
-    "dst_id",
     "dst",
+    "dst_id",
     "id"
   ],
   "var_src_idx_0061": [
-    "idx",
+    "src_idx",
     "src",
-    "src_idx"
+    "idx"
   ],
   "var_dst_idx_0062": [
-    "idx",
+    "dst",
     "dst_idx",
-    "dst"
+    "idx"
   ],
   "var_rel_0063": [
     "rel"
@@ -1786,158 +1786,158 @@
     "weight"
   ],
   "var_num_nodes_0070": [
+    "num",
     "num_nodes",
-    "nodes",
-    "num"
+    "nodes"
   ],
   "function_load_types_0071": [
-    "types",
     "load_types",
+    "types",
     "load"
   ],
   "var_node_types_0072": [
+    "node_types",
     "types",
-    "node",
-    "node_types"
+    "node"
   ],
   "var_type_to_idx_0075": [
-    "idx",
     "type_to_idx",
+    "type",
     "to",
-    "type"
+    "idx"
   ],
   "var_entry_0077": [
     "entry"
   ],
   "var_symbol_id_0078": [
     "symbol_id",
-    "id",
-    "symbol"
+    "symbol",
+    "id"
   ],
   "var_type_token_0079": [
     "token",
-    "type_token",
-    "type"
+    "type",
+    "type_token"
   ],
   "var_count_0080": [
     "count"
   ],
   "var_node_idx_0083": [
-    "idx",
+    "node_idx",
     "node",
-    "node_idx"
+    "idx"
   ],
   "function_build_node_location_map_0085": [
-    "map",
     "build_node_location_map",
     "build",
+    "map",
     "loca",
     "node"
   ],
   "var_location_map_0086": [
-    "map",
     "loca",
+    "map",
     "location_map"
   ],
   "var_lineno_0091": [
     "lineno"
   ],
   "file_extract_py_0001": [
+    "py",
     "extract.py",
-    "extract",
-    "py"
+    "extract"
   ],
   "class_symbolextractor_0014": [
-    "symbolextractor",
     "extractor",
+    "symbolextractor",
     "symbol"
   ],
   "function_sanitize_name_0026": [
     "sanitize_name",
-    "sanit",
-    "name"
+    "name",
+    "sanit"
   ],
   "var_sanitized_0027": [
     "sanitiz"
   ],
   "function_get_symbol_id_0035": [
-    "get_symbol_id",
-    "id",
     "get",
-    "symbol"
+    "get_symbol_id",
+    "symbol",
+    "id"
   ],
   "var_sanitized_name_0038": [
-    "sanitiz",
+    "name",
     "sanitized_name",
-    "name"
+    "sanitiz"
   ],
   "var_sanitized_kind_0040": [
+    "sanitized_kind",
     "sanitiz",
-    "kind",
-    "sanitized_kind"
+    "kind"
   ],
   "function_get_node_end_line_0042": [
-    "get",
-    "node",
-    "end",
     "get_node_end_line",
-    "line"
+    "get",
+    "end",
+    "line",
+    "node"
   ],
   "var_start_line_0046": [
-    "start",
     "start_line",
-    "line"
+    "line",
+    "start"
   ],
   "var_max_end_line_0047": [
     "max_end_line",
+    "line",
     "max",
-    "end",
-    "line"
+    "end"
   ],
   "function_find_max_line_0048": [
-    "find",
-    "max",
     "find_max_line",
-    "line"
+    "line",
+    "max",
+    "find"
   ],
   "function_add_symbol_0056": [
+    "add",
     "symbol",
-    "add_symbol",
-    "add"
+    "add_symbol"
   ],
   "var_symbol_id_0059": [
     "symbol_id",
-    "id",
-    "symbol"
+    "symbol",
+    "id"
   ],
   "var_meta_0061": [
     "meta"
   ],
   "function_add_edge_0066": [
-    "edge",
     "add_edge",
-    "add"
+    "add",
+    "edge"
   ],
   "var_edge_key_0068": [
+    "edge_key",
     "edge",
-    "key",
-    "edge_key"
+    "key"
   ],
   "function_add_type_token_0073": [
     "token",
-    "add_type_token",
     "type",
+    "add_type_token",
     "add"
   ],
   "function_visit_module_0076": [
-    "visit",
     "visit_module",
-    "module"
+    "module",
+    "visit"
   ],
   "var_end_line_0077": [
+    "line",
     "end_line",
-    "end",
-    "line"
+    "end"
   ],
   "var_file_symbol_0079": [
     "file_symbol",
@@ -1945,23 +1945,23 @@
     "symbol"
   ],
   "function_visit_classdef_0083": [
+    "visit_classdef",
     "class",
     "def",
-    "visit",
     "classdef",
-    "visit_classdef"
+    "visit"
   ],
   "var_bases_0084": [
     "bases"
   ],
   "var_class_id_0091": [
     "class",
-    "class_id",
-    "id"
+    "id",
+    "class_id"
   ],
   "var_base_name_0093": [
-    "base_name",
     "base",
+    "base_name",
     "name"
   ],
   "var_base_id_0094": [
@@ -1970,49 +1970,49 @@
     "id"
   ],
   "var_old_class_0095": [
-    "old",
     "class",
-    "old_class"
+    "old_class",
+    "old"
   ],
   "function_visit_functiondef_0096": [
-    "def",
-    "visit_functiondef",
-    "functiondef",
     "func",
-    "visit"
+    "def",
+    "visit",
+    "visit_functiondef",
+    "functiondef"
   ],
   "var_func_id_0097": [
-    "func_id",
     "func",
+    "func_id",
     "id"
   ],
   "var_return_type_0098": [
-    "return_type",
     "return",
+    "return_type",
     "type"
   ],
   "var_param_type_0102": [
+    "param",
     "param_type",
-    "type",
-    "param"
+    "type"
   ],
   "var_old_function_0103": [
-    "old",
     "old_func",
+    "old",
     "func"
   ],
   "function_visit_asyncfunctiondef_0104": [
     "async",
-    "def",
     "func",
     "visit_asyncfunctiondef",
     "asyncfunctiondef",
+    "def",
     "visit"
   ],
   "function_visit_import_0106": [
-    "visit",
     "import",
-    "visit_import"
+    "visit_import",
+    "visit"
   ],
   "var_module_name_0107": [
     "module_name",
@@ -2020,36 +2020,36 @@
     "name"
   ],
   "var_import_name_0109": [
-    "import_name",
+    "name",
     "import",
-    "name"
+    "import_name"
   ],
   "var_import_id_0110": [
-    "import_id",
+    "id",
     "import",
-    "id"
+    "import_id"
   ],
   "function_visit_importfrom_0111": [
-    "visit_importfrom",
     "importfrom",
+    "visit",
+    "visit_importfrom",
     "import",
-    "from",
-    "visit"
+    "from"
   ],
   "function_visit_call_0112": [
-    "visit",
+    "visit_call",
     "call",
-    "visit_call"
+    "visit"
   ],
   "var_caller_id_0113": [
-    "caller_id",
+    "call",
     "id",
-    "call"
+    "caller_id"
   ],
   "var_callee_name_0114": [
-    "name",
+    "callee_name",
     "callee",
-    "callee_name"
+    "name"
   ],
   "var_callee_id_0115": [
     "callee_id",
@@ -2057,19 +2057,19 @@
     "id"
   ],
   "var_obj_name_0116": [
-    "obj_name",
     "obj",
-    "name"
+    "name",
+    "obj_name"
   ],
   "var_method_name_0117": [
+    "method",
     "name",
-    "method_name",
-    "method"
+    "method_name"
   ],
   "var_method_id_0118": [
+    "method",
     "method_id",
-    "id",
-    "method"
+    "id"
   ],
   "var_var_id_0119": [
     "var",
@@ -2077,16 +2077,16 @@
     "id"
   ],
   "function_visit_assign_0120": [
-    "visit",
     "visit_assign",
-    "assign"
+    "assign",
+    "visit"
   ],
   "function_visit_annassign_0124": [
-    "ann",
-    "annassign",
     "assign",
+    "visit_annassign",
+    "annassign",
     "visit",
-    "visit_annassign"
+    "ann"
   ],
   "var_var_type_0125": [
     "var",
@@ -2094,34 +2094,34 @@
     "type"
   ],
   "function_visit_name_0126": [
-    "visit",
+    "visit_name",
     "name",
-    "visit_name"
+    "visit"
   ],
   "var_referencer_id_0127": [
     "referencer_id",
-    "referenc",
-    "id"
+    "id",
+    "referenc"
   ],
   "function_extract_type_annotation_0128": [
     "extract_type_annota",
     "annota",
-    "extract",
-    "type"
+    "type",
+    "extract"
   ],
   "var_base_0087": [
     "base"
   ],
   "class_gitignorematcher_0129": [
     "ignore",
+    "match",
     "git",
-    "gitignorematch",
-    "match"
+    "gitignorematch"
   ],
   "function_load_patterns_0135": [
     "load_patterns",
-    "load",
-    "patterns"
+    "patterns",
+    "load"
   ],
   "var_line_0140": [
     "line"
@@ -2141,14 +2141,14 @@
     "file_path"
   ],
   "var_rel_path_0148": [
+    "path",
     "rel_path",
-    "rel",
-    "path"
+    "rel"
   ],
   "var_rel_str_0151": [
-    "rel",
     "str",
-    "rel_str"
+    "rel_str",
+    "rel"
   ],
   "var_parts_0152": [
     "parts"
@@ -2157,24 +2157,24 @@
     "match"
   ],
   "function_match_pattern_0157": [
-    "pattern",
     "match",
+    "pattern",
     "match_pattern"
   ],
   "var_regex_pattern_0165": [
-    "regex_pattern",
     "regex",
-    "pattern"
+    "pattern",
+    "regex_pattern"
   ],
   "function_match_glob_0172": [
-    "glob",
     "match",
+    "glob",
     "match_glob"
   ],
   "function_find_gitignore_0174": [
-    "gitignore",
+    "find_gitignore",
     "find",
-    "find_gitignore"
+    "gitignore"
   ],
   "var_current_0175": [
     "current"
@@ -2183,18 +2183,18 @@
     "gitignore"
   ],
   "function_should_process_file_0178": [
-    "should_process_file",
-    "should",
     "file",
-    "process"
+    "should",
+    "process",
+    "should_process_file"
   ],
   "var_path_0180": [
     "path"
   ],
   "function_extract_from_file_0188": [
     "from",
-    "extract_from_file",
     "file",
+    "extract_from_file",
     "extract"
   ],
   "var_content_0189": [
@@ -2216,26 +2216,26 @@
     "directory"
   ],
   "var_include_dirs_0186": [
-    "dirs",
     "include_dirs",
+    "dirs",
     "include"
   ],
   "var_exclude_dirs_0184": [
-    "dirs",
     "exclude_dirs",
-    "exclude"
+    "exclude",
+    "dirs"
   ],
   "var_extensions_0208": [
     "extensions"
   ],
   "var_excluded_keywords_0025": [
+    "excluded_keywords",
     "keywords",
-    "exclud",
-    "excluded_keywords"
+    "exclud"
   ],
   "var_root_path_0132": [
-    "path",
     "root",
+    "path",
     "root_path"
   ],
   "var_all_symbols_0210": [
@@ -2244,77 +2244,77 @@
     "all_symbols"
   ],
   "var_all_edges_0211": [
-    "all_edges",
+    "edges",
     "all",
-    "edges"
+    "all_edges"
   ],
   "var_all_types_0212": [
+    "all_types",
     "types",
-    "all",
-    "all_types"
+    "all"
   ],
   "var_seen_symbols_0213": [
-    "seen_symbols",
+    "seen",
     "symbols",
-    "seen"
+    "seen_symbols"
   ],
   "var_gitignore_matcher_0182": [
+    "match",
     "gitignore",
-    "gitignore_match",
-    "match"
+    "gitignore_match"
   ],
   "var_gitignore_path_0134": [
-    "gitignore",
     "path",
-    "gitignore_path"
+    "gitignore_path",
+    "gitignore"
   ],
   "var_normalized_extensions_0219": [
-    "normaliz",
+    "extensions",
     "normalized_extensions",
-    "extensions"
+    "normaliz"
   ],
   "var_source_files_0222": [
+    "files",
     "source",
-    "source_files",
-    "files"
+    "source_files"
   ],
   "var_skipped_gitignore_0223": [
     "gitignore",
-    "skipped_gitignore",
-    "skipp"
+    "skipp",
+    "skipped_gitignore"
   ],
   "var_dirs_to_remove_0225": [
+    "dirs_to_remove",
     "dirs",
     "to",
-    "dirs_to_remove",
     "remove"
   ],
   "var_dir_path_0227": [
     "path",
-    "dir",
-    "dir_path"
+    "dir_path",
+    "dir"
   ],
   "var_file_path_obj_0233": [
     "path",
-    "obj",
     "file",
+    "obj",
     "file_path_obj"
   ],
   "var_file_ext_0235": [
+    "ext",
     "file",
-    "file_ext",
-    "ext"
+    "file_ext"
   ],
   "var_file_path_str_0236": [
     "path",
     "file",
-    "file_path_str",
-    "str"
+    "str",
+    "file_path_str"
   ],
   "var_ext_display_0239": [
-    "display",
+    "ext",
     "ext_display",
-    "ext"
+    "display"
   ],
   "var_excluded_msg_0248": [
     "msg",
@@ -2323,21 +2323,21 @@
   ],
   "file_fusion_py_0001": [
     "fusion",
-    "fusion.py",
-    "py"
+    "py",
+    "fusion.py"
   ],
   "function_get_num_workers_0008": [
-    "workers",
-    "get_num_workers",
     "num",
-    "get"
+    "get",
+    "workers",
+    "get_num_workers"
   ],
   "function_pad_to_same_rows_0014": [
-    "pad",
-    "rows",
     "same",
+    "pad_to_same_rows",
+    "pad",
     "to",
-    "pad_to_same_rows"
+    "rows"
   ],
   "var_padded_0017": [
     "padd"
@@ -2346,27 +2346,27 @@
     "padd"
   ],
   "var_emb_padded_0023": [
-    "padd",
+    "emb",
     "emb_padd",
-    "emb"
+    "padd"
   ],
   "function_fuse_embeddings_0026": [
-    "fuse_embeddings",
+    "fuse",
     "embeddings",
-    "fuse"
+    "fuse_embeddings"
   ],
   "var_concatenated_0028": [
     "concatenat"
   ],
   "var_num_features_0030": [
     "num",
-    "features",
-    "num_features"
+    "num_features",
+    "features"
   ],
   "var_actual_dim_0031": [
-    "dim",
+    "actual",
     "actual_dim",
-    "actual"
+    "dim"
   ],
   "var_pca_0039": [
     "pca"
@@ -2381,22 +2381,22 @@
     "mean"
   ],
   "var_component_padding_0046": [
-    "component_padd",
     "padd",
+    "component_padd",
     "component"
   ],
   "var_norms_0047": [
     "norms"
   ],
   "var_fused_normalized_0050": [
-    "fus",
     "normaliz",
-    "fused_normaliz"
+    "fused_normaliz",
+    "fus"
   ],
   "function_build_neighbor_graph_0053": [
-    "build",
-    "build_neighbor_graph",
     "graph",
+    "build_neighbor_graph",
+    "build",
     "neighbor"
   ],
   "var_rows_0056": [
@@ -2407,20 +2407,20 @@
   ],
   "var_rows_sym_0063": [
     "sym",
-    "rows_sym",
-    "rows"
+    "rows",
+    "rows_sym"
   ],
   "var_cols_sym_0064": [
-    "sym",
+    "cols_sym",
     "cols",
-    "cols_sym"
+    "sym"
   ],
   "var_adj_0065": [
     "adj"
   ],
   "function_iterative_embedding_smoothing_0071": [
-    "iterative_embedding_smooth",
     "embedd",
+    "iterative_embedding_smooth",
     "smooth",
     "iterative"
   ],
@@ -2441,53 +2441,53 @@
     "neighbor"
   ],
   "file_git_tracker_py_0001": [
-    "git",
     "git_tracker.py",
     "track",
-    "tracker.py",
-    "py"
+    "py",
+    "git",
+    "tracker.py"
   ],
   "function_get_git_commit_hash_0009": [
     "get_git_commit_hash",
+    "commit",
     "git",
     "get",
-    "hash",
-    "commit"
+    "hash"
   ],
   "function_get_git_commit_timestamp_0017": [
-    "git",
-    "timestamp",
-    "get",
     "get_git_commit_timestamp",
-    "commit"
+    "commit",
+    "git",
+    "get",
+    "timestamp"
   ],
   "var_timestamp_0018": [
     "timestamp"
   ],
   "function_get_file_git_timestamp_0024": [
-    "git",
-    "timestamp",
-    "get_file_git_timestamp",
     "file",
-    "get"
+    "get_file_git_timestamp",
+    "git",
+    "get",
+    "timestamp"
   ],
   "function_get_changed_files_since_commit_0026": [
-    "files",
     "since",
-    "get_changed_files_since_commit",
+    "commit",
     "chang",
     "get",
-    "commit"
+    "get_changed_files_since_commit",
+    "files"
   ],
   "var_files_0028": [
     "files"
   ],
   "function_get_all_python_files_0035": [
     "python",
-    "files",
     "get_all_python_files",
+    "all",
     "get",
-    "all"
+    "files"
   ],
   "function_save_training_metadata_0036": [
     "metadata",
@@ -2497,30 +2497,30 @@
   ],
   "var_metadata_path_0037": [
     "metadata",
-    "path",
-    "metadata_path"
+    "metadata_path",
+    "path"
   ],
   "var_metadata_0041": [
     "metadata"
   ],
   "function_load_training_metadata_0055": [
+    "load_training_metadata",
     "metadata",
     "train",
-    "load",
-    "load_training_metadata"
+    "load"
   ],
   "function_get_changed_files_for_retraining_0060": [
-    "files",
-    "retrain",
+    "for",
+    "get_changed_files_for_retrain",
     "chang",
     "get",
-    "get_changed_files_for_retrain",
-    "for"
+    "files",
+    "retrain"
   ],
   "var_commit_hash_0027": [
     "commit_hash",
-    "commit",
-    "hash"
+    "hash",
+    "commit"
   ],
   "var_changed_files_0064": [
     "chang",
@@ -2528,22 +2528,22 @@
     "files"
   ],
   "var_files_trained_0048": [
-    "files_train",
     "train",
-    "files"
+    "files",
+    "files_train"
   ],
   "var_all_python_files_0066": [
-    "python",
     "all_python_files",
+    "python",
     "all",
     "files"
   ],
   "function_extract_files_from_jsonl_0068": [
-    "from",
-    "extract",
-    "files",
     "extract_files_from_jsonl",
-    "jsonl"
+    "jsonl",
+    "extract",
+    "from",
+    "files"
   ],
   "var_file_path_0025": [
     "path",
@@ -2551,26 +2551,26 @@
     "file_path"
   ],
   "function_filter_jsonl_by_files_0075": [
+    "filt",
+    "jsonl",
     "by",
     "files",
-    "filt",
-    "filter_jsonl_by_files",
-    "jsonl"
+    "filter_jsonl_by_files"
   ],
   "var_count_0076": [
     "count"
   ],
   "file_gpu_utils_py_0001": [
-    "utils",
-    "gpu_utils.py",
     "utils.py",
-    "gpu",
-    "py"
+    "gpu_utils.py",
+    "py",
+    "utils",
+    "gpu"
   ],
   "var_cupy_available_0011": [
-    "avail",
     "cupy",
-    "cupy_avail"
+    "cupy_avail",
+    "avail"
   ],
   "var_cp_0012": [
     "cp"
@@ -2580,22 +2580,22 @@
   ],
   "var_torch_available_0015": [
     "torch_avail",
-    "avail",
-    "torch"
+    "torch",
+    "avail"
   ],
   "var_torch_version_0016": [
-    "torch_ver",
     "ver",
+    "torch_ver",
     "torch"
   ],
   "var_torch_0017": [
     "torch"
   ],
   "function_diagnose_gpu_support_0018": [
-    "support",
-    "diagnose_gpu_support",
     "diagnose",
-    "gpu"
+    "gpu",
+    "diagnose_gpu_support",
+    "support"
   ],
   "var_diagnostics_0019": [
     "diagnostics"
@@ -2605,49 +2605,49 @@
     "device"
   ],
   "class_gpuaccelerator_0034": [
+    "gpu",
     "gpuaccelerator",
-    "accelerator",
-    "gpu"
+    "accelerator"
   ],
   "var_is_mac_0038": [
-    "mac",
     "is",
-    "is_mac"
+    "is_mac",
+    "mac"
   ],
   "var_test_tensor_0040": [
     "test_tensor",
-    "test",
-    "tensor"
+    "tensor",
+    "test"
   ],
   "function_to_gpu_0044": [
-    "to",
+    "to_gpu",
     "gpu",
-    "to_gpu"
+    "to"
   ],
   "function_to_cpu_0049": [
-    "cpu",
+    "to_cpu",
     "to",
-    "to_cpu"
+    "cpu"
   ],
   "function_sparse_to_gpu_0054": [
-    "to",
     "gpu",
+    "to",
     "sparse",
     "sparse_to_gpu"
   ],
   "function_sparse_to_cpu_0060": [
     "sparse_to_cpu",
-    "cpu",
     "to",
-    "sparse"
+    "sparse",
+    "cpu"
   ],
   "function_svd_0062": [
     "svd"
   ],
   "var_gpu_matrix_0065": [
-    "matrix",
     "gpu",
-    "gpu_matrix"
+    "gpu_matrix",
+    "matrix"
   ],
   "var_vt_0073": [
     "vt"
@@ -2675,23 +2675,23 @@
   ],
   "var_a_gpu_0096": [
     "a_gpu",
-    "gpu",
-    "a"
+    "a",
+    "gpu"
   ],
   "var_b_gpu_0098": [
     "b_gpu",
-    "b",
-    "gpu"
+    "gpu",
+    "b"
   ],
   "function_sparse_matmul_0104": [
     "sparse_matmul",
-    "sparse",
-    "matmul"
+    "matmul",
+    "sparse"
   ],
   "var_a_dense_0106": [
     "dense",
-    "a_dense",
-    "a"
+    "a",
+    "a_dense"
   ],
   "function_norm_0108": [
     "norm"
@@ -2713,50 +2713,50 @@
     "exit"
   ],
   "file_graph_view_py_0001": [
-    "view.py",
-    "graph_view.py",
     "view",
     "graph",
-    "py"
+    "graph_view.py",
+    "py",
+    "view.py"
   ],
   "function_get_num_workers_0013": [
-    "workers",
-    "get_num_workers",
     "num",
-    "get"
+    "get",
+    "workers",
+    "get_num_workers"
   ],
   "function_expand_call_graph_0019": [
-    "expand_call_graph",
     "expand",
-    "call",
-    "graph"
+    "graph",
+    "expand_call_graph",
+    "call"
   ],
   "var_call_graph_0024": [
-    "call",
     "graph",
-    "call_graph"
+    "call_graph",
+    "call"
   ],
   "var_call_edges_0028": [
-    "call_edges",
     "edges",
+    "call_edges",
     "call"
   ],
   "var_other_edges_0029": [
+    "oth",
     "edges",
-    "other_edges",
-    "oth"
+    "other_edges"
   ],
   "var_expanded_call_set_0037": [
     "set",
+    "expanded_call_set",
     "expand",
-    "call",
-    "expanded_call_set"
+    "call"
   ],
   "var_expanded_call_edges_0040": [
-    "expand",
     "edges",
-    "call",
-    "expanded_call_edges"
+    "expanded_call_edges",
+    "expand",
+    "call"
   ],
   "var_visited_0045": [
     "visit"
@@ -2767,100 +2767,100 @@
     "weight"
   ],
   "var_edge_key_0056": [
+    "edge_key",
     "edge",
-    "key",
-    "edge_key"
+    "key"
   ],
   "function_add_subtoken_edges_0061": [
     "add_subtoken_edges",
-    "subtoken",
     "edges",
-    "add"
+    "add",
+    "subtoken"
   ],
   "var_subtoken_to_idx_0063": [
-    "idx",
-    "subtoken",
+    "subtoken_to_idx",
     "to",
-    "subtoken_to_idx"
+    "subtoken",
+    "idx"
   ],
   "var_new_edges_0064": [
-    "new_edges",
     "new",
-    "edges"
+    "edges",
+    "new_edges"
   ],
   "var_current_num_nodes_0065": [
-    "nodes",
     "num",
     "current",
+    "nodes",
     "current_num_nodes"
   ],
   "var_node_idx_0071": [
-    "idx",
+    "node_idx",
     "node",
-    "node_idx"
+    "idx"
   ],
   "var_subtoken_idx_0074": [
-    "idx",
     "subtoken",
+    "idx",
     "subtoken_idx"
   ],
   "var_idx1_0079": [
-    "idx",
+    "idx1",
     "1",
-    "idx1"
+    "idx"
   ],
   "var_idx2_0081": [
+    "2",
     "idx",
-    "idx2",
-    "2"
+    "idx2"
   ],
   "function_add_file_hierarchy_edges_0083": [
+    "file",
+    "edges",
     "add",
     "add_file_hierarchy_edges",
-    "edges",
-    "file",
     "hierarchy"
   ],
   "var_nodes_by_file_0084": [
     "file",
-    "by",
     "nodes",
+    "by",
     "nodes_by_file"
   ],
   "var_nodes_by_directory_0085": [
-    "by",
     "nodes",
-    "nodes_by_directory",
-    "directory"
+    "directory",
+    "by",
+    "nodes_by_directory"
   ],
   "var_nodes_by_package_0086": [
-    "by",
     "package",
+    "nodes_by_package",
     "nodes",
-    "nodes_by_package"
+    "by"
   ],
   "var_existing_weight_0094": [
-    "existing_weight",
     "exist",
+    "existing_weight",
     "weight"
   ],
   "var_new_weight_0100": [
-    "new_weight",
     "new",
-    "weight"
+    "weight",
+    "new_weight"
   ],
   "function_process_file_context_0105": [
-    "context",
-    "file",
     "process_file_context",
+    "file",
+    "context",
     "process"
   ],
   "function_add_context_length_edges_0127": [
-    "length",
     "edges",
+    "length",
     "add",
-    "context",
-    "add_context_length_edges"
+    "add_context_length_edges",
+    "context"
   ],
   "var_context_lengths_0128": [
     "context_lengths",
@@ -2874,39 +2874,39 @@
     "lineno"
   ],
   "var_end_lineno_0138": [
+    "lineno",
     "end_lineno",
-    "end",
-    "lineno"
+    "end"
   ],
   "var_edge_weights_0126": [
-    "edge",
     "edge_weights",
+    "edge",
     "weights"
   ],
   "var_nodes_with_context_0141": [
-    "nodes_with_context",
     "with",
+    "context",
     "nodes",
-    "context"
+    "nodes_with_context"
   ],
   "var_len1_0143": [
-    "1",
     "len1",
+    "1",
     "len"
   ],
   "var_len2_0144": [
-    "len2",
     "2",
+    "len2",
     "len"
   ],
   "var_max_len_0145": [
-    "max",
     "max_len",
+    "max",
     "len"
   ],
   "var_min_len_0146": [
-    "min",
     "min_len",
+    "min",
     "len"
   ],
   "var_similarity_0147": [
@@ -2921,10 +2921,10 @@
     "weight"
   ],
   "function_add_context_window_edges_0150": [
-    "add_context_window_edges",
-    "window",
     "edges",
+    "window",
     "add",
+    "add_context_window_edges",
     "context"
   ],
   "var_file_path_0151": [
@@ -2938,9 +2938,9 @@
     "n_jobs"
   ],
   "var_args_list_0154": [
-    "list",
+    "args",
     "args_list",
-    "args"
+    "list"
   ],
   "var_chunksize_0156": [
     "chunks"
@@ -2951,8 +2951,8 @@
   "function_process_edge_chunk_0165": [
     "chunk",
     "edge",
-    "process_edge_chunk",
-    "process"
+    "process",
+    "process_edge_chunk"
   ],
   "var_rows_0166": [
     "rows"
@@ -2961,28 +2961,28 @@
     "cols"
   ],
   "function_build_adjacency_matrix_0174": [
-    "build",
-    "adjacency",
+    "build_adjacency_matrix",
     "matrix",
-    "build_adjacency_matrix"
+    "build",
+    "adjacency"
   ],
   "var_chunk_size_0175": [
-    "chunk",
+    "size",
     "chunk_s",
-    "size"
+    "chunk"
   ],
   "var_chunks_0176": [
     "chunks"
   ],
   "var_rows_sym_0184": [
     "sym",
-    "rows_sym",
-    "rows"
+    "rows",
+    "rows_sym"
   ],
   "var_cols_sym_0185": [
-    "sym",
+    "cols_sym",
     "cols",
-    "cols_sym"
+    "sym"
   ],
   "var_data_sym_0186": [
     "sym",
@@ -2994,21 +2994,21 @@
   ],
   "function_compute_ppmi_0190": [
     "ppmi",
-    "compute",
-    "compute_ppmi"
+    "compute_ppmi",
+    "compute"
   ],
   "var_cooc_0191": [
     "cooc"
   ],
   "var_row_sums_0194": [
+    "sums",
     "row_sums",
-    "row",
-    "sums"
+    "row"
   ],
   "var_col_sums_0197": [
-    "col",
     "sums",
-    "col_sums"
+    "col_sums",
+    "col"
   ],
   "var_total_0198": [
     "total"
@@ -3022,8 +3022,8 @@
     "p"
   ],
   "var_p_i_0202": [
-    "p_i",
     "i",
+    "p_i",
     "p"
   ],
   "var_p_j_0203": [
@@ -3039,29 +3039,29 @@
   ],
   "var_ppmi_matrix_0207": [
     "ppmi",
-    "matrix",
-    "ppmi_matrix"
+    "ppmi_matrix",
+    "matrix"
   ],
   "function_reduce_dimensions_ppmi_0208": [
     "reduce_dimensions_ppmi",
+    "dimensions",
     "ppmi",
-    "reduce",
-    "dimensions"
+    "reduce"
   ],
   "var_num_features_0209": [
     "num",
-    "features",
-    "num_features"
+    "num_features",
+    "features"
   ],
   "var_actual_dim_0210": [
-    "dim",
+    "actual",
     "actual_dim",
-    "actual"
+    "dim"
   ],
   "var_ppmi_dense_0213": [
-    "ppmi",
+    "dense",
     "ppmi_dense",
-    "dense"
+    "ppmi"
   ],
   "var_embeddings_0217": [
     "embeddings"
@@ -3076,126 +3076,126 @@
     "padd"
   ],
   "var_component_padding_0233": [
-    "component_padd",
     "padd",
+    "component_padd",
     "component"
   ],
   "function_compute_graph_view_0235": [
     "view",
-    "compute",
     "graph",
+    "compute",
     "compute_graph_view"
   ],
   "var_expanded_edges_0237": [
-    "expand",
     "edges",
-    "expanded_edges"
+    "expanded_edges",
+    "expand"
   ],
   "file_model_py_0001": [
-    "model",
+    "py",
     "model.py",
-    "py"
+    "model"
   ],
   "var_default_excluded_keywords_0011": [
-    "default_excluded_keywords",
+    "exclud",
     "default",
     "keywords",
-    "exclud"
+    "default_excluded_keywords"
   ],
   "class_symbolmodel_0012": [
-    "symbolmodel",
     "model",
+    "symbolmodel",
     "symbol"
   ],
   "function_load_0014": [
     "load"
   ],
   "var_embeddings_path_0020": [
+    "embeddings_path",
     "path",
-    "embeddings",
-    "embeddings_path"
+    "embeddings"
   ],
   "var_metadata_0027": [
     "metadata"
   ],
   "var_types_svd_path_0034": [
-    "types",
     "path",
+    "types",
     "svd",
     "types_svd_path"
   ],
   "var_w2v_path_0035": [
+    "v",
+    "w2v",
+    "w",
     "path",
     "w2v_path",
-    "v",
-    "2",
-    "w2v",
-    "w"
+    "2"
   ],
   "var_type_map_path_0038": [
     "map",
-    "path",
     "type_map_path",
-    "type"
+    "type",
+    "path"
   ],
   "var_mean_norm_path_0039": [
-    "norm",
-    "mean",
+    "mean_norm_path",
     "path",
-    "mean_norm_path"
+    "mean",
+    "norm"
   ],
   "var_subtoken_map_path_0041": [
     "map",
-    "subtoken",
     "subtoken_map_path",
+    "subtoken",
     "path"
   ],
   "var_node_subtokens_path_0042": [
-    "node",
-    "node_subtokens_path",
     "path",
-    "subtokens"
+    "subtokens",
+    "node",
+    "node_subtokens_path"
   ],
   "var_node_types_path_0043": [
+    "path",
     "types",
     "node",
-    "path",
     "node_types_path"
   ],
   "var_ann_index_path_0044": [
-    "ann",
     "path",
+    "ann",
     "index",
     "ann_index_path"
   ],
   "function_load_retrieval_pipeline_0048": [
-    "pipeline",
     "load_retrieval_pipeline",
-    "load",
-    "retrieval"
+    "retrieval",
+    "pipeline",
+    "load"
   ],
   "var_lexical_index_path_0058": [
-    "lexical_index_path",
     "path",
+    "lexical_index_path",
     "lexical",
     "index"
   ],
   "var_dense_index_prefix_0061": [
-    "dense_index_prefix",
+    "dense",
     "prefix",
     "index",
-    "dense"
+    "dense_index_prefix"
   ],
   "var_node_file_info_0066": [
-    "node",
-    "info",
     "file",
-    "node_file_info"
+    "info",
+    "node_file_info",
+    "node"
   ],
   "var_node_id_0032": [
-    "node",
+    "id",
     "node_id",
-    "id"
+    "node"
   ],
   "var_meta_0068": [
     "meta"
@@ -3206,14 +3206,14 @@
     "file_path"
   ],
   "var_hybrid_scorer_0082": [
-    "hybrid",
     "scor",
-    "hybrid_scor"
+    "hybrid_scor",
+    "hybrid"
   ],
   "var_lightweight_reranker_0085": [
-    "lightweight",
     "rerank",
-    "lightweight_rerank"
+    "lightweight_rerank",
+    "lightweight"
   ],
   "var_cross_encoder_0088": [
     "encod",
@@ -3227,48 +3227,48 @@
     "vector"
   ],
   "var_node_idx_0099": [
-    "idx",
+    "node_idx",
     "node",
-    "node_idx"
+    "idx"
   ],
   "var_base_vector_0100": [
-    "base_vector",
     "base",
-    "vector"
+    "vector",
+    "base_vector"
   ],
   "var_vectors_to_average_0101": [
     "vectors_to_average",
     "vectors",
-    "average",
-    "to"
+    "to",
+    "average"
   ],
   "var_weights_0102": [
     "weights"
   ],
   "var_subtoken_vectors_0103": [
-    "subtoken",
     "vectors",
+    "subtoken",
     "subtoken_vectors"
   ],
   "var_subtoken_idx_0105": [
-    "idx",
     "subtoken",
+    "idx",
     "subtoken_idx"
   ],
   "var_subtoken_avg_0109": [
-    "subtoken",
     "avg",
-    "subtoken_avg"
+    "subtoken_avg",
+    "subtoken"
   ],
   "var_type_vectors_0112": [
-    "vectors",
     "type_vectors",
+    "vectors",
     "type"
   ],
   "var_type_idx_0114": [
-    "idx",
     "type_idx",
-    "type"
+    "type",
+    "idx"
   ],
   "var_weights_array_0115": [
     "weights_array",
@@ -3282,9 +3282,9 @@
     "norm"
   ],
   "function_get_context_length_0125": [
+    "get",
     "get_context_length",
     "context",
-    "get",
     "length"
   ],
   "var_meta_dict_0126": [
@@ -3296,34 +3296,34 @@
     "lineno"
   ],
   "var_end_lineno_0129": [
+    "lineno",
     "end_lineno",
-    "end",
-    "lineno"
+    "end"
   ],
   "function_compute_context_similarity_0132": [
     "similarity",
-    "compute_context_similarity",
     "compute",
-    "context"
+    "context",
+    "compute_context_similarity"
   ],
   "var_max_len_0135": [
-    "max",
     "max_len",
+    "max",
     "len"
   ],
   "var_min_len_0138": [
-    "min",
     "min_len",
+    "min",
     "len"
   ],
   "var_similarity_0141": [
     "similarity"
   ],
   "function_compute_hybrid_score_0142": [
-    "hybrid",
+    "compute_hybrid_score",
     "compute",
-    "score",
-    "compute_hybrid_score"
+    "hybrid",
+    "score"
   ],
   "var_cosine_sim_0143": [
     "cosine_sim",
@@ -3344,71 +3344,71 @@
     "len"
   ],
   "var_candidate_len_0154": [
-    "candidate",
     "candidate_len",
+    "candidate",
     "len"
   ],
   "var_context_sim_0155": [
-    "context_sim",
     "context",
+    "context_sim",
     "sim"
   ],
   "var_context_bonus_0157": [
     "context_bonus",
-    "bonus",
-    "context"
+    "context",
+    "bonus"
   ],
   "function_query_0158": [
     "query"
   ],
   "var_query_vector_0160": [
+    "query_vector",
     "query",
-    "vector",
-    "query_vector"
+    "vector"
   ],
   "var_query_norm_0162": [
-    "norm",
+    "query",
     "query_norm",
-    "query"
+    "norm"
   ],
   "var_use_multi_stage_0163": [
     "multi",
     "use_multi_stage",
-    "stage",
-    "use"
+    "use",
+    "stage"
   ],
   "function_query_multi_stage_0169": [
     "multi",
     "query",
-    "query_multi_stage",
-    "stage"
+    "stage",
+    "query_multi_stage"
   ],
   "var_query_name_0171": [
     "query",
-    "query_name",
-    "name"
+    "name",
+    "query_name"
   ],
   "var_pipeline_results_0173": [
+    "results",
     "pipeline",
-    "pipeline_results",
-    "results"
+    "pipeline_results"
   ],
   "var_results_0174": [
     "results"
   ],
   "var_result_idx_0178": [
     "idx",
-    "result_idx",
-    "result"
+    "result",
+    "result_idx"
   ],
   "var_candidate_vec_0146": [
-    "candidate",
     "candidate_vec",
-    "vec"
+    "vec",
+    "candidate"
   ],
   "var_candidate_norm_0179": [
-    "candidate",
     "candidate_norm",
+    "candidate",
     "norm"
   ],
   "var_distance_0180": [
@@ -3416,19 +3416,19 @@
   ],
   "var_calibrated_score_0181": [
     "calibrated_score",
-    "calibrat",
-    "score"
+    "score",
+    "calibrat"
   ],
   "function_query_legacy_0184": [
+    "legacy",
     "query",
-    "query_legacy",
-    "legacy"
+    "query_legacy"
   ],
   "var_node_id_result_0187": [
+    "id",
     "node",
-    "node_id_result",
     "result",
-    "id"
+    "node_id_result"
   ],
   "var_hybrid_score_0188": [
     "hybrid_score",
@@ -3437,19 +3437,19 @@
   ],
   "function_search_by_keywords_0193": [
     "keywords",
-    "by",
     "search",
-    "search_by_keywords"
+    "search_by_keywords",
+    "by"
   ],
   "var_excluded_keywords_0195": [
+    "excluded_keywords",
     "keywords",
-    "exclud",
-    "excluded_keywords"
+    "exclud"
   ],
   "var_keywords_lower_0196": [
+    "low",
     "keywords",
-    "keywords_low",
-    "low"
+    "keywords_low"
   ],
   "var_keyword_words_0199": [
     "words",
@@ -3458,26 +3458,26 @@
   ],
   "var_filtered_keyword_words_0201": [
     "filter",
-    "keyword",
     "filtered_keyword_words",
+    "keyword",
     "words"
   ],
   "var_filtered_keywords_lower_0203": [
-    "keywords",
     "filter",
-    "filtered_keywords_low",
-    "low"
+    "low",
+    "keywords",
+    "filtered_keywords_low"
   ],
   "function_get_type_tokens_0204": [
-    "get_type_tokens",
-    "tokens",
     "get",
-    "type"
+    "get_type_tokens",
+    "type",
+    "tokens"
   ],
   "var_type_tokens_0205": [
     "type_tokens",
-    "tokens",
-    "type"
+    "type",
+    "tokens"
   ],
   "var_start_0208": [
     "start"
@@ -3503,75 +3503,75 @@
   "var_type_tokens_str_0220": [
     "type_tokens_str",
     "str",
-    "tokens",
-    "type"
+    "type",
+    "tokens"
   ],
   "var_all_words_in_name_0222": [
     "words",
     "in",
-    "name",
+    "all",
     "all_words_in_name",
-    "all"
+    "name"
   ],
   "var_matching_words_0226": [
     "words",
-    "match",
-    "matching_words"
+    "matching_words",
+    "match"
   ],
   "var_name_kind_matches_0229": [
-    "kind",
     "name",
+    "matches",
     "name_kind_matches",
-    "matches"
+    "kind"
   ],
   "var_type_matches_0230": [
     "type_matches",
-    "matches",
-    "type"
+    "type",
+    "matches"
   ],
   "var_word_0225": [
     "word"
   ],
   "file_optimize_py_0001": [
+    "py",
     "optim",
-    "optimize.py",
-    "py"
+    "optimize.py"
   ],
   "function_is_generic_name_0009": [
+    "is",
     "generic",
     "name",
-    "is_generic_name",
-    "is"
+    "is_generic_name"
   ],
   "var_name_lower_0011": [
-    "name_low",
+    "low",
     "name",
-    "low"
+    "name_low"
   ],
   "var_generic_names_0017": [
-    "generic_names",
     "generic",
+    "generic_names",
     "names"
   ],
   "function_optimize_nodes_and_edges_0019": [
+    "edges",
     "optim",
     "nodes",
     "optimize_nodes_and_edges",
-    "and",
-    "edges"
+    "and"
   ],
   "var_excluded_keywords_0022": [
+    "excluded_keywords",
     "keywords",
-    "exclud",
-    "excluded_keywords"
+    "exclud"
   ],
   "var_nodes_0024": [
     "nodes"
   ],
   "var_node_ids_0025": [
-    "ids",
+    "node_ids",
     "node",
-    "node_ids"
+    "ids"
   ],
   "var_node_0034": [
     "node"
@@ -3583,44 +3583,44 @@
     "edge"
   ],
   "var_type_entry_0044": [
-    "entry",
     "type_entry",
-    "type"
+    "type",
+    "entry"
   ],
   "var_original_node_count_0048": [
     "node",
+    "original_node_count",
     "original",
-    "count",
-    "original_node_count"
+    "count"
   ],
   "var_original_edge_count_0049": [
-    "original",
+    "count",
     "edge",
-    "original_edge_count",
-    "count"
+    "original",
+    "original_edge_count"
   ],
   "var_original_type_count_0050": [
-    "original_type_count",
-    "original",
     "count",
-    "type"
+    "original_type_count",
+    "type",
+    "original"
   ],
   "var_node_edge_count_0051": [
-    "node",
+    "count",
     "edge",
     "node_edge_count",
-    "count"
+    "node"
   ],
   "var_node_in_degree_0055": [
+    "degree",
     "node",
     "node_in_degree",
-    "degree",
     "in"
   ],
   "var_node_out_degree_0056": [
-    "node",
-    "node_out_degree",
     "degree",
+    "node_out_degree",
+    "node",
     "out"
   ],
   "var_src_0057": [
@@ -3634,20 +3634,20 @@
   ],
   "var_nodes_to_keep_0062": [
     "keep",
-    "to",
     "nodes",
+    "to",
     "nodes_to_keep"
   ],
   "var_nodes_to_remove_0063": [
-    "nodes_to_remove",
-    "to",
     "nodes",
-    "remove"
+    "to",
+    "remove",
+    "nodes_to_remove"
   ],
   "var_node_id_0064": [
-    "node",
+    "id",
     "node_id",
-    "id"
+    "node"
   ],
   "var_name_0013": [
     "name"
@@ -3656,26 +3656,26 @@
     "kind"
   ],
   "var_should_remove_0066": [
-    "should_remove",
     "should",
+    "should_remove",
     "remove"
   ],
   "var_edges_to_keep_0072": [
-    "keep",
-    "to",
     "edges",
+    "to",
+    "keep",
     "edges_to_keep"
   ],
   "var_types_to_keep_0075": [
+    "types_to_keep",
     "types",
-    "keep",
     "to",
-    "types_to_keep"
+    "keep"
   ],
   "var_symbol_id_0076": [
     "symbol_id",
-    "id",
-    "symbol"
+    "symbol",
+    "id"
   ],
   "var_filtered_nodes_0079": [
     "filter",
@@ -3683,36 +3683,36 @@
     "filtered_nodes"
   ],
   "var_output_nodes_path_0080": [
-    "output",
     "output_nodes_path",
+    "path",
     "nodes",
-    "path"
+    "output"
   ],
   "var_output_edges_path_0082": [
+    "path",
     "output_edges_path",
-    "output",
     "edges",
-    "path"
+    "output"
   ],
   "var_output_types_path_0084": [
-    "types",
-    "output",
     "output_types_path",
-    "path"
+    "path",
+    "types",
+    "output"
   ],
   "var_nodes_removed_0088": [
+    "nodes_remov",
     "nodes",
-    "remov",
-    "nodes_remov"
+    "remov"
   ],
   "var_edges_removed_0089": [
     "edges",
-    "remov",
-    "edges_remov"
+    "edges_remov",
+    "remov"
   ],
   "var_types_removed_0090": [
-    "types",
     "types_remov",
+    "types",
     "remov"
   ],
   "var_stats_0091": [
@@ -3720,14 +3720,14 @@
   ],
   "var_orphaned_edges_0092": [
     "orphan",
-    "orphaned_edges",
-    "edges"
+    "edges",
+    "orphaned_edges"
   ],
   "var_low_weight_edges_0093": [
-    "low_weight_edges",
     "edges",
-    "low",
-    "weight"
+    "low_weight_edges",
+    "weight",
+    "low"
   ],
   "file_retrieval_py_0001": [
     "py",
@@ -3735,27 +3735,27 @@
     "retrieval"
   ],
   "var_faiss_available_0013": [
+    "faiss",
     "avail",
-    "faiss_avail",
-    "faiss"
+    "faiss_avail"
   ],
   "var_faiss_0014": [
     "faiss"
   ],
   "class_lexicalindex_0016": [
-    "lexical",
+    "lexicalindex",
     "index",
-    "lexicalindex"
+    "lexical"
   ],
   "function_add_symbol_0024": [
     "add_symbol",
-    "symbol",
-    "add"
+    "add",
+    "symbol"
   ],
   "var_name_lower_0028": [
-    "name_low",
+    "low",
     "name",
-    "low"
+    "name_low"
   ],
   "var_type_lower_0036": [
     "type_low",
@@ -3771,9 +3771,9 @@
     "symbol"
   ],
   "var_token_lower_0044": [
+    "low",
     "token",
-    "token_low",
-    "low"
+    "token_low"
   ],
   "var_matching_symbols_0047": [
     "matching_symbols",
@@ -3782,8 +3782,8 @@
   ],
   "var_symbol_tokens_0049": [
     "symbol_tokens",
-    "tokens",
-    "symbol"
+    "symbol",
+    "tokens"
   ],
   "var_meta_0050": [
     "meta"
@@ -3792,8 +3792,8 @@
     "name"
   ],
   "var_sorted_results_0053": [
-    "sort",
     "results",
+    "sort",
     "sorted_results"
   ],
   "function_save_0060": [
@@ -3808,43 +3808,43 @@
     "retriev"
   ],
   "function_build_index_0084": [
-    "build",
+    "build_index",
     "index",
-    "build_index"
+    "build"
   ],
   "var_num_nodes_0086": [
+    "num",
     "num_nodes",
-    "nodes",
-    "num"
+    "nodes"
   ],
   "var_index_0092": [
     "index"
   ],
   "var_query_norm_0099": [
-    "norm",
+    "query",
     "query_norm",
-    "query"
+    "norm"
   ],
   "var_original_ef_0105": [
-    "ef",
     "original",
-    "original_ef"
+    "original_ef",
+    "ef"
   ],
   "var_results_0108": [
     "results"
   ],
   "var_node_id_0091": [
-    "node",
+    "id",
     "node_id",
-    "id"
+    "node"
   ],
   "var_similarity_0114": [
     "similarity"
   ],
   "var_mapping_path_0119": [
+    "mapping_path",
     "path",
-    "mapp",
-    "mapping_path"
+    "mapp"
   ],
   "var_mapping_data_0121": [
     "mapping_data",
@@ -3852,65 +3852,65 @@
     "mapp"
   ],
   "class_typeembeddingretriever_0124": [
-    "retriev",
+    "embedd",
     "typeembeddingretriev",
     "type",
-    "embedd"
+    "retriev"
   ],
   "function_compute_type_embeddings_0129": [
-    "compute_type_embeddings",
     "compute",
+    "type",
     "embeddings",
-    "type"
+    "compute_type_embeddings"
   ],
   "var_type_vectors_0130": [
-    "vectors",
     "type_vectors",
+    "vectors",
     "type"
   ],
   "var_total_count_0131": [
-    "total_count",
+    "count",
     "total",
-    "count"
+    "total_count"
   ],
   "var_type_idx_0137": [
-    "idx",
     "type_idx",
-    "type"
+    "type",
+    "idx"
   ],
   "var_weight_0138": [
     "weight"
   ],
   "var_type_embedding_0141": [
     "embedd",
-    "type_embedd",
-    "type"
+    "type",
+    "type_embedd"
   ],
   "var_norm_0143": [
     "norm"
   ],
   "function_compute_type_similarity_0144": [
     "similarity",
-    "compute_type_similarity",
     "compute",
-    "type"
+    "type",
+    "compute_type_similarity"
   ],
   "var_query_type_emb_0145": [
-    "query_type_emb",
-    "query",
     "emb",
-    "type"
+    "query",
+    "type",
+    "query_type_emb"
   ],
   "var_candidate_type_emb_0147": [
-    "candidate",
-    "candidate_type_emb",
     "emb",
-    "type"
+    "type",
+    "candidate_type_emb",
+    "candidate"
   ],
   "class_hybridscorer_0151": [
-    "scor",
     "hybridscor",
-    "hybrid"
+    "hybrid",
+    "scor"
   ],
   "function_score_0156": [
     "score"
@@ -3921,45 +3921,45 @@
     "namespace"
   ],
   "function_build_hierarchy_0164": [
+    "hierarchy",
     "build_hierarchy",
-    "build",
-    "hierarchy"
+    "build"
   ],
   "function_compute_namespace_score_0168": [
+    "compute_namespace_score",
     "compute",
     "score",
-    "namespace",
-    "compute_namespace_score"
+    "namespace"
   ],
   "var_query_info_0169": [
-    "query_info",
     "query",
-    "info"
+    "info",
+    "query_info"
   ],
   "var_candidate_info_0170": [
-    "candidate",
     "candidate_info",
-    "info"
+    "info",
+    "candidate"
   ],
   "var_query_parts_0177": [
-    "query_parts",
     "query",
+    "query_parts",
     "parts"
   ],
   "var_candidate_parts_0179": [
-    "candidate",
     "parts",
+    "candidate",
     "candidate_parts"
   ],
   "var_common_depth_0181": [
     "common",
-    "depth",
-    "common_depth"
+    "common_depth",
+    "depth"
   ],
   "class_lightweightreranker_0186": [
     "lightweight",
-    "rerank",
-    "lightweightrerank"
+    "lightweightrerank",
+    "rerank"
   ],
   "function_rerank_0187": [
     "rerank"
@@ -3971,9 +3971,9 @@
     "idx"
   ],
   "var_candidate_vec_0190": [
-    "candidate",
     "candidate_vec",
-    "vec"
+    "vec",
+    "candidate"
   ],
   "var_cosine_sim_0191": [
     "cosine_sim",
@@ -3982,15 +3982,15 @@
   ],
   "class_crossencoderreranker_0194": [
     "encod",
-    "crossencoderrerank",
+    "rerank",
     "cross",
-    "rerank"
+    "crossencoderrerank"
   ],
   "function_get_symbol_snippet_0196": [
-    "snippet",
-    "get_symbol_snippet",
     "get",
-    "symbol"
+    "get_symbol_snippet",
+    "symbol",
+    "snippet"
   ],
   "var_kind_0197": [
     "kind"
@@ -4002,48 +4002,48 @@
   ],
   "var_type_info_0199": [
     "info",
-    "type_info",
-    "type"
+    "type",
+    "type_info"
   ],
   "var_query_idx_0207": [
-    "idx",
     "query_idx",
-    "query"
+    "query",
+    "idx"
   ],
   "var_query_vec_0208": [
+    "query_vec",
     "query",
-    "vec",
-    "query_vec"
+    "vec"
   ],
   "var_query_snippet_0209": [
-    "snippet",
     "query_snippet",
-    "query"
+    "query",
+    "snippet"
   ],
   "var_candidate_idx_0211": [
-    "candidate",
+    "candidate_idx",
     "idx",
-    "candidate_idx"
+    "candidate"
   ],
   "var_candidate_snippet_0212": [
-    "candidate",
+    "candidate_snippet",
     "snippet",
-    "candidate_snippet"
+    "candidate"
   ],
   "var_embedding_sim_0213": [
-    "embedding_sim",
     "embedd",
-    "sim"
+    "sim",
+    "embedding_sim"
   ],
   "var_query_words_0214": [
-    "query_words",
     "words",
-    "query"
+    "query",
+    "query_words"
   ],
   "var_candidate_words_0216": [
-    "candidate",
     "words",
-    "candidate_words"
+    "candidate_words",
+    "candidate"
   ],
   "var_text_overlap_0218": [
     "text_overlap",
@@ -4052,92 +4052,92 @@
   ],
   "var_cross_score_0219": [
     "cross",
-    "score",
-    "cross_score"
+    "cross_score",
+    "score"
   ],
   "var_final_score_0220": [
-    "final",
+    "final_score",
     "score",
-    "final_score"
+    "final"
   ],
   "class_multistageretrievalpipeline_0222": [
-    "pipeline",
-    "stage",
+    "retrieval",
     "multistageretrievalpipeline",
+    "pipeline",
     "multi",
-    "retrieval"
+    "stage"
   ],
   "function_retrieve_0241": [
     "retrieve"
   ],
   "var_query_tokens_0041": [
-    "query",
     "query_tokens",
+    "query",
     "tokens"
   ],
   "var_lexical_candidates_0245": [
-    "lexical_candidates",
     "lexical",
+    "lexical_candidates",
     "candidates"
   ],
   "var_lexical_candidate_ids_0246": [
-    "candidate",
+    "lexical",
     "lexical_candidate_ids",
     "ids",
-    "lexical"
+    "candidate"
   ],
   "var_lexical_scores_0247": [
-    "scores",
     "lexical",
+    "scores",
     "lexical_scores"
   ],
   "var_dense_results_0249": [
-    "dense_results",
+    "dense",
     "results",
-    "dense"
+    "dense_results"
   ],
   "var_dense_scores_0250": [
-    "scores",
+    "dense",
     "dense_scores",
-    "dense"
+    "scores"
   ],
   "var_combined_candidates_0251": [
-    "combin",
     "combined_candidates",
-    "candidates"
+    "candidates",
+    "combin"
   ],
   "var_all_candidate_ids_0252": [
-    "candidate",
-    "all_candidate_ids",
     "all",
-    "ids"
+    "ids",
+    "candidate",
+    "all_candidate_ids"
   ],
   "var_dense_score_0157": [
-    "dense_score",
+    "dense",
     "score",
-    "dense"
+    "dense_score"
   ],
   "var_lexical_score_0158": [
-    "lexical_score",
+    "lexical",
     "score",
-    "lexical"
+    "lexical_score"
   ],
   "var_dense_score_norm_0257": [
-    "norm",
-    "score",
+    "dense",
     "dense_score_norm",
-    "dense"
+    "score",
+    "norm"
   ],
   "var_lexical_score_norm_0258": [
-    "norm",
-    "score",
+    "lexical_score_norm",
     "lexical",
-    "lexical_score_norm"
+    "score",
+    "norm"
   ],
   "var_type_score_0159": [
-    "score",
     "type_score",
-    "type"
+    "type",
+    "score"
   ],
   "var_namespace_score_0160": [
     "namespace_score",
@@ -4150,81 +4150,81 @@
     "score"
   ],
   "var_stage2_candidates_0262": [
-    "stage2_candidates",
-    "stage",
     "stage2",
+    "stage",
+    "candidates",
     "2",
-    "candidates"
+    "stage2_candidates"
   ],
   "var_stage3_candidates_0263": [
-    "stage3",
     "3",
-    "stage",
     "stage3_candidates",
+    "stage3",
+    "stage",
     "candidates"
   ],
   "var_final_results_0264": [
-    "final_results",
+    "results",
     "final",
-    "results"
+    "final_results"
   ],
   "file_subtoken_utils_py_0001": [
-    "utils",
     "utils.py",
     "subtoken",
-    "subtoken_utils.py",
-    "py"
+    "py",
+    "utils",
+    "subtoken_utils.py"
   ],
   "class_simplestemmer_0006": [
-    "simple",
     "stemm",
+    "simple",
     "simplestemm"
   ],
   "function_stem_0008": [
     "stem"
   ],
   "var_word_lower_0013": [
-    "word",
+    "low",
     "word_low",
-    "low"
+    "word"
   ],
   "function_split_camel_case_0018": [
     "split",
-    "split_camel_case",
     "case",
-    "camel"
+    "camel",
+    "split_camel_case"
   ],
   "var_tokens_0019": [
     "tokens"
   ],
   "var_current_token_0020": [
-    "token",
     "current_token",
-    "current"
+    "current",
+    "token"
   ],
   "function_split_snake_case_0031": [
     "split",
-    "split_snake_case",
     "case",
-    "snake"
+    "snake",
+    "split_snake_case"
   ],
   "function_split_kebab_case_0033": [
     "split",
-    "split_kebab_case",
     "case",
+    "split_kebab_case",
     "kebab"
   ],
   "function_split_numeric_0034": [
     "split",
-    "split_numeric",
-    "numeric"
+    "numeric",
+    "split_numeric"
   ],
   "var_parts_0035": [
     "parts"
   ],
   "var_camel_tokens_0040": [
-    "camel",
     "camel_tokens",
+    "camel",
     "tokens"
   ],
   "function_extract_subtokens_0043": [
@@ -4233,13 +4233,13 @@
     "extract"
   ],
   "var_numeric_tokens_0049": [
+    "numeric",
     "numeric_tokens",
-    "tokens",
-    "numeric"
+    "tokens"
   ],
   "var_snake_tokens_0051": [
-    "snake_tokens",
     "snake",
+    "snake_tokens",
     "tokens"
   ],
   "var_kebab_tokens_0053": [
@@ -4248,14 +4248,14 @@
     "tokens"
   ],
   "var_raw_tokens_0055": [
+    "raw",
     "raw_tokens",
-    "tokens",
-    "raw"
+    "tokens"
   ],
   "var_normalized_tokens_0056": [
-    "normaliz",
     "tokens",
-    "normalized_tokens"
+    "normalized_tokens",
+    "normaliz"
   ],
   "var_stemmer_0058": [
     "stemm"
@@ -4267,94 +4267,94 @@
     "normaliz"
   ],
   "function_get_file_hierarchy_0070": [
-    "get_file_hierarchy",
-    "file",
+    "hierarchy",
     "get",
-    "hierarchy"
+    "file",
+    "get_file_hierarchy"
   ],
   "var_file_name_0074": [
-    "name",
     "file",
+    "name",
     "file_name"
   ],
   "var_directory_path_0075": [
-    "directory_path",
     "path",
+    "directory_path",
     "directory"
   ],
   "var_top_level_0076": [
     "top",
-    "top_level",
-    "level"
+    "level",
+    "top_level"
   ],
   "file_train_py_0001": [
-    "train",
+    "py",
     "train.py",
-    "py"
+    "train"
   ],
   "var_console_0027": [
     "console"
   ],
   "function_estimate_training_time_0028": [
+    "estimate_training_time",
     "time",
     "train",
-    "estimate",
-    "estimate_training_time"
+    "estimate"
   ],
   "var_gpu_available_0032": [
-    "gpu_avail",
     "gpu",
+    "gpu_avail",
     "avail"
   ],
   "var_gpu_speedup_factor_0033": [
     "gpu_speedup_factor",
-    "speedup",
+    "gpu",
     "factor",
-    "gpu"
+    "speedup"
   ],
   "var_gpu_accelerator_0036": [
-    "accelerator",
+    "gpu",
     "gpu_accelerator",
-    "gpu"
+    "accelerator"
   ],
   "var_efficiency_0040": [
     "efficiency"
   ],
   "var_effective_cores_0046": [
-    "effective_cores",
     "cores",
+    "effective_cores",
     "effective"
   ],
   "var_expanded_nodes_0047": [
     "expanded_nodes",
-    "expand",
-    "nodes"
+    "nodes",
+    "expand"
   ],
   "var_ppmi_time_0049": [
-    "ppmi",
     "time",
-    "ppmi_time"
+    "ppmi_time",
+    "ppmi"
   ],
   "var_svd_base_time_0051": [
-    "svd",
     "base",
     "time",
-    "svd_base_time"
+    "svd_base_time",
+    "svd"
   ],
   "var_svd_time_0053": [
+    "time",
     "svd",
-    "svd_time",
-    "time"
+    "svd_time"
   ],
   "var_graph_time_0054": [
-    "graph_time",
     "time",
-    "graph"
+    "graph",
+    "graph_time"
   ],
   "var_total_walks_0055": [
-    "walks",
     "total_walks",
-    "total"
+    "total",
+    "walks"
   ],
   "var_walk_time_0057": [
     "walk",
@@ -4362,58 +4362,58 @@
     "walk_time"
   ],
   "var_w2v_time_0059": [
-    "time",
     "v",
-    "2",
-    "w2v_time",
     "w2v",
-    "w"
+    "w2v_time",
+    "time",
+    "w",
+    "2"
   ],
   "var_context_time_0060": [
-    "context_time",
+    "time",
     "context",
-    "time"
+    "context_time"
   ],
   "var_typed_time_0061": [
-    "typed_time",
+    "time",
     "typ",
-    "time"
+    "typed_time"
   ],
   "var_expanded_types_0063": [
     "types",
-    "expand",
-    "expanded_types"
+    "expanded_types",
+    "expand"
   ],
   "var_typed_ppmi_time_0064": [
     "ppmi",
-    "typ",
     "time",
+    "typ",
     "typed_ppmi_time"
   ],
   "var_typed_svd_base_time_0065": [
-    "base",
     "typed_svd_base_time",
-    "time",
-    "svd",
-    "typ"
-  ],
-  "var_typed_svd_time_0067": [
-    "typed_svd_time",
-    "svd",
     "typ",
+    "svd",
+    "base",
     "time"
   ],
+  "var_typed_svd_time_0067": [
+    "time",
+    "typed_svd_time",
+    "typ",
+    "svd"
+  ],
   "var_total_input_dim_0068": [
-    "dim",
     "total_input_dim",
     "input",
-    "total"
+    "total",
+    "dim"
   ],
   "var_fusion_base_time_0070": [
     "fusion",
-    "base",
+    "time",
     "fusion_base_time",
-    "time"
+    "base"
   ],
   "var_fusion_time_0072": [
     "fusion",
@@ -4421,41 +4421,41 @@
     "fusion_time"
   ],
   "var_smoothing_base_time_0073": [
-    "time",
     "base",
-    "smooth",
-    "smoothing_base_time"
+    "time",
+    "smoothing_base_time",
+    "smooth"
   ],
   "var_smoothing_time_0074": [
     "time",
-    "smooth",
-    "smoothing_time"
+    "smoothing_time",
+    "smooth"
   ],
   "var_tau_candidates_0075": [
-    "candidates",
+    "tau",
     "tau_candidates",
-    "tau"
+    "candidates"
   ],
   "var_val_edges_est_0076": [
-    "val_edges_",
+    "edges",
     "est",
     "val",
-    "edges"
+    "val_edges_"
   ],
   "var_calibration_time_0078": [
+    "time",
     "calibra",
-    "calibration_time",
-    "time"
+    "calibration_time"
   ],
   "var_ann_time_0079": [
-    "ann",
     "time",
+    "ann",
     "ann_time"
   ],
   "var_io_time_0080": [
     "io",
-    "io_time",
-    "time"
+    "time",
+    "io_time"
   ],
   "var_load_time_0081": [
     "load_time",
@@ -4474,59 +4474,59 @@
     "hours"
   ],
   "function_compute_default_dimensions_0086": [
+    "dimensions",
     "default",
     "compute",
-    "compute_default_dimensions",
-    "dimensions"
+    "compute_default_dimensions"
   ],
   "var_graph_dim_0052": [
-    "dim",
+    "graph",
     "graph_dim",
-    "graph"
+    "dim"
   ],
   "var_context_dim_0069": [
-    "dim",
     "context_dim",
-    "context"
+    "context",
+    "dim"
   ],
   "var_typed_dim_0066": [
-    "dim",
     "typed_dim",
-    "typ"
+    "typ",
+    "dim"
   ],
   "var_final_dim_candidate_0090": [
-    "dim",
-    "candidate",
     "final_dim_candidate",
-    "final"
+    "candidate",
+    "final",
+    "dim"
   ],
   "var_final_dim_0071": [
-    "dim",
+    "final_dim",
     "final",
-    "final_dim"
+    "dim"
   ],
   "function_train_model_0092": [
+    "train_model",
     "train",
-    "model",
-    "train_model"
+    "model"
   ],
   "var_is_mac_0098": [
-    "mac",
     "is",
-    "is_mac"
+    "is_mac",
+    "mac"
   ],
   "var_backend_name_0103": [
+    "backend_name",
     "backend",
-    "name",
-    "backend_name"
+    "name"
   ],
   "var_diagnostics_0104": [
     "diagnostics"
   ],
   "var_version_parts_0108": [
-    "version_parts",
     "ver",
-    "parts"
+    "parts",
+    "version_parts"
   ],
   "var_major_0110": [
     "major"
@@ -4535,8 +4535,8 @@
     "minor"
   ],
   "var_start_time_0117": [
-    "start",
     "time",
+    "start",
     "start_time"
   ],
   "var_task1_0130": [
@@ -4545,79 +4545,79 @@
     "task"
   ],
   "var_num_nodes_0048": [
+    "num",
     "num_nodes",
-    "nodes",
-    "num"
+    "nodes"
   ],
   "var_task1b_0139": [
     "task1b",
     "1",
-    "b",
-    "task"
+    "task",
+    "b"
   ],
   "var_num_edges_0050": [
-    "edges",
+    "num",
     "num_edges",
-    "num"
+    "edges"
   ],
   "var_node_types_0144": [
+    "node_types",
     "types",
-    "node",
-    "node_types"
+    "node"
   ],
   "var_type_to_idx_0145": [
-    "idx",
     "type_to_idx",
+    "type",
     "to",
-    "type"
+    "idx"
   ],
   "var_num_types_0062": [
-    "types",
     "num",
+    "types",
     "num_types"
   ],
   "var_task2_0148": [
-    "task2",
+    "task",
     "2",
-    "task"
+    "task2"
   ],
   "var_defaults_0151": [
     "defaults"
   ],
   "var_graph_dim_source_0153": [
-    "dim",
     "graph_dim_source",
     "graph",
-    "source"
+    "source",
+    "dim"
   ],
   "var_context_dim_source_0154": [
-    "dim",
     "context_dim_source",
     "context",
-    "source"
+    "source",
+    "dim"
   ],
   "var_typed_dim_source_0155": [
-    "dim",
     "typ",
     "typed_dim_source",
-    "source"
+    "source",
+    "dim"
   ],
   "var_final_dim_source_0156": [
-    "dim",
     "final_dim_source",
+    "source",
     "final",
-    "source"
+    "dim"
   ],
   "var_n_jobs_est_0158": [
     "n",
     "jobs",
-    "est",
-    "n_jobs_"
+    "n_jobs_",
+    "est"
   ],
   "var_estimated_time_0161": [
+    "estimated_time",
     "estimat",
-    "time",
-    "estimated_time"
+    "time"
   ],
   "var_config_table_0163": [
     "config",
@@ -4625,15 +4625,15 @@
     "table"
   ],
   "var_gpu_status_0171": [
-    "gpu_status",
     "gpu",
+    "gpu_status",
     "status"
   ],
   "var_calibration_train_ratio_0172": [
-    "train",
-    "calibra",
     "ratio",
-    "calibration_train_ratio"
+    "calibra",
+    "calibration_train_ratio",
+    "train"
   ],
   "var_task3_0174": [
     "3",
@@ -4642,8 +4642,8 @@
   ],
   "var_gpu_active_0179": [
     "gpu_active",
-    "active",
-    "gpu"
+    "gpu",
+    "active"
   ],
   "var_n_jobs_0043": [
     "n",
@@ -4652,8 +4652,8 @@
   ],
   "var_smoothing_iterations_0182": [
     "iterations",
-    "smoothing_iterations",
-    "smooth"
+    "smooth",
+    "smoothing_iterations"
   ],
   "var_context_window_size_0183": [
     "size",
@@ -4662,167 +4662,167 @@
     "context_window_s"
   ],
   "var_call_graph_depth_0184": [
-    "depth",
-    "call",
+    "call_graph_depth",
     "graph",
-    "call_graph_depth"
+    "depth",
+    "call"
   ],
   "var_ann_trees_0185": [
     "ann",
-    "ann_trees",
-    "trees"
+    "trees",
+    "ann_trees"
   ],
   "var_num_walks_0056": [
-    "walks",
     "num",
-    "num_walks"
+    "num_walks",
+    "walks"
   ],
   "var_walk_length_0058": [
-    "walk_length",
     "walk",
-    "length"
+    "length",
+    "walk_length"
   ],
   "var_idx_to_node_0186": [
-    "idx",
     "node",
+    "idx_to_node",
     "to",
-    "idx_to_node"
+    "idx"
   ],
   "var_task4a_0190": [
-    "4",
     "task4a",
-    "a",
-    "task"
+    "task",
+    "4",
+    "a"
   ],
   "var_task4_0191": [
     "4",
-    "task4",
-    "task"
+    "task",
+    "task4"
   ],
   "var_num_subtokens_0197": [
-    "num_subtokens",
     "num",
-    "subtokens"
+    "subtokens",
+    "num_subtokens"
   ],
   "var_expanded_edges_count_0199": [
-    "expanded_edges_count",
-    "expand",
+    "count",
     "edges",
-    "count"
+    "expanded_edges_count",
+    "expand"
   ],
   "var_task5a_0203": [
-    "a",
-    "5",
     "task5a",
-    "task"
+    "task",
+    "5",
+    "a"
   ],
   "var_task5_0204": [
-    "task5",
+    "task",
     "5",
-    "task"
+    "task5"
   ],
   "var_x_types_0209": [
-    "types",
     "x_types",
+    "types",
     "x"
   ],
   "var_svd_components_types_0210": [
     "types",
+    "components",
     "svd",
-    "svd_components_types",
-    "components"
+    "svd_components_types"
   ],
   "var_final_type_to_idx_0211": [
-    "idx",
-    "final",
+    "type",
     "final_type_to_idx",
+    "final",
     "to",
-    "type"
+    "idx"
   ],
   "var_task6a_0212": [
-    "task6a",
-    "a",
     "6",
+    "a",
+    "task6a",
     "task"
   ],
   "var_task6_0213": [
-    "6",
     "task6",
-    "task"
+    "task",
+    "6"
   ],
   "var_final_type_count_0216": [
-    "final_type_count",
-    "final",
     "count",
-    "type"
+    "final_type_count",
+    "type",
+    "final"
   ],
   "var_embeddings_list_0217": [
     "list",
-    "embeddings_list",
-    "embeddings"
+    "embeddings",
+    "embeddings_list"
   ],
   "var_input_dims_0219": [
-    "input",
     "dims",
+    "input",
     "input_dims"
   ],
   "var_task7a_0223": [
-    "a",
-    "task7a",
     "7",
-    "task"
+    "a",
+    "task",
+    "task7a"
   ],
   "var_e_before_norm_0226": [
-    "norm",
-    "e_before_norm",
     "e",
-    "before"
+    "before",
+    "e_before_norm",
+    "norm"
   ],
   "var_task7b_0229": [
     "b",
-    "7",
     "task7b",
-    "task"
+    "task",
+    "7"
   ],
   "var_mean_norm_0230": [
-    "norm",
+    "mean_norm",
     "mean",
-    "mean_norm"
+    "norm"
   ],
   "var_task7c_0233": [
     "c",
-    "7",
     "task7c",
+    "7",
     "task"
   ],
   "var_e_0228": [
     "e"
   ],
   "var_num_negatives_0236": [
-    "num_negatives",
     "num",
-    "negatives"
+    "negatives",
+    "num_negatives"
   ],
   "var_tau_candidates_count_0237": [
-    "candidates",
-    "count",
     "tau",
-    "tau_candidates_count"
+    "tau_candidates_count",
+    "count",
+    "candidates"
   ],
   "var_task8a_0238": [
-    "a",
-    "8",
     "task8a",
-    "task"
+    "a",
+    "task",
+    "8"
   ],
   "var_tau_0240": [
     "tau"
   ],
   "var_task9a_0243": [
-    "a",
-    "task9a",
     "9",
-    "task"
+    "a",
+    "task",
+    "task9a"
   ],
   "var_lexical_index_0245": [
     "lexical_index",
@@ -4830,9 +4830,9 @@
     "index"
   ],
   "var_node_id_0188": [
-    "node",
+    "id",
     "node_id",
-    "id"
+    "node"
   ],
   "var_name_0249": [
     "name"
@@ -4845,46 +4845,46 @@
   ],
   "var_type_tokens_0254": [
     "type_tokens",
-    "tokens",
-    "type"
+    "type",
+    "tokens"
   ],
   "var_node_idx_0255": [
-    "idx",
+    "node_idx",
     "node",
-    "node_idx"
+    "idx"
   ],
   "var_task9b_0260": [
-    "b",
-    "task9b",
     "9",
-    "task"
+    "task9b",
+    "task",
+    "b"
   ],
   "var_node_ids_list_0262": [
-    "ids",
-    "node",
     "list",
-    "node_ids_list"
+    "node_ids_list",
+    "node",
+    "ids"
   ],
   "var_embeddings_for_index_0263": [
-    "index",
+    "for",
     "embeddings_for_index",
     "embeddings",
-    "for"
+    "index"
   ],
   "var_dense_retriever_0264": [
-    "retriev",
+    "dense",
     "dense_retriev",
-    "dense"
+    "retriev"
   ],
   "var_task9c_0268": [
-    "c",
-    "task9c",
     "9",
-    "task"
+    "task9c",
+    "task",
+    "c"
   ],
   "var_ann_index_0269": [
-    "ann",
     "ann_index",
+    "ann",
     "index"
   ],
   "var_task10a_0282": [
@@ -4894,88 +4894,88 @@
     "task10a"
   ],
   "var_embeddings_path_0284": [
+    "embeddings_path",
     "path",
-    "embeddings",
-    "embeddings_path"
+    "embeddings"
   ],
   "var_test_load_0288": [
     "test_load",
-    "test",
-    "load"
+    "load",
+    "test"
   ],
   "var_task10b_0291": [
-    "10",
     "b",
+    "task10b",
     "task",
-    "task10b"
+    "10"
   ],
   "var_metadata_0293": [
     "metadata"
   ],
   "var_node_types_by_id_0299": [
     "types",
-    "by",
-    "node_types_by_id",
     "id",
+    "node_types_by_id",
+    "by",
     "node"
   ],
   "var_task10d_0310": [
-    "task10d",
     "10",
     "d",
-    "task"
+    "task",
+    "task10d"
   ],
   "var_critical_files_0314": [
+    "files",
     "critical",
-    "critical_files",
-    "files"
+    "critical_files"
   ],
   "var_missing_files_0315": [
-    "files",
+    "miss",
     "missing_files",
-    "miss"
+    "files"
   ],
   "var_filepath_0316": [
     "filepath"
   ],
   "var_end_time_0320": [
     "time",
-    "end",
-    "end_time"
+    "end_time",
+    "end"
   ],
   "var_elapsed_time_0321": [
-    "elaps",
     "time",
+    "elaps",
     "elapsed_time"
   ],
   "var_time_str_0322": [
-    "str",
+    "time_str",
     "time",
-    "time_str"
+    "str"
   ],
   "var_seconds_0323": [
     "seconds"
   ],
   "var_stats_table_0324": [
-    "stats",
+    "table",
     "stats_t",
-    "table"
+    "stats"
   ],
   "function_main_0327": [
     "main"
   ],
   "file_typed_view_py_0001": [
-    "view.py",
-    "view",
     "typed_view.py",
+    "view",
     "typ",
-    "py"
+    "py",
+    "view.py"
   ],
   "function_parse_composite_type_0016": [
-    "parse_composite_type",
     "parse",
-    "composite",
-    "type"
+    "type",
+    "parse_composite_type",
+    "composite"
   ],
   "var_constructors_0018": [
     "constructors"
@@ -4984,9 +4984,9 @@
     "primitives"
   ],
   "var_generic_pattern_0020": [
+    "generic_pattern",
     "generic",
-    "pattern",
-    "generic_pattern"
+    "pattern"
   ],
   "var_matches_0021": [
     "matches"
@@ -4995,9 +4995,9 @@
     "constructor"
   ],
   "var_inner_content_0031": [
+    "content",
     "inner_content",
-    "inn",
-    "content"
+    "inn"
   ],
   "var_remaining_0037": [
     "remain"
@@ -5009,33 +5009,33 @@
     "parts"
   ],
   "function_expand_type_semantics_0056": [
-    "expand",
     "expand_type_semantics",
-    "semantics",
-    "type"
+    "expand",
+    "type",
+    "semantics"
   ],
   "var_expanded_node_types_0058": [
-    "types",
     "node",
+    "types",
     "expand",
     "expanded_node_types"
   ],
   "var_expanded_type_to_idx_0059": [
-    "idx",
-    "expand",
+    "type",
     "expanded_type_to_idx",
     "to",
-    "type"
+    "expand",
+    "idx"
   ],
   "var_current_idx_0063": [
-    "idx",
     "current",
-    "current_idx"
+    "current_idx",
+    "idx"
   ],
   "var_expanded_types_0066": [
     "types",
-    "expand",
-    "expanded_types"
+    "expanded_types",
+    "expand"
   ],
   "var_constructor_idx_0069": [
     "constructor",
@@ -5043,38 +5043,38 @@
     "idx"
   ],
   "var_primitive_idx_0074": [
-    "idx",
     "primitive_idx",
+    "idx",
     "primitive"
   ],
   "function_build_type_matrix_0076": [
-    "build",
-    "build_type_matrix",
     "matrix",
-    "type"
+    "type",
+    "build",
+    "build_type_matrix"
   ],
   "var_final_node_types_0078": [
+    "final_node_types",
     "types",
     "node",
-    "final_node_types",
     "final"
   ],
   "var_final_type_to_idx_0079": [
-    "idx",
-    "final",
+    "type",
     "final_type_to_idx",
+    "final",
     "to",
-    "type"
+    "idx"
   ],
   "var_original_num_nodes_0081": [
-    "nodes",
-    "original",
+    "num",
     "original_num_nodes",
-    "num"
+    "nodes",
+    "original"
   ],
   "var_num_types_0084": [
-    "types",
     "num",
+    "types",
     "num_types"
   ],
   "var_rows_0085": [
@@ -5084,9 +5084,9 @@
     "cols"
   ],
   "var_type_idx_0088": [
-    "idx",
     "type_idx",
-    "type"
+    "type",
+    "idx"
   ],
   "var_type_matrix_0095": [
     "type_matrix",
@@ -5094,45 +5094,45 @@
     "type"
   ],
   "function_compute_ppmi_types_0099": [
-    "types",
     "ppmi",
     "compute",
+    "types",
     "compute_ppmi_types"
   ],
   "var_cooc_0100": [
     "cooc"
   ],
   "var_row_sums_0104": [
+    "sums",
     "row_sums",
-    "row",
-    "sums"
+    "row"
   ],
   "var_col_sums_0107": [
-    "col",
     "sums",
-    "col_sums"
+    "col_sums",
+    "col"
   ],
   "var_total_0108": [
     "total"
   ],
   "var_full_row_sums_0109": [
     "full",
-    "row",
     "full_row_sums",
-    "sums"
+    "sums",
+    "row"
   ],
   "var_full_col_sums_0111": [
     "full",
     "full_col_sums",
-    "col",
-    "sums"
+    "sums",
+    "col"
   ],
   "var_values_0113": [
     "values"
   ],
   "var_min_len_0115": [
-    "min",
     "min_len",
+    "min",
     "len"
   ],
   "var_p_ij_0118": [
@@ -5141,8 +5141,8 @@
     "p"
   ],
   "var_p_i_0119": [
-    "p_i",
     "i",
+    "p_i",
     "p"
   ],
   "var_p_j_0120": [
@@ -5158,35 +5158,35 @@
   ],
   "var_ppmi_matrix_0124": [
     "ppmi",
-    "matrix",
-    "ppmi_matrix"
+    "ppmi_matrix",
+    "matrix"
   ],
   "function_compute_typed_view_0125": [
     "view",
+    "typ",
     "compute",
-    "compute_typed_view",
-    "typ"
+    "compute_typed_view"
   ],
   "function_reduce_dimensions_ppmi_0128": [
     "reduce_dimensions_ppmi",
+    "dimensions",
     "ppmi",
-    "reduce",
-    "dimensions"
+    "reduce"
   ],
   "var_num_features_0136": [
     "num",
-    "features",
-    "num_features"
+    "num_features",
+    "features"
   ],
   "var_actual_dim_0137": [
-    "dim",
+    "actual",
     "actual_dim",
-    "actual"
+    "dim"
   ],
   "var_ppmi_dense_0138": [
-    "ppmi",
+    "dense",
     "ppmi_dense",
-    "dense"
+    "ppmi"
   ],
   "var_embeddings_0134": [
     "embeddings"
@@ -5201,15 +5201,15 @@
     "padd"
   ],
   "var_component_padding_0155": [
-    "component_padd",
     "padd",
+    "component_padd",
     "component"
   ],
   "file_about_py_0001": [
     "py",
     "about__.py",
-    "py",
-    "about"
+    "about",
+    "py"
   ],
   "var_version_0002": [
     "ver",
@@ -5232,10 +5232,10 @@
     "copyright"
   ],
   "file_init_py_0001": [
+    "py",
+    "init",
     "init__.py",
-    "py",
-    "py",
-    "init"
+    "py"
   ],
   "var_version_0009": [
     "ver",
@@ -5262,16 +5262,16 @@
     "all"
   ],
   "function_get_num_workers_0011": [
-    "workers",
-    "get_num_workers",
     "num",
-    "get"
+    "get",
+    "workers",
+    "get_num_workers"
   ],
   "function_evaluate_single_tau_0017": [
-    "evaluate",
-    "evaluate_single_tau",
+    "tau",
     "single",
-    "tau"
+    "evaluate",
+    "evaluate_single_tau"
   ],
   "function_split_edges_0025": [
     "split",
@@ -5287,19 +5287,19 @@
     "idx"
   ],
   "var_train_edges_0043": [
-    "train",
+    "edges",
     "train_edges",
-    "edges"
+    "train"
   ],
   "var_val_edges_0044": [
     "val_edges",
-    "val",
-    "edges"
+    "edges",
+    "val"
   ],
   "function_sample_negatives_0045": [
+    "negatives",
     "sample_negatives",
-    "sample",
-    "negatives"
+    "sample"
   ],
   "var_positive_set_0047": [
     "set",
@@ -5312,47 +5312,47 @@
     "negative"
   ],
   "var_nodes_by_directory_0050": [
-    "by",
     "nodes",
-    "nodes_by_directory",
-    "directory"
+    "directory",
+    "by",
+    "nodes_by_directory"
   ],
   "var_nodes_by_file_0054": [
     "file",
-    "by",
     "nodes",
+    "by",
     "nodes_by_file"
   ],
   "var_node_id_0061": [
-    "node",
+    "id",
     "node_id",
-    "id"
+    "node"
   ],
   "var_src_node_id_0066": [
     "node",
+    "id",
     "src_node_id",
-    "src",
-    "id"
+    "src"
   ],
   "var_src_dir_0068": [
-    "dir",
+    "src_dir",
     "src",
-    "src_dir"
+    "dir"
   ],
   "var_src_file_0069": [
-    "src",
     "file",
-    "src_file"
+    "src_file",
+    "src"
   ],
   "var_neg_dst_0071": [
-    "neg",
+    "dst",
     "neg_dst",
-    "dst"
+    "neg"
   ],
   "var_rand_val_0072": [
-    "rand_val",
+    "rand",
     "val",
-    "rand"
+    "rand_val"
   ],
   "var_candidates_0073": [
     "candidates"
@@ -5361,10 +5361,10 @@
     "attempts"
   ],
   "function_compute_calibrated_score_0077": [
-    "calibrat",
     "compute",
     "compute_calibrated_score",
-    "score"
+    "score",
+    "calibrat"
   ],
   "var_dot_product_0078": [
     "dot_product",
@@ -5378,46 +5378,46 @@
   ],
   "var_exp_scores_0083": [
     "scores",
-    "exp",
-    "exp_scores"
+    "exp_scores",
+    "exp"
   ],
   "function_evaluate_tau_0020": [
+    "tau",
     "evaluate",
-    "evaluate_tau",
-    "tau"
+    "evaluate_tau"
   ],
   "var_pos_scores_0088": [
-    "scores",
     "pos_scores",
+    "scores",
     "pos"
   ],
   "var_score_0089": [
     "score"
   ],
   "var_neg_scores_0093": [
-    "neg",
+    "neg_scores",
     "scores",
-    "neg_scores"
+    "neg"
   ],
   "var_total_prob_0095": [
-    "total_prob",
     "total",
-    "prob"
+    "prob",
+    "total_prob"
   ],
   "var_start_idx_0098": [
+    "start_idx",
     "idx",
-    "start",
-    "start_idx"
+    "start"
   ],
   "var_end_idx_0100": [
+    "end_idx",
     "idx",
-    "end",
-    "end_idx"
+    "end"
   ],
   "var_relevant_negatives_0101": [
-    "relevant_negatives",
     "negatives",
-    "relevant"
+    "relevant",
+    "relevant_negatives"
   ],
   "var_all_scores_0102": [
     "scores",
@@ -5425,22 +5425,22 @@
     "all_scores"
   ],
   "var_neg_score_0103": [
-    "neg",
+    "neg_score",
     "score",
-    "neg_score"
+    "neg"
   ],
   "var_probs_0106": [
     "probs"
   ],
   "function_learn_temperature_0109": [
-    "learn",
+    "learn_temperature",
     "temperature",
-    "learn_temperature"
+    "learn"
   ],
   "var_tau_candidates_0110": [
-    "candidates",
+    "tau",
     "tau_candidates",
-    "tau"
+    "candidates"
   ],
   "var_positive_pairs_0022": [
     "pairs",
@@ -5453,22 +5453,22 @@
     "n_jobs"
   ],
   "var_args_list_0115": [
-    "list",
+    "args",
     "args_list",
-    "args"
+    "list"
   ],
   "function_get_num_workers_0012": [
-    "workers",
-    "get_num_workers",
     "num",
-    "get"
+    "get",
+    "workers",
+    "get_num_workers"
   ],
   "function_generate_walks_for_node_0018": [
+    "for",
     "generate_walks_for_node",
     "walks",
     "generate",
-    "node",
-    "for"
+    "node"
   ],
   "var_walks_0025": [
     "walks"
@@ -5483,9 +5483,9 @@
     "neighbors"
   ],
   "var_next_node_0036": [
-    "node",
     "next_node",
-    "next"
+    "next",
+    "node"
   ],
   "var_prev_0038": [
     "prev"
@@ -5500,15 +5500,15 @@
     "prob"
   ],
   "function_generate_random_walks_0055": [
-    "walks",
-    "generate_random_walks",
     "random",
-    "generate"
+    "generate",
+    "generate_random_walks",
+    "walks"
   ],
   "var_adj_list_0029": [
-    "list",
+    "adj",
     "adj_list",
-    "adj"
+    "list"
   ],
   "var_n_jobs_0064": [
     "n",
@@ -5516,26 +5516,26 @@
     "n_jobs"
   ],
   "var_nodes_to_process_0068": [
-    "to",
     "nodes_to_process",
     "nodes",
+    "to",
     "process"
   ],
   "var_args_list_0070": [
-    "list",
+    "args",
     "args_list",
-    "args"
+    "list"
   ],
   "var_results_0075": [
     "results"
   ],
   "function_train_word2vec_0081": [
-    "word2vec",
-    "vec",
+    "train_word2vec",
     "train",
-    "word",
+    "word2vec",
     "2",
-    "train_word2vec"
+    "vec",
+    "word"
   ],
   "function_compute_context_view_0090": [
     "view",
@@ -5550,19 +5550,19 @@
     "embeddings"
   ],
   "var_node_str_0096": [
-    "node",
     "str",
+    "node",
     "node_str"
   ],
   "function_load_nodes_0012": [
-    "load_nodes",
     "nodes",
-    "load"
+    "load",
+    "load_nodes"
   ],
   "var_node_to_idx_0014": [
-    "idx",
-    "node",
     "to",
+    "node",
+    "idx",
     "node_to_idx"
   ],
   "var_node_metadata_0015": [
@@ -5571,23 +5571,23 @@
     "node_metadata"
   ],
   "var_node_subtokens_0016": [
-    "node",
+    "node_subtokens",
     "subtokens",
-    "node_subtokens"
+    "node"
   ],
   "var_node_file_info_0017": [
-    "node",
-    "info",
     "file",
-    "node_file_info"
+    "info",
+    "node_file_info",
+    "node"
   ],
   "var_node_0024": [
     "node"
   ],
   "var_node_id_0027": [
-    "node",
+    "id",
     "node_id",
-    "id"
+    "node"
   ],
   "var_idx_0028": [
     "idx"
@@ -5601,10 +5601,10 @@
     "file_path"
   ],
   "var_meta_with_subtokens_0047": [
-    "meta",
-    "meta_with_subtokens",
     "with",
-    "subtokens"
+    "meta_with_subtokens",
+    "subtokens",
+    "meta"
   ],
   "function_load_edges_0055": [
     "edges",
@@ -5615,32 +5615,32 @@
     "edges"
   ],
   "var_seen_nodes_0057": [
-    "seen_nodes",
+    "seen",
     "nodes",
-    "seen"
+    "seen_nodes"
   ],
   "var_edge_0061": [
     "edge"
   ],
   "var_src_id_0062": [
-    "src_id",
+    "id",
     "src",
-    "id"
+    "src_id"
   ],
   "var_dst_id_0063": [
-    "dst_id",
     "dst",
+    "dst_id",
     "id"
   ],
   "var_src_idx_0064": [
-    "idx",
+    "src_idx",
     "src",
-    "src_idx"
+    "idx"
   ],
   "var_dst_idx_0065": [
-    "idx",
+    "dst",
     "dst_idx",
-    "dst"
+    "idx"
   ],
   "var_rel_0066": [
     "rel"
@@ -5649,74 +5649,74 @@
     "weight"
   ],
   "var_num_nodes_0073": [
+    "num",
     "num_nodes",
-    "nodes",
-    "num"
+    "nodes"
   ],
   "function_load_types_0074": [
-    "types",
     "load_types",
+    "types",
     "load"
   ],
   "var_node_types_0075": [
+    "node_types",
     "types",
-    "node",
-    "node_types"
+    "node"
   ],
   "var_type_to_idx_0078": [
-    "idx",
     "type_to_idx",
+    "type",
     "to",
-    "type"
+    "idx"
   ],
   "var_entry_0080": [
     "entry"
   ],
   "var_symbol_id_0081": [
     "symbol_id",
-    "id",
-    "symbol"
+    "symbol",
+    "id"
   ],
   "var_type_token_0082": [
     "token",
-    "type_token",
-    "type"
+    "type",
+    "type_token"
   ],
   "var_count_0083": [
     "count"
   ],
   "var_node_idx_0086": [
-    "idx",
+    "node_idx",
     "node",
-    "node_idx"
+    "idx"
   ],
   "function_build_node_location_map_0088": [
-    "map",
     "build_node_location_map",
     "build",
+    "map",
     "loca",
     "node"
   ],
   "var_location_map_0089": [
-    "map",
     "loca",
+    "map",
     "location_map"
   ],
   "var_lineno_0094": [
     "lineno"
   ],
   "function_get_num_workers_0009": [
-    "workers",
-    "get_num_workers",
     "num",
-    "get"
+    "get",
+    "workers",
+    "get_num_workers"
   ],
   "function_pad_to_same_rows_0015": [
-    "pad",
-    "rows",
     "same",
+    "pad_to_same_rows",
+    "pad",
     "to",
-    "pad_to_same_rows"
+    "rows"
   ],
   "var_padded_0018": [
     "padd"
@@ -5725,27 +5725,27 @@
     "padd"
   ],
   "var_emb_padded_0024": [
-    "padd",
+    "emb",
     "emb_padd",
-    "emb"
+    "padd"
   ],
   "function_fuse_embeddings_0027": [
-    "fuse_embeddings",
+    "fuse",
     "embeddings",
-    "fuse"
+    "fuse_embeddings"
   ],
   "var_concatenated_0029": [
     "concatenat"
   ],
   "var_num_features_0031": [
     "num",
-    "features",
-    "num_features"
+    "num_features",
+    "features"
   ],
   "var_actual_dim_0032": [
-    "dim",
+    "actual",
     "actual_dim",
-    "actual"
+    "dim"
   ],
   "var_pca_0036": [
     "pca"
@@ -5754,8 +5754,8 @@
     "fus"
   ],
   "var_component_padding_0042": [
-    "component_padd",
     "padd",
+    "component_padd",
     "component"
   ],
   "var_components_0043": [
@@ -5768,14 +5768,14 @@
     "norms"
   ],
   "var_fused_normalized_0047": [
-    "fus",
     "normaliz",
-    "fused_normaliz"
+    "fused_normaliz",
+    "fus"
   ],
   "function_build_neighbor_graph_0049": [
-    "build",
-    "build_neighbor_graph",
     "graph",
+    "build_neighbor_graph",
+    "build",
     "neighbor"
   ],
   "var_rows_0052": [
@@ -5786,27 +5786,27 @@
   ],
   "var_rows_sym_0059": [
     "sym",
-    "rows_sym",
-    "rows"
+    "rows",
+    "rows_sym"
   ],
   "var_cols_sym_0060": [
-    "sym",
+    "cols_sym",
     "cols",
-    "cols_sym"
+    "sym"
   ],
   "var_adj_0061": [
     "adj"
   ],
   "function_iterative_embedding_smoothing_0067": [
-    "iterative_embedding_smooth",
     "embedd",
+    "iterative_embedding_smooth",
     "smooth",
     "iterative"
   ],
   "var_original_embeddings_0069": [
-    "original_embeddings",
+    "embeddings",
     "original",
-    "embeddings"
+    "original_embeddings"
   ],
   "var_smoothed_0072": [
     "smooth"
@@ -5825,37 +5825,37 @@
     "neighbor"
   ],
   "function_expand_call_graph_0018": [
-    "expand_call_graph",
     "expand",
-    "call",
-    "graph"
+    "graph",
+    "expand_call_graph",
+    "call"
   ],
   "var_call_graph_0023": [
-    "call",
     "graph",
-    "call_graph"
+    "call_graph",
+    "call"
   ],
   "var_call_edges_0027": [
-    "call_edges",
     "edges",
+    "call_edges",
     "call"
   ],
   "var_other_edges_0028": [
+    "oth",
     "edges",
-    "other_edges",
-    "oth"
+    "other_edges"
   ],
   "var_expanded_call_set_0036": [
     "set",
+    "expanded_call_set",
     "expand",
-    "call",
-    "expanded_call_set"
+    "call"
   ],
   "var_expanded_call_edges_0039": [
-    "expand",
     "edges",
-    "call",
-    "expanded_call_edges"
+    "expanded_call_edges",
+    "expand",
+    "call"
   ],
   "var_visited_0044": [
     "visit"
@@ -5866,93 +5866,93 @@
     "weight"
   ],
   "var_edge_key_0055": [
+    "edge_key",
     "edge",
-    "key",
-    "edge_key"
+    "key"
   ],
   "function_add_subtoken_edges_0060": [
     "add_subtoken_edges",
-    "subtoken",
     "edges",
-    "add"
+    "add",
+    "subtoken"
   ],
   "var_subtoken_to_idx_0062": [
-    "idx",
-    "subtoken",
+    "subtoken_to_idx",
     "to",
-    "subtoken_to_idx"
+    "subtoken",
+    "idx"
   ],
   "var_new_edges_0063": [
-    "new_edges",
     "new",
-    "edges"
+    "edges",
+    "new_edges"
   ],
   "var_current_num_nodes_0064": [
-    "nodes",
     "num",
     "current",
+    "nodes",
     "current_num_nodes"
   ],
   "var_node_idx_0070": [
-    "idx",
+    "node_idx",
     "node",
-    "node_idx"
+    "idx"
   ],
   "var_subtoken_idx_0073": [
-    "idx",
     "subtoken",
+    "idx",
     "subtoken_idx"
   ],
   "var_idx1_0078": [
-    "idx",
+    "idx1",
     "1",
-    "idx1"
+    "idx"
   ],
   "var_idx2_0080": [
+    "2",
     "idx",
-    "idx2",
-    "2"
+    "idx2"
   ],
   "function_add_file_hierarchy_edges_0082": [
+    "file",
+    "edges",
     "add",
     "add_file_hierarchy_edges",
-    "edges",
-    "file",
     "hierarchy"
   ],
   "var_nodes_by_file_0083": [
     "file",
-    "by",
     "nodes",
+    "by",
     "nodes_by_file"
   ],
   "var_nodes_by_directory_0084": [
-    "by",
     "nodes",
-    "nodes_by_directory",
-    "directory"
+    "directory",
+    "by",
+    "nodes_by_directory"
   ],
   "var_nodes_by_package_0085": [
-    "by",
     "package",
+    "nodes_by_package",
     "nodes",
-    "nodes_by_package"
+    "by"
   ],
   "var_existing_weight_0093": [
-    "existing_weight",
     "exist",
+    "existing_weight",
     "weight"
   ],
   "var_new_weight_0099": [
-    "new_weight",
     "new",
-    "weight"
+    "weight",
+    "new_weight"
   ],
   "function_add_context_window_edges_0104": [
-    "add_context_window_edges",
-    "window",
     "edges",
+    "window",
     "add",
+    "add_context_window_edges",
     "context"
   ],
   "var_meta_0106": [
@@ -5967,15 +5967,15 @@
     "lineno"
   ],
   "var_edge_weights_0116": [
-    "edge",
     "edge_weights",
+    "edge",
     "weights"
   ],
   "function_build_adjacency_matrix_0138": [
-    "build",
-    "adjacency",
+    "build_adjacency_matrix",
     "matrix",
-    "build_adjacency_matrix"
+    "build",
+    "adjacency"
   ],
   "var_rows_0139": [
     "rows"
@@ -5985,13 +5985,13 @@
   ],
   "var_rows_sym_0146": [
     "sym",
-    "rows_sym",
-    "rows"
+    "rows",
+    "rows_sym"
   ],
   "var_cols_sym_0147": [
-    "sym",
+    "cols_sym",
     "cols",
-    "cols_sym"
+    "sym"
   ],
   "var_data_sym_0148": [
     "sym",
@@ -6003,21 +6003,21 @@
   ],
   "function_compute_ppmi_0152": [
     "ppmi",
-    "compute",
-    "compute_ppmi"
+    "compute_ppmi",
+    "compute"
   ],
   "var_cooc_0153": [
     "cooc"
   ],
   "var_row_sums_0156": [
+    "sums",
     "row_sums",
-    "row",
-    "sums"
+    "row"
   ],
   "var_col_sums_0159": [
-    "col",
     "sums",
-    "col_sums"
+    "col_sums",
+    "col"
   ],
   "var_total_0160": [
     "total"
@@ -6031,8 +6031,8 @@
     "p"
   ],
   "var_p_i_0164": [
-    "p_i",
     "i",
+    "p_i",
     "p"
   ],
   "var_p_j_0165": [
@@ -6048,24 +6048,24 @@
   ],
   "var_ppmi_matrix_0169": [
     "ppmi",
-    "matrix",
-    "ppmi_matrix"
+    "ppmi_matrix",
+    "matrix"
   ],
   "function_reduce_dimensions_ppmi_0170": [
     "reduce_dimensions_ppmi",
+    "dimensions",
     "ppmi",
-    "reduce",
-    "dimensions"
+    "reduce"
   ],
   "var_num_features_0171": [
     "num",
-    "features",
-    "num_features"
+    "num_features",
+    "features"
   ],
   "var_actual_dim_0172": [
-    "dim",
+    "actual",
     "actual_dim",
-    "actual"
+    "dim"
   ],
   "var_svd_0174": [
     "svd"
@@ -6077,8 +6077,8 @@
     "padd"
   ],
   "var_component_padding_0183": [
-    "component_padd",
     "padd",
+    "component_padd",
     "component"
   ],
   "var_components_0184": [
@@ -6086,60 +6086,60 @@
   ],
   "function_compute_graph_view_0186": [
     "view",
-    "compute",
     "graph",
+    "compute",
     "compute_graph_view"
   ],
   "var_expanded_edges_0188": [
-    "expand",
     "edges",
-    "expanded_edges"
+    "expanded_edges",
+    "expand"
   ],
   "var_metadata_0024": [
     "metadata"
   ],
   "var_types_svd_path_0031": [
-    "types",
     "path",
+    "types",
     "svd",
     "types_svd_path"
   ],
   "var_w2v_path_0032": [
+    "v",
+    "w2v",
+    "w",
     "path",
     "w2v_path",
-    "v",
-    "2",
-    "w2v",
-    "w"
+    "2"
   ],
   "var_type_map_path_0035": [
     "map",
-    "path",
     "type_map_path",
-    "type"
+    "type",
+    "path"
   ],
   "var_mean_norm_path_0036": [
-    "norm",
-    "mean",
+    "mean_norm_path",
     "path",
-    "mean_norm_path"
+    "mean",
+    "norm"
   ],
   "var_subtoken_map_path_0038": [
     "map",
-    "subtoken",
     "subtoken_map_path",
+    "subtoken",
     "path"
   ],
   "var_node_subtokens_path_0039": [
-    "node",
-    "node_subtokens_path",
     "path",
-    "subtokens"
+    "subtokens",
+    "node",
+    "node_subtokens_path"
   ],
   "var_node_types_path_0040": [
+    "path",
     "types",
     "node",
-    "path",
     "node_types_path"
   ],
   "function_expand_query_vector_0043": [
@@ -6149,48 +6149,48 @@
     "vector"
   ],
   "var_node_idx_0044": [
-    "idx",
+    "node_idx",
     "node",
-    "node_idx"
+    "idx"
   ],
   "var_base_vector_0045": [
-    "base_vector",
     "base",
-    "vector"
+    "vector",
+    "base_vector"
   ],
   "var_vectors_to_average_0046": [
     "vectors_to_average",
     "vectors",
-    "average",
-    "to"
+    "to",
+    "average"
   ],
   "var_weights_0047": [
     "weights"
   ],
   "var_subtoken_vectors_0048": [
-    "subtoken",
     "vectors",
+    "subtoken",
     "subtoken_vectors"
   ],
   "var_subtoken_idx_0050": [
-    "idx",
     "subtoken",
+    "idx",
     "subtoken_idx"
   ],
   "var_subtoken_avg_0054": [
-    "subtoken",
     "avg",
-    "subtoken_avg"
+    "subtoken_avg",
+    "subtoken"
   ],
   "var_type_vectors_0057": [
-    "vectors",
     "type_vectors",
+    "vectors",
     "type"
   ],
   "var_type_idx_0059": [
-    "idx",
     "type_idx",
-    "type"
+    "type",
+    "idx"
   ],
   "var_weights_array_0060": [
     "weights_array",
@@ -6204,10 +6204,10 @@
     "norm"
   ],
   "function_compute_hybrid_score_0070": [
-    "hybrid",
+    "compute_hybrid_score",
     "compute",
-    "score",
-    "compute_hybrid_score"
+    "hybrid",
+    "score"
   ],
   "var_cosine_sim_0071": [
     "cosine_sim",
@@ -6226,23 +6226,23 @@
     "query"
   ],
   "var_query_vector_0082": [
+    "query_vector",
     "query",
-    "vector",
-    "query_vector"
+    "vector"
   ],
   "var_results_0085": [
     "results"
   ],
   "var_node_id_result_0088": [
+    "id",
     "node",
-    "node_id_result",
     "result",
-    "id"
+    "node_id_result"
   ],
   "var_candidate_vec_0074": [
-    "candidate",
     "candidate_vec",
-    "vec"
+    "vec",
+    "candidate"
   ],
   "var_hybrid_score_0089": [
     "hybrid_score",
@@ -6251,62 +6251,62 @@
   ],
   "var_calibrated_score_0091": [
     "calibrated_score",
-    "calibrat",
-    "score"
+    "score",
+    "calibrat"
   ],
   "var_meta_0092": [
     "meta"
   ],
   "class_simplestemmer_0007": [
-    "simple",
     "stemm",
+    "simple",
     "simplestemm"
   ],
   "function_stem_0009": [
     "stem"
   ],
   "var_word_lower_0014": [
-    "word",
+    "low",
     "word_low",
-    "low"
+    "word"
   ],
   "function_split_camel_case_0019": [
     "split",
-    "split_camel_case",
     "case",
-    "camel"
+    "camel",
+    "split_camel_case"
   ],
   "var_tokens_0020": [
     "tokens"
   ],
   "var_current_token_0021": [
-    "token",
     "current_token",
-    "current"
+    "current",
+    "token"
   ],
   "function_split_snake_case_0032": [
     "split",
-    "split_snake_case",
     "case",
-    "snake"
+    "snake",
+    "split_snake_case"
   ],
   "function_split_kebab_case_0034": [
     "split",
-    "split_kebab_case",
     "case",
+    "split_kebab_case",
     "kebab"
   ],
   "function_split_numeric_0035": [
     "split",
-    "split_numeric",
-    "numeric"
+    "numeric",
+    "split_numeric"
   ],
   "var_parts_0036": [
     "parts"
   ],
   "var_camel_tokens_0041": [
-    "camel",
     "camel_tokens",
+    "camel",
     "tokens"
   ],
   "function_extract_subtokens_0044": [
@@ -6315,13 +6315,13 @@
     "extract"
   ],
   "var_numeric_tokens_0050": [
+    "numeric",
     "numeric_tokens",
-    "tokens",
-    "numeric"
+    "tokens"
   ],
   "var_snake_tokens_0052": [
-    "snake_tokens",
     "snake",
+    "snake_tokens",
     "tokens"
   ],
   "var_kebab_tokens_0054": [
@@ -6330,14 +6330,14 @@
     "tokens"
   ],
   "var_raw_tokens_0056": [
+    "raw",
     "raw_tokens",
-    "tokens",
-    "raw"
+    "tokens"
   ],
   "var_normalized_tokens_0057": [
-    "normaliz",
     "tokens",
-    "normalized_tokens"
+    "normalized_tokens",
+    "normaliz"
   ],
   "var_stemmer_0059": [
     "stemm"
@@ -6349,58 +6349,58 @@
     "normaliz"
   ],
   "function_get_file_hierarchy_0071": [
-    "get_file_hierarchy",
-    "file",
+    "hierarchy",
     "get",
-    "hierarchy"
+    "file",
+    "get_file_hierarchy"
   ],
   "var_file_name_0075": [
-    "name",
     "file",
+    "name",
     "file_name"
   ],
   "var_directory_path_0076": [
-    "directory_path",
     "path",
+    "directory_path",
     "directory"
   ],
   "var_top_level_0077": [
     "top",
-    "top_level",
-    "level"
+    "level",
+    "top_level"
   ],
   "var_efficiency_0031": [
     "efficiency"
   ],
   "var_effective_cores_0037": [
-    "effective_cores",
     "cores",
+    "effective_cores",
     "effective"
   ],
   "var_expanded_nodes_0038": [
     "expanded_nodes",
-    "expand",
-    "nodes"
+    "nodes",
+    "expand"
   ],
   "var_ppmi_time_0040": [
-    "ppmi",
     "time",
-    "ppmi_time"
+    "ppmi_time",
+    "ppmi"
   ],
   "var_svd_time_0042": [
+    "time",
     "svd",
-    "svd_time",
-    "time"
+    "svd_time"
   ],
   "var_graph_time_0044": [
-    "graph_time",
     "time",
-    "graph"
+    "graph",
+    "graph_time"
   ],
   "var_total_walks_0045": [
-    "walks",
     "total_walks",
-    "total"
+    "total",
+    "walks"
   ],
   "var_walk_time_0047": [
     "walk",
@@ -6408,45 +6408,45 @@
     "walk_time"
   ],
   "var_w2v_time_0049": [
-    "time",
     "v",
-    "2",
-    "w2v_time",
     "w2v",
-    "w"
+    "w2v_time",
+    "time",
+    "w",
+    "2"
   ],
   "var_context_time_0050": [
-    "context_time",
+    "time",
     "context",
-    "time"
+    "context_time"
   ],
   "var_typed_time_0051": [
-    "typed_time",
+    "time",
     "typ",
-    "time"
+    "typed_time"
   ],
   "var_expanded_types_0053": [
     "types",
-    "expand",
-    "expanded_types"
+    "expanded_types",
+    "expand"
   ],
   "var_typed_ppmi_time_0054": [
     "ppmi",
-    "typ",
     "time",
+    "typ",
     "typed_ppmi_time"
   ],
   "var_typed_svd_time_0055": [
+    "time",
     "typed_svd_time",
-    "svd",
     "typ",
-    "time"
+    "svd"
   ],
   "var_total_input_dim_0057": [
-    "dim",
     "total_input_dim",
     "input",
-    "total"
+    "total",
+    "dim"
   ],
   "var_fusion_time_0059": [
     "fusion",
@@ -6455,34 +6455,34 @@
   ],
   "var_smoothing_time_0061": [
     "time",
-    "smooth",
-    "smoothing_time"
+    "smoothing_time",
+    "smooth"
   ],
   "var_tau_candidates_0062": [
-    "candidates",
+    "tau",
     "tau_candidates",
-    "tau"
+    "candidates"
   ],
   "var_val_edges_est_0063": [
-    "val_edges_",
+    "edges",
     "est",
     "val",
-    "edges"
+    "val_edges_"
   ],
   "var_calibration_time_0065": [
+    "time",
     "calibra",
-    "calibration_time",
-    "time"
+    "calibration_time"
   ],
   "var_ann_time_0066": [
-    "ann",
     "time",
+    "ann",
     "ann_time"
   ],
   "var_io_time_0067": [
     "io",
-    "io_time",
-    "time"
+    "time",
+    "io_time"
   ],
   "var_load_time_0068": [
     "load_time",
@@ -6501,45 +6501,45 @@
     "hours"
   ],
   "function_compute_default_dimensions_0073": [
+    "dimensions",
     "default",
     "compute",
-    "compute_default_dimensions",
-    "dimensions"
+    "compute_default_dimensions"
   ],
   "var_graph_dim_0043": [
-    "dim",
+    "graph",
     "graph_dim",
-    "graph"
+    "dim"
   ],
   "var_context_dim_0058": [
-    "dim",
     "context_dim",
-    "context"
+    "context",
+    "dim"
   ],
   "var_typed_dim_0056": [
-    "dim",
     "typed_dim",
-    "typ"
+    "typ",
+    "dim"
   ],
   "var_final_dim_candidate_0077": [
-    "dim",
-    "candidate",
     "final_dim_candidate",
-    "final"
+    "candidate",
+    "final",
+    "dim"
   ],
   "var_final_dim_0060": [
-    "dim",
+    "final_dim",
     "final",
-    "final_dim"
+    "dim"
   ],
   "function_train_model_0079": [
+    "train_model",
     "train",
-    "model",
-    "train_model"
+    "model"
   ],
   "var_start_time_0082": [
-    "start",
     "time",
+    "start",
     "start_time"
   ],
   "var_task1_0096": [
@@ -6548,63 +6548,63 @@
     "task"
   ],
   "var_node_types_0112": [
+    "node_types",
     "types",
-    "node",
-    "node_types"
+    "node"
   ],
   "var_type_to_idx_0113": [
-    "idx",
     "type_to_idx",
+    "type",
     "to",
-    "type"
+    "idx"
   ],
   "var_num_types_0052": [
-    "types",
     "num",
+    "types",
     "num_types"
   ],
   "var_task2_0116": [
-    "task2",
+    "task",
     "2",
-    "task"
+    "task2"
   ],
   "var_defaults_0119": [
     "defaults"
   ],
   "var_graph_dim_source_0121": [
-    "dim",
     "graph_dim_source",
     "graph",
-    "source"
+    "source",
+    "dim"
   ],
   "var_context_dim_source_0122": [
-    "dim",
     "context_dim_source",
     "context",
-    "source"
+    "source",
+    "dim"
   ],
   "var_typed_dim_source_0123": [
-    "dim",
     "typ",
     "typed_dim_source",
-    "source"
+    "source",
+    "dim"
   ],
   "var_final_dim_source_0124": [
-    "dim",
     "final_dim_source",
+    "source",
     "final",
-    "source"
+    "dim"
   ],
   "var_n_jobs_est_0126": [
     "n",
     "jobs",
-    "est",
-    "n_jobs_"
+    "n_jobs_",
+    "est"
   ],
   "var_estimated_time_0129": [
+    "estimated_time",
     "estimat",
-    "time",
-    "estimated_time"
+    "time"
   ],
   "var_config_table_0131": [
     "config",
@@ -6622,95 +6622,95 @@
     "n_jobs"
   ],
   "var_idx_to_node_0142": [
-    "idx",
     "node",
+    "idx_to_node",
     "to",
-    "idx_to_node"
+    "idx"
   ],
   "var_task4_0146": [
     "4",
-    "task4",
-    "task"
+    "task",
+    "task4"
   ],
   "var_task5_0153": [
-    "task5",
+    "task",
     "5",
-    "task"
+    "task5"
   ],
   "var_x_types_0158": [
-    "types",
     "x_types",
+    "types",
     "x"
   ],
   "var_svd_components_types_0159": [
     "types",
+    "components",
     "svd",
-    "svd_components_types",
-    "components"
+    "svd_components_types"
   ],
   "var_final_type_to_idx_0160": [
-    "idx",
-    "final",
+    "type",
     "final_type_to_idx",
+    "final",
     "to",
-    "type"
+    "idx"
   ],
   "var_task6_0161": [
-    "6",
     "task6",
-    "task"
+    "task",
+    "6"
   ],
   "var_task7_0164": [
     "7",
-    "task7",
-    "task"
+    "task",
+    "task7"
   ],
   "var_embeddings_list_0165": [
     "list",
-    "embeddings_list",
-    "embeddings"
+    "embeddings",
+    "embeddings_list"
   ],
   "var_e_before_norm_0171": [
-    "norm",
-    "e_before_norm",
     "e",
-    "before"
+    "before",
+    "e_before_norm",
+    "norm"
   ],
   "var_mean_norm_0174": [
-    "norm",
+    "mean_norm",
     "mean",
-    "mean_norm"
+    "norm"
   ],
   "var_task7b_0177": [
     "b",
-    "7",
     "task7b",
-    "task"
+    "task",
+    "7"
   ],
   "var_e_0173": [
     "e"
   ],
   "var_task8_0180": [
     "task8",
-    "8",
-    "task"
+    "task",
+    "8"
   ],
   "var_tau_0181": [
     "tau"
   ],
   "var_task9_0185": [
-    "task9",
     "9",
+    "task9",
     "task"
   ],
   "var_ann_index_0186": [
-    "ann",
     "ann_index",
+    "ann",
     "index"
   ],
   "var_task10_0194": [
-    "10",
     "task10",
+    "10",
     "task"
   ],
   "var_metadata_0199": [
@@ -6718,47 +6718,47 @@
   ],
   "var_node_types_by_id_0206": [
     "types",
-    "by",
-    "node_types_by_id",
     "id",
+    "node_types_by_id",
+    "by",
     "node"
   ],
   "var_node_id_0144": [
-    "node",
+    "id",
     "node_id",
-    "id"
+    "node"
   ],
   "var_end_time_0220": [
     "time",
-    "end",
-    "end_time"
+    "end_time",
+    "end"
   ],
   "var_elapsed_time_0221": [
-    "elaps",
     "time",
+    "elaps",
     "elapsed_time"
   ],
   "var_time_str_0222": [
-    "str",
+    "time_str",
     "time",
-    "time_str"
+    "str"
   ],
   "var_seconds_0223": [
     "seconds"
   ],
   "var_stats_table_0224": [
-    "stats",
+    "table",
     "stats_t",
-    "table"
+    "stats"
   ],
   "function_main_0227": [
     "main"
   ],
   "function_parse_composite_type_0017": [
-    "parse_composite_type",
     "parse",
-    "composite",
-    "type"
+    "type",
+    "parse_composite_type",
+    "composite"
   ],
   "var_constructors_0019": [
     "constructors"
@@ -6767,9 +6767,9 @@
     "primitives"
   ],
   "var_generic_pattern_0021": [
+    "generic_pattern",
     "generic",
-    "pattern",
-    "generic_pattern"
+    "pattern"
   ],
   "var_matches_0022": [
     "matches"
@@ -6778,9 +6778,9 @@
     "constructor"
   ],
   "var_inner_content_0032": [
+    "content",
     "inner_content",
-    "inn",
-    "content"
+    "inn"
   ],
   "var_remaining_0038": [
     "remain"
@@ -6792,33 +6792,33 @@
     "parts"
   ],
   "function_expand_type_semantics_0057": [
-    "expand",
     "expand_type_semantics",
-    "semantics",
-    "type"
+    "expand",
+    "type",
+    "semantics"
   ],
   "var_expanded_node_types_0059": [
-    "types",
     "node",
+    "types",
     "expand",
     "expanded_node_types"
   ],
   "var_expanded_type_to_idx_0060": [
-    "idx",
-    "expand",
+    "type",
     "expanded_type_to_idx",
     "to",
-    "type"
+    "expand",
+    "idx"
   ],
   "var_current_idx_0064": [
-    "idx",
     "current",
-    "current_idx"
+    "current_idx",
+    "idx"
   ],
   "var_expanded_types_0067": [
     "types",
-    "expand",
-    "expanded_types"
+    "expanded_types",
+    "expand"
   ],
   "var_constructor_idx_0070": [
     "constructor",
@@ -6826,38 +6826,38 @@
     "idx"
   ],
   "var_primitive_idx_0075": [
-    "idx",
     "primitive_idx",
+    "idx",
     "primitive"
   ],
   "function_build_type_matrix_0077": [
-    "build",
-    "build_type_matrix",
     "matrix",
-    "type"
+    "type",
+    "build",
+    "build_type_matrix"
   ],
   "var_final_node_types_0079": [
+    "final_node_types",
     "types",
     "node",
-    "final_node_types",
     "final"
   ],
   "var_final_type_to_idx_0080": [
-    "idx",
-    "final",
+    "type",
     "final_type_to_idx",
+    "final",
     "to",
-    "type"
+    "idx"
   ],
   "var_original_num_nodes_0082": [
-    "nodes",
-    "original",
+    "num",
     "original_num_nodes",
-    "num"
+    "nodes",
+    "original"
   ],
   "var_num_types_0085": [
-    "types",
     "num",
+    "types",
     "num_types"
   ],
   "var_rows_0086": [
@@ -6867,9 +6867,9 @@
     "cols"
   ],
   "var_type_idx_0089": [
-    "idx",
     "type_idx",
-    "type"
+    "type",
+    "idx"
   ],
   "var_type_matrix_0096": [
     "type_matrix",
@@ -6877,45 +6877,45 @@
     "type"
   ],
   "function_compute_ppmi_types_0100": [
-    "types",
     "ppmi",
     "compute",
+    "types",
     "compute_ppmi_types"
   ],
   "var_cooc_0101": [
     "cooc"
   ],
   "var_row_sums_0105": [
+    "sums",
     "row_sums",
-    "row",
-    "sums"
+    "row"
   ],
   "var_col_sums_0108": [
-    "col",
     "sums",
-    "col_sums"
+    "col_sums",
+    "col"
   ],
   "var_total_0109": [
     "total"
   ],
   "var_full_row_sums_0110": [
     "full",
-    "row",
     "full_row_sums",
-    "sums"
+    "sums",
+    "row"
   ],
   "var_full_col_sums_0112": [
     "full",
     "full_col_sums",
-    "col",
-    "sums"
+    "sums",
+    "col"
   ],
   "var_values_0114": [
     "values"
   ],
   "var_min_len_0116": [
-    "min",
     "min_len",
+    "min",
     "len"
   ],
   "var_p_ij_0119": [
@@ -6924,8 +6924,8 @@
     "p"
   ],
   "var_p_i_0120": [
-    "p_i",
     "i",
+    "p_i",
     "p"
   ],
   "var_p_j_0121": [
@@ -6941,20 +6941,20 @@
   ],
   "var_ppmi_matrix_0125": [
     "ppmi",
-    "matrix",
-    "ppmi_matrix"
+    "ppmi_matrix",
+    "matrix"
   ],
   "function_compute_typed_view_0126": [
     "view",
+    "typ",
     "compute",
-    "compute_typed_view",
-    "typ"
+    "compute_typed_view"
   ],
   "function_reduce_dimensions_ppmi_0129": [
     "reduce_dimensions_ppmi",
+    "dimensions",
     "ppmi",
-    "reduce",
-    "dimensions"
+    "reduce"
   ],
   "var_svd_0138": [
     "svd"
@@ -6963,8 +6963,8 @@
     "padd"
   ],
   "var_component_padding_0144": [
-    "component_padd",
     "padd",
+    "component_padd",
     "component"
   ],
   "var_components_0145": [

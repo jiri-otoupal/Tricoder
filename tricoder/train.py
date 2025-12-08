@@ -797,7 +797,9 @@ def train_model(nodes_path: str,
                      f"{num_negatives} negatives/edge, {len(val_edges):,} validation edges...[/dim]")
         
         task8a = progress.add_task("[cyan]  → Evaluating tau candidates...", total=tau_candidates_count)
-        tau_candidates = np.logspace(-2, 2, num=tau_candidates_count)
+        # Use logspace from 0.1 to 10 (exclude very small values like 0.01 that cause numerical issues)
+        # Temperature < 0.1 makes scores too large and softmax too sharp
+        tau_candidates = np.logspace(-1, 1, num=tau_candidates_count)
         
         # Create progress callback for calibration
         def calibration_progress_cb(current, total):

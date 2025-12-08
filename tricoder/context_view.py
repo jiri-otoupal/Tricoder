@@ -334,8 +334,11 @@ class SkipGramModel(nn.Module):
         self.embedding_dim = embedding_dim
         self.in_embedding = nn.Embedding(vocab_size, embedding_dim)
         self.out_embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.in_embedding.weight.data.uniform_(-0.5 / embedding_dim, 0.5 / embedding_dim)
-        self.out_embedding.weight.data.zero_()
+        # Initialize embeddings with small random values (standard Word2Vec initialization)
+        # Both embeddings should be initialized, not just one
+        init_range = 0.5 / embedding_dim
+        self.in_embedding.weight.data.uniform_(-init_range, init_range)
+        self.out_embedding.weight.data.uniform_(-init_range, init_range)
     
     def forward(self, center_words, context_words, negative_words):
         """Forward pass: compute positive and negative log probabilities."""
@@ -345,11 +348,13 @@ class SkipGramModel(nn.Module):
         
         # Positive score: dot product between center and context
         pos_score = torch.sum(center_emb * context_emb, dim=1)  # [batch_size]
-        pos_loss = -torch.log(torch.sigmoid(pos_score) + 1e-10)
+        # Use log_sigmoid for numerical stability
+        pos_loss = -torch.nn.functional.logsigmoid(pos_score)
         
         # Negative scores: dot products between center and negative samples
         neg_score = torch.bmm(neg_emb, center_emb.unsqueeze(2)).squeeze(2)  # [batch_size, num_neg]
-        neg_loss = -torch.sum(torch.log(torch.sigmoid(-neg_score) + 1e-10), dim=1)  # [batch_size]
+        # Use log_sigmoid for numerical stability
+        neg_loss = -torch.sum(torch.nn.functional.logsigmoid(-neg_score), dim=1)  # [batch_size]
         
         return (pos_loss + neg_loss).mean()
 
@@ -362,6 +367,14 @@ def _train_word2vec_pytorch(walks: List[List[str]], dim: int, window: int = 7,
         raise RuntimeError("PyTorch is not available. Install torch to use GPU acceleration.")
     
     device = torch.device('cuda' if (use_gpu and torch.cuda.is_available()) else 'cpu')
+    
+    # Print device info for debugging
+    if use_gpu:
+        if torch.cuda.is_available():
+            print(f"Using GPU: {torch.cuda.get_device_name(0)} (CUDA {torch.version.cuda})")
+        else:
+            print("GPU requested but CUDA not available, falling back to CPU")
+            device = torch.device('cpu')
     
     # Build vocabulary
     vocab = {}
@@ -387,14 +400,80 @@ def _train_word2vec_pytorch(walks: List[List[str]], dim: int, window: int = 7,
     
     if not training_pairs:
         # Fallback: create empty embeddings
+        # Preallocate KeyedVectors with all vectors at once
+        words_list = list(vocab.keys())
+        vectors = np.array([np.random.normal(0, 0.01, dim).astype(np.float32) for _ in words_list])
         kv = KeyedVectors(vector_size=dim)
-        for word in vocab:
-            kv.add_vector(word, np.random.normal(0, 0.01, dim).astype(np.float32))
+        kv.add_vectors(words_list, vectors)
         return kv
     
     # Initialize model
     model = SkipGramModel(vocab_size, dim).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.025)
+    
+    # Compute optimal batch size based on GPU memory
+    if device.type == 'cuda':
+        # Get available GPU memory
+        torch.cuda.empty_cache()  # Clear cache first
+        total_memory = torch.cuda.get_device_properties(0).total_memory
+        allocated_memory = torch.cuda.memory_allocated(0)
+        reserved_memory = torch.cuda.memory_reserved(0)
+        free_memory = total_memory - reserved_memory
+        
+        # Estimate memory per sample:
+        # - center_words: 4 bytes (int32)
+        # - context_words: 4 bytes (int32)  
+        # - negative_words: negative * 4 bytes (int32)
+        # - Embeddings (forward): batch_size * dim * 4 bytes * 2 (in + out) * 2 (forward + backward)
+        # - Gradients: similar to forward
+        # - Loss: 4 bytes
+        # Reserve 20% for overhead and other operations
+        usable_memory = free_memory * 0.8
+        
+        # Memory per sample in bytes
+        bytes_per_sample = (
+            4 +  # center_word index
+            4 +  # context_word index
+            negative * 4 +  # negative samples indices
+            dim * 4 * 2 * 2 +  # embeddings (in + out) * (forward + backward)
+            4  # loss
+        )
+        
+        # Compute max batch size that fits in GPU memory
+        max_batch_by_memory = int(usable_memory / bytes_per_sample)
+        
+        # Cap batch size for training efficiency - too large batches reduce gradient updates
+        # Aim for at least 50-100 batches per epoch for good learning
+        # Cap at 500k to ensure sufficient gradient updates
+        optimal_batch_size = max(batch_size, min(max_batch_by_memory, 500000))
+        
+        # Ensure minimum batch size for GPU efficiency, but not too large
+        optimal_batch_size = max(min(optimal_batch_size, 500000), 10000)
+        
+        batch_size = optimal_batch_size
+        
+        print(f"GPU Memory: {free_memory / 1024**3:.2f} GB free, computed batch size: {batch_size:,}")
+    else:
+        print(f"Training on CPU with batch size: {batch_size:,}")
+    
+    # Adjust learning rate based on batch size (larger batches need much higher LR)
+    # Base LR 0.025, but scale aggressively for large batches
+    # For very large batches (500k+), we need much higher LR to compensate for gradient averaging
+    base_lr = 0.025
+    if batch_size >= 500000:
+        # Very large batches: use much higher LR (gradients are averaged over many samples)
+        # With 500k batch, gradients are ~0.00025, so we need LR ~2.0-5.0 to get meaningful updates
+        scaled_lr = min(base_lr * (batch_size / 10000) ** 0.8, 2.0)
+    elif batch_size > 100000:
+        # Large batches: scale LR aggressively
+        scaled_lr = min(base_lr * (batch_size / 10000) ** 0.6, 0.5)
+    elif batch_size > 10000:
+        # Moderate scaling for medium batches
+        scaled_lr = base_lr * (batch_size / 10000) ** 0.4
+    else:
+        scaled_lr = base_lr
+    
+    optimizer = optim.SGD(model.parameters(), lr=scaled_lr)
+    print(f"  Learning rate: {scaled_lr:.4f} (scaled for batch size {batch_size:,})")
     
     # Negative sampling: use unigram distribution raised to 3/4 power
     word_counts = {}
@@ -415,44 +494,142 @@ def _train_word2vec_pytorch(walks: List[List[str]], dim: int, window: int = 7,
         torch.cuda.manual_seed(random_state)
     
     model.train()
-    for epoch in range(epochs):
+    total_pairs = len(training_pairs)
+    
+    # Compute optimal epochs based on data characteristics
+    # Target: ensure sufficient training steps for convergence without overfitting
+    # Heuristic: aim for ~5-20 training steps per vocab word (much lower than before)
+    
+    # Compute batches per epoch first
+    num_batches_per_epoch = (total_pairs + batch_size - 1) // batch_size  # Ceiling division
+    
+    # Base epochs on data size: larger datasets need fewer epochs
+    # Target: ensure each sample is seen a reasonable number of times
+    if total_pairs < 10000:
+        # Very small dataset: 3-5 epochs
+        computed_epochs = max(epochs, 3)
+    elif total_pairs < 100000:
+        # Small dataset: 2-3 epochs
+        computed_epochs = max(epochs, 2)
+    elif total_pairs < 1000000:
+        # Medium dataset: 1-2 epochs
+        computed_epochs = max(epochs, 1)
+    else:
+        # Large dataset: 1 epoch is usually enough
+        computed_epochs = max(epochs, 1)
+    
+    # Cap epochs based on vocab size (larger vocab might need slightly more, but cap it)
+    # For very large vocabs, we still don't want too many epochs
+    if vocab_size > 50000:
+        computed_epochs = min(computed_epochs, 2)
+    elif vocab_size > 10000:
+        computed_epochs = min(computed_epochs, 3)
+    
+    # Ensure reasonable bounds (min 1, max 5)
+    computed_epochs = max(1, min(computed_epochs, 5))
+    
+    # Recompute batch count with final epoch count
+    total_batches = num_batches_per_epoch * computed_epochs
+    
+    print(f"Training Word2Vec: {vocab_size:,} vocab, {total_pairs:,} pairs")
+    print(f"  Computed: {computed_epochs} epochs, {num_batches_per_epoch:,} batches/epoch, {total_batches:,} total batches")
+    print(f"  Batch size: {batch_size:,}, device: {device}")
+    
+    # Track actual batch size (may be reduced if OOM)
+    actual_batch_size = batch_size
+    
+    for epoch in range(computed_epochs):
         # Shuffle training pairs
         indices = np.random.permutation(len(training_pairs))
         total_loss = 0.0
         num_batches = 0
         
-        for batch_start in range(0, len(training_pairs), batch_size):
-            batch_end = min(batch_start + batch_size, len(training_pairs))
+        batch_start = 0
+        while batch_start < len(training_pairs):
+            batch_end = min(batch_start + actual_batch_size, len(training_pairs))
             batch_indices = indices[batch_start:batch_end]
             
-            center_words = torch.tensor([training_pairs[i][0] for i in batch_indices], dtype=torch.long).to(device)
-            context_words = torch.tensor([training_pairs[i][1] for i in batch_indices], dtype=torch.long).to(device)
-            
-            # Sample negative words
-            negative_words = torch.multinomial(neg_dist, negative * len(center_words), replacement=True)
-            negative_words = negative_words.view(len(center_words), negative).to(device)
-            
-            optimizer.zero_grad()
-            loss = model(center_words, context_words, negative_words)
-            loss.backward()
-            optimizer.step()
-            
-            total_loss += loss.item()
-            num_batches += 1
+            try:
+                # Move to device immediately
+                center_words = torch.tensor([training_pairs[i][0] for i in batch_indices], dtype=torch.long, device=device)
+                context_words = torch.tensor([training_pairs[i][1] for i in batch_indices], dtype=torch.long, device=device)
+                
+                # Sample negative words on GPU
+                negative_words = torch.multinomial(neg_dist, negative * len(center_words), replacement=True)
+                negative_words = negative_words.view(len(center_words), negative)
+                
+                optimizer.zero_grad()
+                loss = model(center_words, context_words, negative_words)
+                
+                # Check if loss is valid
+                if torch.isnan(loss) or torch.isinf(loss):
+                    print(f"Warning: Invalid loss detected: {loss.item()}, skipping batch")
+                    batch_start = batch_end
+                    continue
+                
+                loss.backward()
+                
+                # Gradient clipping - use higher max_norm for large batches
+                max_grad_norm = 5.0 if batch_size > 100000 else 1.0
+                grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_grad_norm)
+                
+                # Debug first batch
+                if num_batches == 0:
+                    if grad_norm == 0:
+                        print(f"Warning: Zero gradient norm detected!")
+                    else:
+                        print(f"  First batch gradient norm: {grad_norm:.6f}")
+                
+                optimizer.step()
+                
+                total_loss += loss.item()
+                num_batches += 1
+                batch_start = batch_end
+                
+                # Print first batch loss for debugging
+                if num_batches == 1:
+                    print(f"  First batch loss: {loss.item():.4f}, LR: {optimizer.param_groups[0]['lr']:.6f}")
+                
+            except torch.cuda.OutOfMemoryError:
+                # Reduce batch size and retry
+                torch.cuda.empty_cache()
+                if actual_batch_size > 1000:
+                    actual_batch_size = max(1000, actual_batch_size // 2)
+                    print(f"GPU OOM, reducing batch size to {actual_batch_size:,}")
+                    continue
+                else:
+                    raise RuntimeError("GPU out of memory even with minimum batch size")
         
-        # Decay learning rate
+        avg_loss = total_loss / num_batches if num_batches > 0 else 0.0
+        # Update batch count if it changed due to OOM
+        if actual_batch_size != batch_size:
+            num_batches_per_epoch = (total_pairs + actual_batch_size - 1) // actual_batch_size
+        
+        # Print progress every epoch or every 3 epochs for long training
+        print_interval = max(1, computed_epochs // 3) if computed_epochs > 3 else 1
+        if epoch == 0 or (epoch + 1) % print_interval == 0 or epoch == computed_epochs - 1:
+            print(f"Epoch {epoch + 1}/{computed_epochs}: loss={avg_loss:.4f}, batches={num_batches}, batch_size={actual_batch_size:,}")
+        
+        # Decay learning rate gradually
+        # Use linear decay: start high, end at 10% of initial
+        initial_lr = scaled_lr
         for param_group in optimizer.param_groups:
-            param_group['lr'] = 0.025 * (1.0 - epoch / epochs)
+            # Linear decay: lr = initial_lr * (1 - epoch / total_epochs * 0.9)
+            # This ensures we still have meaningful learning in later epochs
+            # End at 10% of initial LR
+            decay_factor = 1.0 - (epoch / max(computed_epochs - 1, 1)) * 0.9
+            param_group['lr'] = initial_lr * max(decay_factor, 0.1)
     
     # Extract embeddings
     model.eval()
     with torch.no_grad():
         embeddings_np = model.in_embedding.weight.cpu().numpy()
     
-    # Create KeyedVectors object
+    # Create KeyedVectors object - preallocate and add all vectors at once
+    words_list = [idx_to_word[idx] for idx in range(vocab_size)]
+    vectors = embeddings_np.astype(np.float32)
     kv = KeyedVectors(vector_size=dim)
-    for idx, word in idx_to_word.items():
-        kv.add_vector(word, embeddings_np[idx].astype(np.float32))
+    kv.add_vectors(words_list, vectors)
     
     return kv
 

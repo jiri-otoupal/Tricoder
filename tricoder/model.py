@@ -555,7 +555,7 @@ class SymbolModel:
         return results
 
     def search_by_keywords(self, keywords: str, top_k: int = 10, 
-                          excluded_keywords: Set[str] = None) -> List[Dict]:
+                          excluded_keywords: Set[str] = None, case_sensitive: bool = False) -> List[Dict]:
         """
         Search for symbols by keywords (name matching).
         
@@ -563,6 +563,7 @@ class SymbolModel:
             keywords: space-separated keywords or quoted string to search for
             top_k: number of results to return
             excluded_keywords: set of keywords to exclude (defaults to DEFAULT_EXCLUDED_KEYWORDS)
+            case_sensitive: if True, perform case-sensitive matching (default: False, case-insensitive)
         
         Returns:
             List of matching symbol dictionaries with symbol, score, meta
@@ -574,9 +575,13 @@ class SymbolModel:
         if excluded_keywords is None:
             excluded_keywords = DEFAULT_EXCLUDED_KEYWORDS
         
-        # Normalize keywords (case-insensitive)
-        keywords_lower = keywords.lower().strip()
-        keyword_words = keywords_lower.split()
+        # Normalize keywords based on case sensitivity
+        if case_sensitive:
+            keywords_normalized = keywords.strip()
+            keyword_words = keywords_normalized.split()
+        else:
+            keywords_normalized = keywords.lower().strip()
+            keyword_words = keywords_normalized.split()
         
         # Filter out excluded keywords from search query
         filtered_keyword_words = [w for w in keyword_words if w not in excluded_keywords]
@@ -586,7 +591,7 @@ class SymbolModel:
             return []
         
         # Rebuild keywords string from filtered words
-        filtered_keywords_lower = ' '.join(filtered_keyword_words)
+        filtered_keywords_normalized = ' '.join(filtered_keyword_words)
         
         # Get type tokens for this symbol (if available)
         def get_type_tokens(node_id: str) -> List[str]:
@@ -596,8 +601,11 @@ class SymbolModel:
             
             type_tokens = []
             for type_token, count in self.node_types[node_id].items():
-                # Add the full type token
-                type_tokens.append(type_token.lower())
+                # Add the full type token (case-sensitive or not based on flag)
+                if case_sensitive:
+                    type_tokens.append(type_token)
+                else:
+                    type_tokens.append(type_token.lower())
                 
                 # Also parse composite types to extract primitives (e.g., "List[bool]" -> ["bool"])
                 # This allows matching "bool" when searching for "bool variable"
@@ -609,7 +617,9 @@ class SymbolModel:
                         inner = type_token[start+1:end].strip()
                         # Split by comma and add individual types
                         for part in inner.split(','):
-                            part = part.strip().lower()
+                            part = part.strip()
+                            if not case_sensitive:
+                                part = part.lower()
                             if part and part not in type_tokens:
                                 type_tokens.append(part)
             
@@ -621,11 +631,19 @@ class SymbolModel:
             if not meta:
                 continue
             
-            name = meta.get('name', '').lower()
-            kind = meta.get('kind', '').lower()
+            # Get name and kind, normalize based on case sensitivity
+            name_original = meta.get('name', '')
+            kind_original = meta.get('kind', '')
             
-            # Skip symbols whose names are in excluded keywords (they're not useful)
-            if name in excluded_keywords:
+            if case_sensitive:
+                name = name_original
+                kind = kind_original
+            else:
+                name = name_original.lower()
+                kind = kind_original.lower()
+            
+            # Skip symbols whose names are in excluded keywords (always case-insensitive for excluded)
+            if name.lower() in excluded_keywords:
                 continue
             
             # Get type tokens for this symbol
@@ -636,11 +654,11 @@ class SymbolModel:
             score = 0.0
             
             # Check exact phrase match first (highest priority)
-            if filtered_keywords_lower == name:
+            if filtered_keywords_normalized == name:
                 score = 1.0  # Exact name match
-            elif name.startswith(filtered_keywords_lower):
+            elif name.startswith(filtered_keywords_normalized):
                 score = 0.8  # Name starts with keywords
-            elif filtered_keywords_lower in name:
+            elif filtered_keywords_normalized in name:
                 score = 0.6  # Keywords contained in name
             # For multi-word queries, check if all words appear in name, kind, or types
             elif len(filtered_keyword_words) > 1:

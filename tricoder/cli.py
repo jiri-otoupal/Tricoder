@@ -169,7 +169,9 @@ def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim
               help='Disable recursive model discovery. Only use the base model directory directly.')
 @click.option('--full', '-f', is_flag=True, default=False,
               help='Show full code context (from start to end line) for each result')
-def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive, no_recursive, full):
+@click.option('--case-sensitive', is_flag=True, default=False,
+              help='Enable case-sensitive search (default: case-insensitive)')
+def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive, no_recursive, full, case_sensitive):
     """Query the TriCoder model for similar symbols."""
     # Discover models if not specified
     if model_dir is None:
@@ -265,13 +267,13 @@ def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive, no_
                      f"({len(exclude_keywords)} user-added)[/dim]\n")
 
     if interactive:
-        interactive_mode(model, excluded_keywords_set, show_full=full)
+        interactive_mode(model, excluded_keywords_set, show_full=full, case_sensitive=case_sensitive)
     elif symbol:
         display_results(model, symbol, top_k, show_full=full)
     elif keywords:
         # Parse keywords (handle quoted strings)
         keywords_parsed = parse_keywords(keywords)
-        search_and_display_results(model, keywords_parsed, top_k, excluded_keywords_set, show_full=full)
+        search_and_display_results(model, keywords_parsed, top_k, excluded_keywords_set, show_full=full, case_sensitive=case_sensitive)
     else:
         console.print("[bold yellow]Please provide --symbol, --keywords, or use --interactive mode[/bold yellow]")
 
@@ -397,7 +399,7 @@ def parse_keywords(keywords_str: str) -> str:
         return keywords_str.strip()
 
 
-def search_and_display_results(model, keywords: str, top_k: int, excluded_keywords: set = None, show_full: bool = False):
+def search_and_display_results(model, keywords: str, top_k: int, excluded_keywords: set = None, show_full: bool = False, case_sensitive: bool = False):
     """Search for symbols by keywords and display results."""
     from .model import DEFAULT_EXCLUDED_KEYWORDS
     
@@ -405,11 +407,15 @@ def search_and_display_results(model, keywords: str, top_k: int, excluded_keywor
     if excluded_keywords is None:
         excluded_keywords = DEFAULT_EXCLUDED_KEYWORDS
     
-    # Check if any keywords are excluded
-    keyword_words = keywords.lower().split()
-    excluded_found = [w for w in keyword_words if w in excluded_keywords]
+    # Check if any keywords are excluded (always case-insensitive for excluded keywords)
+    if case_sensitive:
+        keyword_words = keywords.split()
+        excluded_found = [w for w in keyword_words if w.lower() in excluded_keywords]
+    else:
+        keyword_words = keywords.lower().split()
+        excluded_found = [w for w in keyword_words if w in excluded_keywords]
     
-    matches = model.search_by_keywords(keywords, top_k, excluded_keywords=excluded_keywords)
+    matches = model.search_by_keywords(keywords, top_k, excluded_keywords=excluded_keywords, case_sensitive=case_sensitive)
     
     # Show warning if excluded keywords were filtered
     if excluded_found:
@@ -466,7 +472,7 @@ def search_and_display_results(model, keywords: str, top_k: int, excluded_keywor
         console.print(f"[dim]Tip: Query similar symbols with: --symbol {first_match['symbol']}[/dim]\n")
 
 
-def interactive_mode(model, excluded_keywords: set = None, show_full: bool = False):
+def interactive_mode(model, excluded_keywords: set = None, show_full: bool = False, case_sensitive: bool = False):
     """Interactive query mode."""
     from .model import DEFAULT_EXCLUDED_KEYWORDS
     
@@ -476,7 +482,10 @@ def interactive_mode(model, excluded_keywords: set = None, show_full: bool = Fal
     
     console.print("[bold green]Entering interactive mode. Type 'quit' or 'exit' to quit.[/bold green]")
     console.print("[dim]You can search by symbol ID or keywords (use quotes for multi-word)[/dim]")
-    console.print(f"[dim]Excluding {len(excluded_keywords)} keywords (Python builtins, etc.)[/dim]\n")
+    console.print(f"[dim]Excluding {len(excluded_keywords)} keywords (Python builtins, etc.)[/dim]")
+    if case_sensitive:
+        console.print("[dim]Case-sensitive search enabled[/dim]")
+    console.print()
 
     while True:
         try:
@@ -494,7 +503,7 @@ def interactive_mode(model, excluded_keywords: set = None, show_full: bool = Fal
             else:
                 # Try as keywords
                 keywords_parsed = parse_keywords(query_input)
-                search_and_display_results(model, keywords_parsed, top_k, excluded_keywords, show_full=show_full)
+                search_and_display_results(model, keywords_parsed, top_k, excluded_keywords, show_full=show_full, case_sensitive=case_sensitive)
 
         except KeyboardInterrupt:
             console.print("\n[bold yellow]Goodbye![/bold yellow]")

@@ -391,14 +391,30 @@ class GPUAccelerator:
     
     def sum(self, arr, axis: Optional[int] = None, keepdims: bool = False):
         """Sum array on GPU or CPU."""
+        # Handle sparse matrices - convert to dense or use CPU
+        if sparse.issparse(arr):
+            # For sparse matrices, use CPU (more efficient for sparse ops)
+            return np.array(arr.sum(axis=axis)).flatten() if axis is not None else arr.sum()
+        
         if self.use_gpu:
             try:
-                gpu_arr = self.to_gpu(arr) if isinstance(arr, np.ndarray) else arr
+                # Only convert numpy arrays to GPU
+                if isinstance(arr, np.ndarray):
+                    gpu_arr = self.to_gpu(arr)
+                else:
+                    # If it's already a GPU array/tensor, use it directly
+                    gpu_arr = arr
                 
                 if self.backend == 'cupy':
                     result = cp.sum(gpu_arr, axis=axis, keepdims=keepdims)
                 elif self.backend == 'torch':
-                    result = torch.sum(gpu_arr, dim=axis, keepdim=keepdims)
+                    # PyTorch sum: dim can be int or tuple, keepdim (not keepdims)
+                    if axis is not None:
+                        # Convert axis to tuple if single int for consistency
+                        dim = axis if isinstance(axis, (tuple, list)) else (axis,)
+                        result = torch.sum(gpu_arr, dim=dim, keepdim=keepdims)
+                    else:
+                        result = torch.sum(gpu_arr)
                 else:
                     raise ValueError(f"Unknown backend: {self.backend}")
                 
@@ -413,8 +429,32 @@ class GPUAccelerator:
         """Element-wise maximum on GPU or CPU."""
         if self.use_gpu:
             try:
-                a_gpu = self.to_gpu(a) if isinstance(a, np.ndarray) else a
-                b_gpu = self.to_gpu(b) if isinstance(b, np.ndarray) else b
+                # Convert inputs to GPU tensors/arrays
+                if isinstance(a, np.ndarray):
+                    a_gpu = self.to_gpu(a)
+                elif isinstance(a, (int, float)) and self.backend == 'torch':
+                    # Convert scalar to tensor on same device as 'a' if 'a' is already a tensor
+                    # Otherwise create on default device
+                    a_gpu = torch.tensor(a, dtype=torch.float32, device=self.device)
+                else:
+                    a_gpu = a
+                
+                if isinstance(b, np.ndarray):
+                    b_gpu = self.to_gpu(b)
+                elif isinstance(b, (int, float)):
+                    # Convert scalar to tensor/array
+                    if self.backend == 'torch':
+                        # If a_gpu is a tensor, use its device and dtype
+                        if isinstance(a_gpu, torch.Tensor):
+                            b_gpu = torch.tensor(b, dtype=a_gpu.dtype, device=a_gpu.device)
+                        else:
+                            b_gpu = torch.tensor(b, dtype=torch.float32, device=self.device)
+                    elif self.backend == 'cupy':
+                        b_gpu = cp.array(b)
+                    else:
+                        b_gpu = b
+                else:
+                    b_gpu = b
                 
                 if self.backend == 'cupy':
                     result = cp.maximum(a_gpu, b_gpu)
