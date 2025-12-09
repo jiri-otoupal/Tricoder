@@ -366,15 +366,19 @@ def _train_word2vec_pytorch(walks: List[List[str]], dim: int, window: int = 7,
     if not TORCH_AVAILABLE:
         raise RuntimeError("PyTorch is not available. Install torch to use GPU acceleration.")
     
-    device = torch.device('cuda' if (use_gpu and torch.cuda.is_available()) else 'cpu')
-    
-    # Print device info for debugging
+    # Select device: prefer CUDA, then MPS, then CPU
     if use_gpu:
         if torch.cuda.is_available():
+            device = torch.device('cuda')
             print(f"Using GPU: {torch.cuda.get_device_name(0)} (CUDA {torch.version.cuda})")
+        elif hasattr(torch.backends, 'mps') and hasattr(torch.backends.mps, 'is_available') and torch.backends.mps.is_available():
+            device = torch.device('mps')
+            print("Using GPU: MPS (Mac)")
         else:
-            print("GPU requested but CUDA not available, falling back to CPU")
+            print("GPU requested but no GPU available, falling back to CPU")
             device = torch.device('cpu')
+    else:
+        device = torch.device('cpu')
     
     # Build vocabulary
     vocab = {}
@@ -452,6 +456,12 @@ def _train_word2vec_pytorch(walks: List[List[str]], dim: int, window: int = 7,
         batch_size = optimal_batch_size
         
         print(f"GPU Memory: {free_memory / 1024**3:.2f} GB free, computed batch size: {batch_size:,}")
+    elif device.type == 'mps':
+        # MPS: Use conservative batch size (MPS has unified memory, so be conservative)
+        # Use float32 for MPS compatibility
+        optimal_batch_size = max(batch_size, min(100000, batch_size * 2))
+        batch_size = optimal_batch_size
+        print(f"Training on MPS (Mac GPU) with batch size: {batch_size:,}")
     else:
         print(f"Training on CPU with batch size: {batch_size:,}")
     
@@ -590,15 +600,22 @@ def _train_word2vec_pytorch(walks: List[List[str]], dim: int, window: int = 7,
                 if num_batches == 1:
                     print(f"  First batch loss: {loss.item():.4f}, LR: {optimizer.param_groups[0]['lr']:.6f}")
                 
-            except torch.cuda.OutOfMemoryError:
-                # Reduce batch size and retry
-                torch.cuda.empty_cache()
-                if actual_batch_size > 1000:
-                    actual_batch_size = max(1000, actual_batch_size // 2)
-                    print(f"GPU OOM, reducing batch size to {actual_batch_size:,}")
-                    continue
+            except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+                # Handle OOM for both CUDA and MPS
+                if "out of memory" in str(e).lower() or isinstance(e, torch.cuda.OutOfMemoryError):
+                    # Reduce batch size and retry
+                    if device.type == 'cuda':
+                        torch.cuda.empty_cache()
+                    elif device.type == 'mps':
+                        torch.mps.empty_cache()
+                    if actual_batch_size > 1000:
+                        actual_batch_size = max(1000, actual_batch_size // 2)
+                        print(f"GPU OOM, reducing batch size to {actual_batch_size:,}")
+                        continue
+                    else:
+                        raise RuntimeError("GPU out of memory even with minimum batch size")
                 else:
-                    raise RuntimeError("GPU out of memory even with minimum batch size")
+                    raise
         
         avg_loss = total_loss / num_batches if num_batches > 0 else 0.0
         # Update batch count if it changed due to OOM
@@ -655,9 +672,15 @@ def train_word2vec(walks: List[List[str]], dim: int, window: int = 7,
     Returns:
         Trained KeyedVectors model
     """
-    # Use PyTorch GPU if requested and available
-    if use_gpu and TORCH_AVAILABLE and torch.cuda.is_available():
-        return _train_word2vec_pytorch(walks, dim, window, negative, epochs, random_state, batch_words, use_gpu=True)
+    # Use PyTorch GPU if requested and available (CUDA or MPS)
+    if use_gpu and TORCH_AVAILABLE:
+        # Check for CUDA (NVIDIA) or MPS (Mac)
+        cuda_available = torch.cuda.is_available()
+        mps_available = (hasattr(torch.backends, 'mps') and 
+                       hasattr(torch.backends.mps, 'is_available') and 
+                       torch.backends.mps.is_available())
+        if cuda_available or mps_available:
+            return _train_word2vec_pytorch(walks, dim, window, negative, epochs, random_state, batch_words, use_gpu=True)
     
     # Fallback to gensim (CPU)
     if n_jobs == -1:

@@ -199,6 +199,12 @@ class GPUAccelerator:
         elif self.backend == 'torch':
             if self.device is None:
                 raise RuntimeError("PyTorch device is None - GPU not properly initialized")
+            # MPS doesn't support float64 or int64, convert to supported types
+            if self.device.type == 'mps':
+                if arr.dtype == np.float64:
+                    arr = arr.astype(np.float32)
+                elif arr.dtype == np.int64:
+                    arr = arr.astype(np.int32)
             # Convert to tensor and move to device
             gpu_tensor = torch.from_numpy(arr).to(self.device)
             # Verify tensor is on correct device
