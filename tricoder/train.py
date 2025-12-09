@@ -683,12 +683,17 @@ def train_model(nodes_path: str,
         
         task_context2 = progress.add_task(f"[cyan]Training Word2Vec model (window={7 if not fast_mode else 5}, epochs={3 if not fast_mode else 2})...", total=None)
         
-        def word2vec_progress_cb(is_starting):
-            if is_starting:
+        def word2vec_progress_cb(is_starting_or_refresh):
+            if is_starting_or_refresh is True:
+                # Starting
                 progress.start_task(task_context2)
                 progress.update(task_context2, total=None, refresh=True)
-            else:
+            elif is_starting_or_refresh is False:
+                # Completing
                 progress.update(task_context2, completed=True)
+            else:
+                # Refreshing (called with None or other value to refresh without completing)
+                progress.update(task_context2, refresh=True)
         
         X_w2v, word2vec_kv = compute_context_view(
             expanded_edges, final_num_nodes, context_dim, num_walks, walk_length, random_state, 

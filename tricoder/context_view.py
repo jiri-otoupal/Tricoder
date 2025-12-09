@@ -361,7 +361,8 @@ class SkipGramModel(nn.Module):
 
 def _train_word2vec_pytorch(walks: List[List[str]], dim: int, window: int = 7,
                             negative: int = 3, epochs: int = 3, random_state: int = 42,
-                            batch_size: int = 10000, use_gpu: bool = True) -> KeyedVectors:
+                            batch_size: int = 10000, use_gpu: bool = True,
+                            progress_callback=None) -> KeyedVectors:
     """Train Word2Vec using PyTorch with GPU acceleration."""
     if not TORCH_AVAILABLE:
         raise RuntimeError("PyTorch is not available. Install torch to use GPU acceleration.")
@@ -545,6 +546,10 @@ def _train_word2vec_pytorch(walks: List[List[str]], dim: int, window: int = 7,
     print(f"  Computed: {computed_epochs} epochs, {num_batches_per_epoch:,} batches/epoch, {total_batches:,} total batches")
     print(f"  Batch size: {batch_size:,}, device: {device}")
     
+    # Initialize progress tracking
+    if progress_callback:
+        progress_callback(True)  # Signal start
+    
     # Track actual batch size (may be reduced if OOM)
     actual_batch_size = batch_size
     
@@ -596,6 +601,15 @@ def _train_word2vec_pytorch(walks: List[List[str]], dim: int, window: int = 7,
                 num_batches += 1
                 batch_start = batch_end
                 
+                # Update progress callback periodically (every 50 batches to avoid overhead)
+                # Call with None to refresh without completing
+                if progress_callback and num_batches % 50 == 0:
+                    try:
+                        # Refresh progress bar (None = refresh without completing)
+                        progress_callback(None)
+                    except:
+                        pass
+                
                 # Print first batch loss for debugging
                 if num_batches == 1:
                     print(f"  First batch loss: {loss.item():.4f}, LR: {optimizer.param_groups[0]['lr']:.6f}")
@@ -627,6 +641,14 @@ def _train_word2vec_pytorch(walks: List[List[str]], dim: int, window: int = 7,
         if epoch == 0 or (epoch + 1) % print_interval == 0 or epoch == computed_epochs - 1:
             print(f"Epoch {epoch + 1}/{computed_epochs}: loss={avg_loss:.4f}, batches={num_batches}, batch_size={actual_batch_size:,}")
         
+        # Update progress callback at end of each epoch to refresh progress bar
+        if progress_callback:
+            try:
+                # Refresh progress bar (None = refresh without completing)
+                progress_callback(None)
+            except:
+                pass
+        
         # Decay learning rate gradually
         # Use linear decay: start high, end at 10% of initial
         initial_lr = scaled_lr
@@ -636,6 +658,10 @@ def _train_word2vec_pytorch(walks: List[List[str]], dim: int, window: int = 7,
             # End at 10% of initial LR
             decay_factor = 1.0 - (epoch / max(computed_epochs - 1, 1)) * 0.9
             param_group['lr'] = initial_lr * max(decay_factor, 0.1)
+    
+    # Signal completion
+    if progress_callback:
+        progress_callback(False)  # Signal complete
     
     # Extract embeddings
     model.eval()
@@ -653,7 +679,8 @@ def _train_word2vec_pytorch(walks: List[List[str]], dim: int, window: int = 7,
 
 def train_word2vec(walks: List[List[str]], dim: int, window: int = 7,
                    negative: int = 3, epochs: int = 3, random_state: int = 42,
-                   n_jobs: int = -1, batch_words: int = 10000, use_gpu: bool = False) -> KeyedVectors:
+                   n_jobs: int = -1, batch_words: int = 10000, use_gpu: bool = False,
+                   progress_callback=None) -> KeyedVectors:
     """
     Train Word2Vec SkipGram model on random walks with GPU acceleration support.
     Optimized defaults: window=7 (was 10), negative=3 (was 5) for faster training.
@@ -680,7 +707,7 @@ def train_word2vec(walks: List[List[str]], dim: int, window: int = 7,
                        hasattr(torch.backends.mps, 'is_available') and 
                        torch.backends.mps.is_available())
         if cuda_available or mps_available:
-            return _train_word2vec_pytorch(walks, dim, window, negative, epochs, random_state, batch_words, use_gpu=True)
+            return _train_word2vec_pytorch(walks, dim, window, negative, epochs, random_state, batch_words, use_gpu=True, progress_callback=progress_callback)
     
     # Fallback to gensim (CPU)
     if n_jobs == -1:
@@ -732,17 +759,9 @@ def compute_context_view(edges: List[Tuple[int, int, str, float]],
                                   random_state=random_state, n_jobs=n_jobs,
                                   progress_callback=progress_callback)
     
-    # Signal Word2Vec training is starting
-    if word2vec_progress_callback:
-        word2vec_progress_callback(True)  # True = start
-    
     # Word2Vec training happens here - this is the actual learning step
-    # Note: gensim Word2Vec doesn't support progress callbacks, so training happens synchronously
-    kv = train_word2vec(walks, dim, random_state=random_state, n_jobs=n_jobs, use_gpu=use_gpu)
-    
-    # Signal Word2Vec training is complete
-    if word2vec_progress_callback:
-        word2vec_progress_callback(False)  # False = complete
+    # Pass progress callback to training function (works for both GPU and CPU)
+    kv = train_word2vec(walks, dim, random_state=random_state, n_jobs=n_jobs, use_gpu=use_gpu, progress_callback=word2vec_progress_callback)
 
     # Extract embeddings for all nodes
     embeddings = np.zeros((num_nodes, dim))

@@ -40,12 +40,13 @@ def is_valid_model_dir(path: str) -> bool:
     return os.path.exists(embeddings_path) and os.path.exists(metadata_path)
 
 
-def discover_models(root_dir: str) -> List[str]:
+def discover_models(root_dir: str, show_progress: bool = False, progress=None, task=None) -> List[str]:
     """
     Recursively discover all model directories starting from root_dir.
     
     Args:
         root_dir: Root directory to search for models
+        show_progress: Whether to show a progress bar
         
     Returns:
         List of model directory paths (sorted, with root_dir first if it's a model)
@@ -59,15 +60,39 @@ def discover_models(root_dir: str) -> List[str]:
     if is_valid_model_dir(root_dir):
         models.append(root_dir)
     
-    # Recursively search subdirectories
-    for root, dirs, files in os.walk(root_dir):
-        # Skip hidden directories
-        dirs[:] = [d for d in dirs if not d.startswith('.')]
-        
-        for d in dirs:
-            subdir = os.path.join(root, d)
-            if is_valid_model_dir(subdir):
-                models.append(subdir)
+    # Use progress bar if requested or if progress/task provided
+    if show_progress or (progress is not None and task is not None):
+        dir_count = 0
+        for root, dirs, files in os.walk(root_dir):
+            # Skip hidden directories
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            
+            for d in dirs:
+                dir_count += 1
+                subdir = os.path.join(root, d)
+                
+                # Update description to show current directory being checked
+                if progress is not None and task is not None:
+                    try:
+                        rel_path = os.path.relpath(subdir, root_dir)
+                        if len(rel_path) > 50:
+                            rel_path = "..." + rel_path[-47:]
+                        progress.update(task, description=f"[cyan]Scanning {rel_path}... ({dir_count} checked)")
+                    except (ValueError, OSError):
+                        progress.update(task, description=f"[cyan]Scanning directories... ({dir_count} checked)")
+                
+                if is_valid_model_dir(subdir):
+                    models.append(subdir)
+    else:
+        # No progress bar, just check directories
+        for root, dirs, files in os.walk(root_dir):
+            # Skip hidden directories
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            
+            for d in dirs:
+                subdir = os.path.join(root, d)
+                if is_valid_model_dir(subdir):
+                    models.append(subdir)
     
     # Sort: root_dir first if it's a model, then alphabetically
     def sort_key(path):
@@ -171,7 +196,9 @@ def train(nodes, edges, types, out, graph_dim, context_dim, typed_dim, final_dim
               help='Show full code context (from start to end line) for each result')
 @click.option('--case-sensitive', is_flag=True, default=False,
               help='Enable case-sensitive search (default: case-insensitive)')
-def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive, no_recursive, full, case_sensitive):
+@click.option('--format', type=click.Choice(['json', 'toon'], case_sensitive=False),
+              default=None, help='Output format: json or toon (default: rich console output)')
+def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive, no_recursive, full, case_sensitive, format):
     """Query the TriCoder model for similar symbols."""
     # Discover models if not specified
     if model_dir is None:
@@ -183,7 +210,23 @@ def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive, no_
             else:
                 discovered_models = []
         else:
-            discovered_models = discover_models(base_model_dir)
+            # Show progress immediately before starting discovery
+            if not format:
+                from rich.progress import Progress, SpinnerColumn, TextColumn
+                progress = Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console,
+                    transient=False
+                )
+                progress.start()
+                task = progress.add_task("[cyan]Discovering models...", total=None)
+                try:
+                    discovered_models = discover_models(base_model_dir, show_progress=False, progress=progress, task=task)
+                finally:
+                    progress.stop()
+            else:
+                discovered_models = discover_models(base_model_dir, show_progress=False)
         
         if not discovered_models:
             console.print(f"[bold red]No models found in {base_model_dir}[/bold red]")
@@ -248,14 +291,28 @@ def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive, no_
                 console.print("[bold yellow]Cancelled[/bold yellow]")
                 return
     
-    console.print(f"[bold green]Loading model from {os.path.relpath(model_dir)}...[/bold green]")
+    if not format:
+        console.print(f"[bold green]Loading model from {os.path.relpath(model_dir)}...[/bold green]")
 
     try:
         model = SymbolModel()
         model.load(model_dir)
-        console.print("[bold green]✓ Model loaded successfully[/bold green]\n")
+        if not format:
+            console.print("[bold green]✓ Model loaded successfully[/bold green]\n")
     except Exception as e:
-        console.print(f"[bold red]Error loading model: {e}[/bold red]")
+        if format:
+            import sys
+            import json
+            if format.lower() == 'json':
+                print(json.dumps({'error': f'Error loading model: {e}'}, indent=2), file=sys.stderr)
+            elif format.lower() == 'toon':
+                try:
+                    import toon
+                    print(toon.encode({'error': f'Error loading model: {e}'}), file=sys.stderr)
+                except ImportError:
+                    print(json.dumps({'error': f'Error loading model: {e}'}, indent=2), file=sys.stderr)
+        else:
+            console.print(f"[bold red]Error loading model: {e}[/bold red]")
         return
 
     # Build excluded keywords set (default + user-provided)
@@ -263,19 +320,119 @@ def query(model_dir, symbol, keywords, top_k, exclude_keywords, interactive, no_
     if exclude_keywords:
         from .model import DEFAULT_EXCLUDED_KEYWORDS
         excluded_keywords_set = DEFAULT_EXCLUDED_KEYWORDS | {kw.lower() for kw in exclude_keywords}
-        console.print(f"[dim]Excluding {len(excluded_keywords_set)} keywords "
-                     f"({len(exclude_keywords)} user-added)[/dim]\n")
+        if not format:
+            console.print(f"[dim]Excluding {len(excluded_keywords_set)} keywords "
+                         f"({len(exclude_keywords)} user-added)[/dim]\n")
 
     if interactive:
-        interactive_mode(model, excluded_keywords_set, show_full=full, case_sensitive=case_sensitive)
+        interactive_mode(model, excluded_keywords_set, show_full=full, case_sensitive=case_sensitive, output_format=format)
     elif symbol:
-        display_results(model, symbol, top_k, show_full=full)
+        display_results(model, symbol, top_k, show_full=full, output_format=format)
     elif keywords:
         # Parse keywords (handle quoted strings)
         keywords_parsed = parse_keywords(keywords)
-        search_and_display_results(model, keywords_parsed, top_k, excluded_keywords_set, show_full=full, case_sensitive=case_sensitive)
+        search_and_display_results(model, keywords_parsed, top_k, excluded_keywords_set, show_full=full, case_sensitive=case_sensitive, output_format=format)
     else:
         console.print("[bold yellow]Please provide --symbol, --keywords, or use --interactive mode[/bold yellow]")
+
+
+def format_results_json(query_info: dict, results: list, show_full: bool = False) -> str:
+    """
+    Format query results as JSON.
+    
+    Args:
+        query_info: Dictionary with query symbol information
+        results: List of result dictionaries
+        show_full: Whether to include full code snippets
+    
+    Returns:
+        JSON string
+    """
+    import json
+    
+    output_results = []
+    
+    for result in results:
+        meta = result.get('meta', {})
+        meta_dict = meta.get('meta', {}) if isinstance(meta.get('meta'), dict) else {}
+        file_path = meta_dict.get('file', '') if meta_dict.get('file') else ''
+        lineno = meta_dict.get('lineno', None)
+        end_lineno = meta_dict.get('end_lineno', None)
+        
+        result_data = {
+            'symbol': result['symbol'],
+            'score': result['score'],
+            'kind': meta.get('kind'),
+            'name': meta.get('name'),
+            'file': file_path,
+            'lineno': lineno,
+            'end_lineno': end_lineno
+        }
+        
+        # Only include distance if it's not None
+        distance = result.get('distance')
+        if distance is not None:
+            result_data['distance'] = distance
+        
+        if show_full and file_path and lineno is not None:
+            snippet = get_code_snippet(file_path, lineno, end_lineno)
+            if snippet and not snippet.startswith("[dim]"):
+                result_data['code'] = snippet
+        
+        output_results.append(result_data)
+    
+    return json.dumps(output_results, indent=2)
+
+
+def format_results_toon(query_info: dict, results: list, show_full: bool = False) -> str:
+    """
+    Format query results using python_toon library.
+    
+    Args:
+        query_info: Dictionary with query symbol information
+        results: List of result dictionaries
+        show_full: Whether to include full code snippets
+    
+    Returns:
+        Toon-formatted string
+    """
+    try:
+        import toon
+    except ImportError:
+        raise ImportError("python_toon library is required for toon format. Install it with: pip install python_toon")
+    
+    output_results = []
+    
+    for result in results:
+        meta = result.get('meta', {})
+        meta_dict = meta.get('meta', {}) if isinstance(meta.get('meta'), dict) else {}
+        file_path = meta_dict.get('file', '') if meta_dict.get('file') else ''
+        lineno = meta_dict.get('lineno', None)
+        end_lineno = meta_dict.get('end_lineno', None)
+        
+        result_data = {
+            'symbol': result['symbol'],
+            'score': result['score'],
+            'kind': meta.get('kind'),
+            'name': meta.get('name'),
+            'file': file_path,
+            'lineno': lineno,
+            'end_lineno': end_lineno
+        }
+        
+        # Only include distance if it's not None
+        distance = result.get('distance')
+        if distance is not None:
+            result_data['distance'] = distance
+        
+        if show_full and file_path and lineno is not None:
+            snippet = get_code_snippet(file_path, lineno, end_lineno)
+            if snippet and not snippet.startswith("[dim]"):
+                result_data['code'] = snippet
+        
+        output_results.append(result_data)
+    
+    return toon.encode(output_results)
 
 
 def get_code_snippet(file_path: str, start_line: int, end_line: int = None) -> str:
@@ -316,12 +473,23 @@ def get_code_snippet(file_path: str, start_line: int, end_line: int = None) -> s
         return f"[dim]Error reading file: {e}[/dim]"
 
 
-def display_results(model, symbol_id, top_k, show_full: bool = False):
+def display_results(model, symbol_id, top_k, show_full: bool = False, output_format: str = None):
     """Display query results in a formatted table."""
     results = model.query(symbol_id, top_k)
 
     if not results:
-        console.print(f"[bold yellow]No results found for symbol: {symbol_id}[/bold yellow]")
+        if output_format:
+            if output_format.lower() == 'json':
+                import json
+                print(json.dumps([], indent=2))
+            elif output_format.lower() == 'toon':
+                try:
+                    import toon
+                    print(toon.encode([]))
+                except ImportError:
+                    raise ImportError("python_toon library is required for toon format. Install it with: pip install python_toon")
+        else:
+            console.print(f"[bold yellow]No results found for symbol: {symbol_id}[/bold yellow]")
         return
 
     # Get query symbol info
@@ -329,6 +497,29 @@ def display_results(model, symbol_id, top_k, show_full: bool = False):
     if model.metadata_lookup:
         query_meta = model.metadata_lookup.get(symbol_id)
 
+    # Build query info dict
+    query_info = {'symbol': symbol_id}
+    if query_meta:
+        query_info['kind'] = query_meta.get('kind')
+        query_info['name'] = query_meta.get('name')
+        query_meta_dict = query_meta.get('meta', {})
+        if isinstance(query_meta_dict, dict):
+            query_file = query_meta_dict.get('file', '')
+            query_lineno = query_meta_dict.get('lineno', None)
+            if query_file:
+                query_info['file'] = query_file
+                if query_lineno is not None and query_lineno >= 0:
+                    query_info['lineno'] = query_lineno
+
+    # Format output based on format option
+    if output_format:
+        if output_format.lower() == 'json':
+            print(format_results_json(query_info, results, show_full))
+        elif output_format.lower() == 'toon':
+            print(format_results_toon(query_info, results, show_full))
+        return
+
+    # Default rich console output
     console.print(f"\n[bold cyan]Query:[/bold cyan] {symbol_id}")
     if query_meta:
         console.print(f"  [dim]Kind:[/dim] {query_meta.get('kind', 'unknown')}")
@@ -399,7 +590,7 @@ def parse_keywords(keywords_str: str) -> str:
         return keywords_str.strip()
 
 
-def search_and_display_results(model, keywords: str, top_k: int, excluded_keywords: set = None, show_full: bool = False, case_sensitive: bool = False):
+def search_and_display_results(model, keywords: str, top_k: int, excluded_keywords: set = None, show_full: bool = False, case_sensitive: bool = False, output_format: str = None):
     """Search for symbols by keywords and display results."""
     from .model import DEFAULT_EXCLUDED_KEYWORDS
     
@@ -417,18 +608,41 @@ def search_and_display_results(model, keywords: str, top_k: int, excluded_keywor
     
     matches = model.search_by_keywords(keywords, top_k, excluded_keywords=excluded_keywords, case_sensitive=case_sensitive)
     
+    # Build query info dict
+    query_info = {'keywords': keywords, 'excluded_keywords': list(excluded_found)}
+    
+    if not matches:
+        if output_format:
+            if output_format.lower() == 'json':
+                import json
+                print(json.dumps([], indent=2))
+            elif output_format.lower() == 'toon':
+                try:
+                    import toon
+                    print(toon.encode([]))
+                except ImportError:
+                    raise ImportError("python_toon library is required for toon format. Install it with: pip install python_toon")
+        else:
+            if excluded_found and len(excluded_found) == len(keyword_words):
+                console.print(f"[bold yellow]All keywords were filtered out (Python builtins/keywords).[/bold yellow]")
+                console.print(f"[dim]Try searching for user-defined code patterns instead of language constructs.[/dim]")
+            else:
+                console.print(f"[bold yellow]No symbols found matching keywords: {keywords}[/bold yellow]")
+        return
+    
+    # Format output based on format option
+    if output_format:
+        if output_format.lower() == 'json':
+            print(format_results_json(query_info, matches, show_full))
+        elif output_format.lower() == 'toon':
+            print(format_results_toon(query_info, matches, show_full))
+        return
+    
+    # Default rich console output
     # Show warning if excluded keywords were filtered
     if excluded_found:
         console.print(f"[yellow]Note: Filtered out excluded keywords: {', '.join(excluded_found)}[/yellow]")
         console.print("[dim]These are Python builtins/keywords that don't provide useful search results.[/dim]\n")
-    
-    if not matches:
-        if excluded_found and len(excluded_found) == len(keyword_words):
-            console.print(f"[bold yellow]All keywords were filtered out (Python builtins/keywords).[/bold yellow]")
-            console.print(f"[dim]Try searching for user-defined code patterns instead of language constructs.[/dim]")
-        else:
-            console.print(f"[bold yellow]No symbols found matching keywords: {keywords}[/bold yellow]")
-        return
     
     console.print(f"\n[bold cyan]Search Results for:[/bold cyan] \"{keywords}\"")
     console.print(f"[bold cyan]Found {len(matches)} matching symbol(s):[/bold cyan]\n")
@@ -472,13 +686,18 @@ def search_and_display_results(model, keywords: str, top_k: int, excluded_keywor
         console.print(f"[dim]Tip: Query similar symbols with: --symbol {first_match['symbol']}[/dim]\n")
 
 
-def interactive_mode(model, excluded_keywords: set = None, show_full: bool = False, case_sensitive: bool = False):
+def interactive_mode(model, excluded_keywords: set = None, show_full: bool = False, case_sensitive: bool = False, output_format: str = None):
     """Interactive query mode."""
     from .model import DEFAULT_EXCLUDED_KEYWORDS
     
     # Use provided excluded keywords or default
     if excluded_keywords is None:
         excluded_keywords = DEFAULT_EXCLUDED_KEYWORDS
+    
+    if output_format:
+        # In format mode, don't print interactive prompts
+        console.print("[bold yellow]Format option is not supported in interactive mode. Use --symbol or --keywords instead.[/bold yellow]")
+        return
     
     console.print("[bold green]Entering interactive mode. Type 'quit' or 'exit' to quit.[/bold green]")
     console.print("[dim]You can search by symbol ID or keywords (use quotes for multi-word)[/dim]")
@@ -499,11 +718,11 @@ def interactive_mode(model, excluded_keywords: set = None, show_full: bool = Fal
 
             # Check if it looks like a symbol ID (starts with 'sym_') or try as keywords
             if query_input.startswith('sym_') and query_input in model.node_map:
-                display_results(model, query_input, top_k, show_full=show_full)
+                display_results(model, query_input, top_k, show_full=show_full, output_format=output_format)
             else:
                 # Try as keywords
                 keywords_parsed = parse_keywords(query_input)
-                search_and_display_results(model, keywords_parsed, top_k, excluded_keywords, show_full=show_full, case_sensitive=case_sensitive)
+                search_and_display_results(model, keywords_parsed, top_k, excluded_keywords, show_full=show_full, case_sensitive=case_sensitive, output_format=output_format)
 
         except KeyboardInterrupt:
             console.print("\n[bold yellow]Goodbye![/bold yellow]")
