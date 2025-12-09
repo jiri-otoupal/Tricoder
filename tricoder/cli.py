@@ -11,10 +11,54 @@ from rich.prompt import Prompt
 
 from tricoder.git_tracker import get_git_commit_hash, get_git_commit_timestamp, extract_files_from_jsonl, \
     save_training_metadata, get_changed_files_for_retraining, get_all_python_files
-from tricoder.model import SymbolModel
+from tricoder.model import SymbolModel, DEFAULT_EXCLUDED_KEYWORDS
 from tricoder.train import train_model
 
 console = Console()
+
+# System prompts for agent command
+KEYWORD_GENERATION_SYSTEM_PROMPT = """You are a code search assistant. Your task is to convert user questions about code into effective search keywords.
+
+Given a user's question, extract the most relevant keywords that would help find code symbols (functions, classes, variables, etc.) related to the question.
+
+Guidelines:
+- Extract 2-5 key terms that represent the main concepts
+- Use technical terms and code-related vocabulary
+- Avoid generic words like "how", "what", "the", "is", "are"
+- Focus on function names, class names, variable names, or domain concepts
+- Return ONLY the keywords separated by spaces, no explanations
+
+Examples:
+User: "How do I authenticate users?"
+Keywords: authenticate user login
+
+User: "Where is the database connection handled?"
+Keywords: database connection
+
+User: "How are payments processed?"
+Keywords: payment process transaction
+
+User: "What functions handle file uploads?"
+Keywords: file upload handler"""
+
+ANSWER_GENERATION_SYSTEM_PROMPT = """You are a helpful code assistant. Your task is to answer the user's question about their codebase based ONLY on the provided code snippets.
+
+CRITICAL: You MUST base your answer ONLY on the code snippets provided below. Do not use general knowledge or make assumptions beyond what is shown in the code.
+
+You will receive:
+1. The original user question
+2. Code snippets from the codebase that are relevant to the question
+
+Your response should:
+- Base your answer STRICTLY on the provided code snippets
+- Reference specific code locations (file:line) when making statements
+- Quote relevant parts of the code when explaining
+- Explain how the code works based on what you see in the snippets
+- If the question asks "how to do something", explain how it's done in the provided code
+- Be concise but comprehensive
+- Write in plain text format - do NOT use markdown formatting, code blocks, or any special formatting. Just write simple, clear text.
+
+If the provided code snippets don't fully answer the question, say so explicitly and explain what information is missing. Do NOT invent or guess information not present in the code snippets."""
 
 
 def get_tricoder_dir() -> str:
@@ -592,7 +636,6 @@ def parse_keywords(keywords_str: str) -> str:
 
 def search_and_display_results(model, keywords: str, top_k: int, excluded_keywords: set = None, show_full: bool = False, case_sensitive: bool = False, output_format: str = None):
     """Search for symbols by keywords and display results."""
-    from .model import DEFAULT_EXCLUDED_KEYWORDS
     
     # Use provided excluded keywords or default
     if excluded_keywords is None:
@@ -1179,6 +1222,387 @@ def retrain(model_dir, codebase_dir, output_nodes, output_edges, output_types,
             os.remove(f)
 
     console.print("[bold green]✓ Incremental retraining complete![/bold green]")
+
+
+@cli.command(name='agent')
+@click.option('--model-dir', '-m', default=None, help='Path to model directory (default: discovers models in .tricoder/model)')
+@click.option('--query', '-q', required=True, help='User query/question about the codebase')
+@click.option('--max-tries', default=10, type=int, help='Maximum number of search attempts (default: 10)')
+@click.option('--top-k', '-k', default=10, help='Number of results per search (default: 10)')
+@click.option('--model', default='openai/gpt-oss-120b', help='OpenRouter model to use (default: openai/gpt-4o-mini)')
+@click.option('--no-recursive', '--no-discover', is_flag=True, default=False,
+              help='Disable recursive model discovery. Only use the base model directory directly.')
+def agent(model_dir, query, max_tries, top_k, model, no_recursive):
+    """Query the codebase using LLM-powered semantic search and answer generation."""
+    # Check for OPENAI_KEY environment variable
+    openai_key = os.getenv('OPENAI_KEY')
+    if not openai_key:
+        console.print("[bold red]Error: OPENAI_KEY environment variable not set[/bold red]")
+        console.print("[yellow]Please set it with: export OPENAI_KEY=your_key[/yellow]")
+        return
+    
+    # Discover models if not specified
+    if model_dir is None:
+        base_model_dir = get_model_dir()
+        if no_recursive:
+            if is_valid_model_dir(base_model_dir):
+                discovered_models = [base_model_dir]
+            else:
+                discovered_models = []
+        else:
+            discovered_models = discover_models(base_model_dir, show_progress=False)
+        
+        if not discovered_models:
+            console.print(f"[bold red]No models found in {base_model_dir}[/bold red]")
+            console.print(f"[yellow]Please train a model first using: tricoder train[/yellow]")
+            return
+        
+        if len(discovered_models) == 1:
+            model_dir = discovered_models[0]
+        else:
+            console.print(f"[bold cyan]Found {len(discovered_models)} models:[/bold cyan]\n")
+            try:
+                base_path = os.path.commonpath([base_model_dir] + discovered_models)
+            except ValueError:
+                base_path = base_model_dir
+            
+            for idx, model_path in enumerate(discovered_models, 1):
+                try:
+                    rel_path = os.path.relpath(model_path, base_path)
+                    rel_path = rel_path.replace('\\', '/')
+                    if rel_path == '.':
+                        rel_path = 'model'
+                except ValueError:
+                    rel_path = os.path.basename(model_path) or model_path
+                console.print(f"  [cyan]{idx}.[/cyan] [white]{rel_path}[/white]")
+            
+            console.print()
+            try:
+                choice = Prompt.ask(
+                    "[bold cyan]Select model to query[/bold cyan]",
+                    default="1",
+                    choices=[str(i) for i in range(1, len(discovered_models) + 1)]
+                )
+                model_dir = discovered_models[int(choice) - 1]
+            except (ValueError, IndexError, KeyboardInterrupt):
+                console.print("[bold yellow]Cancelled[/bold yellow]")
+                return
+    
+    # Load model for metadata lookup
+    try:
+        symbol_model = SymbolModel()
+        symbol_model.load(model_dir)
+    except Exception as e:
+        console.print(f"[bold red]Error loading model: {e}[/bold red]")
+        return
+    
+    
+    # Step 1: Generate search keywords using LLM
+    console.print("[cyan]Generating search keywords...[/cyan]")
+    try:
+        from openai import OpenAI
+        
+        client = OpenAI(
+            api_key=openai_key,
+            base_url="https://openrouter.ai/api/v1"
+        )
+        
+        keyword_response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": KEYWORD_GENERATION_SYSTEM_PROMPT},
+                {"role": "user", "content": query}
+            ],
+            temperature=0.3,
+            max_tokens=10000  # Increased to avoid hitting limit
+        )
+        
+        # Extract keywords from response
+        if not keyword_response.choices or len(keyword_response.choices) == 0:
+            console.print("[bold red]Error: No response from LLM[/bold red]")
+            return
+        
+        choice = keyword_response.choices[0]
+        message_content = choice.message.content
+        
+        # Check for reasoning text (some models put output in reasoning field)
+        reasoning_text = None
+        if hasattr(choice.message, 'reasoning') and choice.message.reasoning:
+            reasoning_text = choice.message.reasoning
+        elif hasattr(choice, 'reasoning_details') and choice.reasoning_details:
+            # Extract from reasoning_details if available (can be list or dict)
+            reasoning_details = choice.reasoning_details
+            if isinstance(reasoning_details, list):
+                for detail in reasoning_details:
+                    if isinstance(detail, dict) and detail.get('type') == 'reasoning.text' and detail.get('text'):
+                        reasoning_text = detail['text']
+                        break
+            elif isinstance(reasoning_details, dict) and reasoning_details.get('text'):
+                reasoning_text = reasoning_details['text']
+        
+        # Debug: show raw response
+        console.print(f"[dim]Raw LLM content: {repr(message_content)}[/dim]")
+        if reasoning_text:
+            console.print(f"[dim]Raw LLM reasoning: {repr(reasoning_text)}[/dim]")
+        
+        # Try to extract keywords from content first, then reasoning, then fallback
+        keywords = None
+        
+        if message_content and message_content.strip():
+            keywords = message_content.strip()
+        elif reasoning_text:
+            # Extract keywords from reasoning text
+            # Look for patterns like "keywords: ..." or quoted text
+            import re
+            # Try to find keywords after "keywords:" or "keyword:"
+            keyword_match = re.search(r'keywords?:\s*([^\n]+)', reasoning_text, re.IGNORECASE)
+            if keyword_match:
+                keywords = keyword_match.group(1).strip()
+                # Remove quotes if present
+                keywords = keywords.strip('"\'')
+            else:
+                # Try to extract quoted text
+                quoted_match = re.search(r'"([^"]+)"', reasoning_text)
+                if quoted_match:
+                    keywords = quoted_match.group(1).strip()
+                else:
+                    # Last resort: extract meaningful words from reasoning
+                    stop_words = {'how', 'what', 'where', 'when', 'why', 'who', 'which', 'do', 'does', 'did', 
+                                 'is', 'are', 'was', 'were', 'the', 'a', 'an', 'to', 'in', 'on', 'at', 'for', 
+                                 'of', 'with', 'by', 'from', 'as', 'i', 'you', 'we', 'they', 'it', 'this', 'that',
+                                 'user', 'asks', 'likely', 'want', 'could', 'maybe', 'use', 'about'}
+                    words = re.findall(r'\b\w+\b', reasoning_text.lower())
+                    keywords = ' '.join([w for w in words if w not in stop_words and len(w) > 2])[:50]
+        
+        # Fallback: extract from query itself
+        if not keywords:
+            console.print("[yellow]Warning: Could not extract keywords from LLM response, using query as fallback[/yellow]")
+            import re
+            stop_words = {'how', 'what', 'where', 'when', 'why', 'who', 'which', 'do', 'does', 'did', 
+                         'is', 'are', 'was', 'were', 'the', 'a', 'an', 'to', 'in', 'on', 'at', 'for', 
+                         'of', 'with', 'by', 'from', 'as', 'i', 'you', 'we', 'they', 'it', 'this', 'that'}
+            words = re.findall(r'\b\w+\b', query.lower())
+            keywords = ' '.join([w for w in words if w not in stop_words and len(w) > 2])[:50]
+            if not keywords:
+                keywords = query[:50]
+        
+        console.print(f"[bold cyan]Search keywords:[/bold cyan] {keywords}\n")
+    except Exception as e:
+        console.print(f"[bold red]Error calling LLM: {e}[/bold red]")
+        return
+    
+    # Step 2: Search iteratively (1-3 tries based on results)
+    all_results = []
+    search_attempts = 0
+    max_search_tries = min(3, max_tries)  # Try 1-3 times
+    
+    for attempt in range(max_search_tries):
+        search_attempts += 1
+        console.print(f"[cyan]Search attempt {attempt + 1}/{max_search_tries}...[/cyan]")
+        
+        try:
+            # Use model's search_by_keywords directly (includes keyword co-occurrence analysis)
+            results = symbol_model.search_by_keywords(
+                keywords, 
+                top_k=int(top_k),
+                excluded_keywords=DEFAULT_EXCLUDED_KEYWORDS,
+                case_sensitive=False
+            )
+            
+            if not results:
+                console.print("[yellow]No results found[/yellow]")
+                if attempt < max_search_tries - 1:
+                    # Try refining keywords
+                    console.print("[cyan]Refining search keywords...[/cyan]")
+                    try:
+                        refine_prompt = f"""The previous search with keywords "{keywords}" returned no results. 
+Generate more specific or alternative keywords for this question: {query}
+
+Return ONLY the keywords separated by spaces."""
+                        
+                        refine_response = client.chat.completions.create(
+                            model=model,
+                            messages=[
+                                {"role": "system", "content": KEYWORD_GENERATION_SYSTEM_PROMPT},
+                                {"role": "user", "content": refine_prompt}
+                            ],
+                            temperature=0.5,
+                            max_tokens=50
+                        )
+                        keywords = refine_response.choices[0].message.content.strip()
+                        console.print(f"[bold cyan]Refined keywords:[/bold cyan] {keywords}\n")
+                        continue
+                    except Exception as e:
+                        console.print(f"[yellow]Error refining keywords: {e}[/yellow]")
+                break
+            
+            # Add results to collection
+            all_results.extend(results)
+            
+            # Check relevance - if we have good results, we can stop early
+            if len(results) >= 3:
+                # Check if we have high-scoring results
+                high_score_count = sum(1 for r in results if r.get('score', 0) > 0.5)
+                if high_score_count >= 2:
+                    console.print(f"[green]Found {len(results)} relevant results, stopping search[/green]\n")
+                    break
+            
+            if attempt < max_search_tries - 1:
+                console.print(f"[dim]Found {len(results)} results, trying more specific search...[/dim]\n")
+                # Refine keywords for next attempt
+                try:
+                    refine_prompt = f"""The search with keywords "{keywords}" found {len(results)} results. 
+Generate more specific keywords to find better matches for: {query}
+
+Return ONLY the keywords separated by spaces."""
+                    
+                    refine_response = client.chat.completions.create(
+                        model=model,
+                        messages=[
+                            {"role": "system", "content": KEYWORD_GENERATION_SYSTEM_PROMPT},
+                            {"role": "user", "content": refine_prompt}
+                        ],
+                        temperature=0.4,
+                        max_tokens=50
+                    )
+                    keywords = refine_response.choices[0].message.content.strip()
+                    console.print(f"[bold cyan]Refined keywords:[/bold cyan] {keywords}\n")
+                except Exception as e:
+                    console.print(f"[yellow]Error refining keywords: {e}[/yellow]")
+        
+        except Exception as e:
+            console.print(f"[bold red]Error during search: {e}[/bold red]")
+            if attempt < max_search_tries - 1:
+                continue
+            else:
+                break
+    
+    if not all_results:
+        console.print("[bold yellow]No results found after all search attempts[/bold yellow]")
+        return
+    
+    # Step 3: Collect code snippets from results
+    console.print(f"[cyan]Collecting code snippets from {len(all_results)} results...[/cyan]\n")
+    
+    code_contexts = []
+    seen_files = set()
+    
+    # Sort by score and take top results
+    sorted_results = sorted(all_results, key=lambda x: x.get('score', 0), reverse=True)
+    top_results = sorted_results[:min(10, len(sorted_results))]
+    
+    for result in top_results:
+        meta = result.get('meta', {})
+        meta_dict = meta.get('meta', {}) if isinstance(meta.get('meta'), dict) else {}
+        file_path = meta_dict.get('file', '')
+        lineno = meta_dict.get('lineno')
+        end_lineno = meta_dict.get('end_lineno', lineno)
+        symbol = result.get('symbol', '')
+        name = meta.get('name', '')
+        kind = meta.get('kind', '')
+        score = result.get('score', 0)
+        
+        if not file_path or lineno is None:
+            continue
+        
+        # Try to resolve file path (might be relative)
+        resolved_path = file_path
+        if not os.path.isabs(file_path):
+            # Try current directory first
+            if os.path.exists(file_path):
+                resolved_path = os.path.abspath(file_path)
+            # Try relative to model directory
+            elif model_dir and os.path.exists(os.path.join(model_dir, '..', file_path)):
+                resolved_path = os.path.abspath(os.path.join(model_dir, '..', file_path))
+            # Try relative to workspace root
+            elif os.path.exists(os.path.join(os.getcwd(), file_path)):
+                resolved_path = os.path.abspath(os.path.join(os.getcwd(), file_path))
+        
+        # Read code snippet
+        code_snippet = get_code_snippet(resolved_path, lineno, end_lineno)
+        if code_snippet and not code_snippet.startswith("[dim]"):
+            file_key = f"{resolved_path}:{lineno}"
+            if file_key not in seen_files:
+                seen_files.add(file_key)
+                code_contexts.append({
+                    'file': resolved_path,
+                    'line': lineno,
+                    'end_line': end_lineno,
+                    'symbol': symbol,
+                    'name': name,
+                    'kind': kind,
+                    'score': score,
+                    'code': code_snippet
+                })
+                console.print(f"[dim]  ✓ Extracted: {os.path.basename(resolved_path)}:{lineno} ({name})[/dim]")
+    
+    if not code_contexts:
+        console.print("[bold yellow]No code snippets could be extracted from results[/bold yellow]")
+        console.print("[dim]Trying to debug file paths...[/dim]")
+        for result in top_results[:3]:
+            meta = result.get('meta', {})
+            meta_dict = meta.get('meta', {}) if isinstance(meta.get('meta'), dict) else {}
+            file_path = meta_dict.get('file', '')
+            lineno = meta_dict.get('lineno')
+            console.print(f"[dim]  File: {file_path}, Line: {lineno}, Exists: {os.path.exists(file_path) if file_path else False}[/dim]")
+        return
+    
+    # Step 4: Generate answer using LLM
+    console.print(f"[cyan]Generating answer based on {len(code_contexts)} code snippets...[/cyan]\n")
+    
+    # Show what snippets we're using
+    for idx, ctx in enumerate(code_contexts[:3], 1):
+        preview = ctx['code'][:100].replace('\n', ' ')
+        if len(ctx['code']) > 100:
+            preview += "..."
+        console.print(f"[dim]  Snippet {idx}: {os.path.basename(ctx['file'])}:{ctx['line']} - {preview}[/dim]")
+    if len(code_contexts) > 3:
+        console.print(f"[dim]  ... and {len(code_contexts) - 3} more snippets[/dim]")
+    console.print()
+    
+    # Format code contexts for LLM
+    code_context_str = "\n\n".join([
+        f"=== Code Snippet {idx + 1} ===\n"
+        f"File: {ctx['file']}:{ctx['line']}\n"
+        f"Symbol: {ctx['symbol']} ({ctx['kind']}) - {ctx['name']}\n"
+        f"Relevance Score: {ctx['score']:.4f}\n"
+        f"\nCode:\n```\n{ctx['code']}\n```"
+        for idx, ctx in enumerate(code_contexts)
+    ])
+    
+    user_prompt = f"""Original Question: {query}
+
+Below are the code snippets found in the codebase that are relevant to your question. You MUST base your answer ONLY on these code snippets:
+
+{code_context_str}
+
+IMPORTANT: Answer the question based STRICTLY on the code snippets provided above. Reference specific files and line numbers when making statements. If the code snippets don't contain enough information to fully answer the question, explicitly state what information is missing."""
+    
+    try:
+        answer_response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": ANSWER_GENERATION_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1000
+        )
+        
+        answer = answer_response.choices[0].message.content.strip()
+        
+        console.print("[bold green]Answer:[/bold green]\n")
+        console.print(answer)
+        console.print()
+        
+        # Show source references
+        console.print("[dim]Sources:[/dim]")
+        for ctx in code_contexts[:5]:  # Show top 5
+            console.print(f"  [dim]- {ctx['file']}:{ctx['line']} ({ctx['name']}, score: {ctx['score']:.4f})[/dim]")
+        console.print()
+        
+    except Exception as e:
+        console.print(f"[bold red]Error generating answer: {e}[/bold red]")
 
 
 if __name__ == '__main__':

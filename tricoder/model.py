@@ -555,7 +555,8 @@ class SymbolModel:
         return results
 
     def search_by_keywords(self, keywords: str, top_k: int = 10, 
-                          excluded_keywords: Set[str] = None, case_sensitive: bool = False) -> List[Dict]:
+                          excluded_keywords: Set[str] = None, case_sensitive: bool = False,
+                          _skip_analysis: bool = False) -> List[Dict]:
         """
         Search for symbols by keywords (name matching).
         
@@ -681,6 +682,12 @@ class SymbolModel:
                         score = 0.3  # All words in kind
                     elif all(word in type_tokens_str for word in filtered_keyword_words):
                         score = 0.35  # All words in types
+                    else:
+                        # Partial match: at least some words match
+                        partial_matches = sum(1 for word in filtered_keyword_words 
+                                            if word in name or word in kind or word in type_tokens_str)
+                        if partial_matches > 0:
+                            score = 0.1 + (0.15 * partial_matches / len(filtered_keyword_words))  # 0.1-0.25 range
             # Single word queries
             elif len(filtered_keyword_words) == 1:
                 word = filtered_keyword_words[0]
@@ -704,7 +711,281 @@ class SymbolModel:
                     'meta': meta
                 })
         
-        # Sort by relevance score (descending)
-        matches.sort(key=lambda x: x['score'], reverse=True)
+        # For multi-keyword queries, use intersection-based approach for better accuracy
+        if len(filtered_keyword_words) > 1 and not _skip_analysis:
+            matches = self._search_multi_keyword_intersection(
+                filtered_keyword_words, top_k, excluded_keywords, case_sensitive, matches
+            )
+        else:
+            # Sort by relevance score (descending)
+            matches.sort(key=lambda x: x['score'], reverse=True)
         
         return matches[:top_k]
+    
+    def _search_multi_keyword_intersection(self, keyword_words: List[str], top_k: int,
+                                          excluded_keywords: Set[str], case_sensitive: bool,
+                                          initial_matches: List[Dict]) -> List[Dict]:
+        """
+        Search using keyword intersection for maximum accuracy.
+        
+        Strategy:
+        1. Search each keyword individually
+        2. Find symbols that match ALL keywords (intersection)
+        3. Score based on individual keyword match quality and intersection count
+        4. Prioritize symbols matching more keywords
+        
+        Args:
+            keyword_words: List of individual keywords
+            top_k: Number of results to return
+            excluded_keywords: Set of excluded keywords
+            case_sensitive: Case sensitivity flag
+            initial_matches: Initial matches from phrase search
+            
+        Returns:
+            List of matches sorted by intersection-based score
+        """
+        from collections import defaultdict
+        
+        # Step 1: Search each keyword individually
+        keyword_results = {}
+        keyword_symbol_scores = {}  # (keyword, symbol) -> score
+        
+        for word in keyword_words:
+            word_matches = self.search_by_keywords(
+                word,
+                top_k=top_k * 5,  # Get many results per keyword for intersection
+                excluded_keywords=excluded_keywords,
+                case_sensitive=case_sensitive,
+                _skip_analysis=True  # Prevent recursion
+            )
+            keyword_results[word] = word_matches
+            
+            # Store individual scores
+            for match in word_matches:
+                symbol = match.get('symbol')
+                if symbol:
+                    keyword_symbol_scores[(word, symbol)] = match.get('score', 0)
+        
+        # Step 2: Build symbol sets for each keyword
+        keyword_symbol_sets = {}
+        for word, word_matches in keyword_results.items():
+            keyword_symbol_sets[word] = {match.get('symbol') for match in word_matches if match.get('symbol')}
+        
+        # Step 3: Find intersections - symbols that match multiple keywords
+        # Start with symbols matching ALL keywords (highest priority)
+        if len(keyword_symbol_sets) > 0:
+            # Intersection of all keyword results
+            all_keywords_intersection = set.intersection(*keyword_symbol_sets.values())
+        else:
+            all_keywords_intersection = set()
+        
+        # Step 4: Build result map with intersection-based scoring
+        result_map = {}  # symbol -> result with intersection score
+        
+        # Add initial phrase matches first (they're already good)
+        for match in initial_matches:
+            symbol = match.get('symbol')
+            if symbol:
+                result_map[symbol] = match.copy()
+                # Boost score for phrase matches
+                result_map[symbol]['score'] = match.get('score', 0) * 1.2
+        
+        # Score symbols based on intersection
+        all_symbols = set()
+        for symbol_set in keyword_symbol_sets.values():
+            all_symbols.update(symbol_set)
+        
+        for symbol in all_symbols:
+            # Count how many keywords match this symbol
+            matching_keywords = [word for word in keyword_words if symbol in keyword_symbol_sets.get(word, set())]
+            match_count = len(matching_keywords)
+            
+            if match_count == 0:
+                continue
+            
+            # Calculate intersection-based score
+            # Base score: average of individual keyword scores
+            individual_scores = [
+                keyword_symbol_scores.get((word, symbol), 0)
+                for word in matching_keywords
+            ]
+            avg_score = sum(individual_scores) / len(individual_scores) if individual_scores else 0
+            
+            # Intersection bonus: higher score for matching more keywords
+            if symbol in all_keywords_intersection:
+                # Matches ALL keywords - highest priority
+                intersection_bonus = 1.0 + (0.5 * match_count / len(keyword_words))
+                final_score = avg_score * intersection_bonus
+            else:
+                # Matches some keywords - bonus based on match ratio
+                match_ratio = match_count / len(keyword_words)
+                intersection_bonus = 0.5 + (0.5 * match_ratio)  # 0.5 to 1.0
+                final_score = avg_score * intersection_bonus
+            
+            # Get the best individual match for metadata
+            best_match = None
+            best_individual_score = 0
+            for word in matching_keywords:
+                for match in keyword_results[word]:
+                    if match.get('symbol') == symbol:
+                        score = match.get('score', 0)
+                        if score > best_individual_score:
+                            best_individual_score = score
+                            best_match = match
+            
+            if best_match:
+                result = best_match.copy()
+                result['score'] = final_score
+                
+                # Update if this symbol has a better score
+                if symbol not in result_map or final_score > result_map[symbol].get('score', 0):
+                    result_map[symbol] = result
+        
+        # Step 5: Sort by intersection score (prioritize all-keyword matches, then by score)
+        def sort_key(match):
+            symbol = match.get('symbol')
+            score = match.get('score', 0)
+            # Prioritize symbols matching all keywords
+            if symbol in all_keywords_intersection:
+                return (1, score)  # Higher priority
+            else:
+                match_count = sum(1 for word in keyword_words 
+                                if symbol in keyword_symbol_sets.get(word, set()))
+                return (0, match_count, score)  # Sort by match count, then score
+        
+        final_results = list(result_map.values())
+        final_results.sort(key=sort_key, reverse=True)
+        
+        return final_results[:top_k]
+    
+    def _search_with_keyword_analysis(self, keyword_words: List[str], top_k: int,
+                                     excluded_keywords: Set[str], case_sensitive: bool,
+                                     initial_matches: List[Dict]) -> List[Dict]:
+        """
+        Analyze keyword co-occurrence and search with best combinations.
+        
+        Args:
+            keyword_words: List of individual keywords
+            top_k: Number of results to return
+            excluded_keywords: Set of excluded keywords
+            case_sensitive: Case sensitivity flag
+            initial_matches: Initial matches from phrase search
+            
+        Returns:
+            List of matches with boosted scores for multi-keyword matches
+        """
+        from collections import defaultdict
+        
+        # Step 1: Search each keyword individually
+        keyword_results = {}
+        for word in keyword_words:
+            word_matches = self.search_by_keywords(
+                word,
+                top_k=top_k * 3,  # Get more results per keyword for analysis
+                excluded_keywords=excluded_keywords,
+                case_sensitive=case_sensitive,
+                _skip_analysis=True  # Prevent recursion
+            )
+            keyword_results[word] = word_matches
+        
+        # Step 2: Build symbol-keyword mapping
+        symbol_keyword_map = {}  # symbol -> set of matching keywords
+        keyword_symbol_map = {}   # keyword -> set of symbols
+        
+        for word, word_matches in keyword_results.items():
+            symbols = set()
+            for match in word_matches:
+                symbol = match.get('symbol')
+                if symbol:
+                    symbols.add(symbol)
+                    if symbol not in symbol_keyword_map:
+                        symbol_keyword_map[symbol] = set()
+                    symbol_keyword_map[symbol].add(word)
+            keyword_symbol_map[word] = symbols
+        
+        # Step 3: Calculate keyword pair confidence scores (Jaccard similarity)
+        keyword_pair_scores = defaultdict(float)
+        
+        for symbol, matching_keywords in symbol_keyword_map.items():
+            if len(matching_keywords) > 1:
+                # This symbol matches multiple keywords - calculate pair scores
+                keywords_list = list(matching_keywords)
+                for i, kw1 in enumerate(keywords_list):
+                    for kw2 in keywords_list[i+1:]:
+                        pair = tuple(sorted([kw1, kw2]))
+                        # Calculate Jaccard similarity: intersection / union
+                        kw1_symbols = keyword_symbol_map.get(kw1, set())
+                        kw2_symbols = keyword_symbol_map.get(kw2, set())
+                        intersection = len(kw1_symbols & kw2_symbols)
+                        union = len(kw1_symbols | kw2_symbols)
+                        if union > 0:
+                            jaccard = intersection / union
+                            # Use maximum score for this pair
+                            keyword_pair_scores[pair] = max(keyword_pair_scores[pair], jaccard)
+        
+        # Step 4: Build result set with boosted scores for multi-keyword matches
+        result_map = {}  # symbol -> best result with boosted score
+        
+        # Add initial matches
+        for match in initial_matches:
+            symbol = match.get('symbol')
+            if symbol:
+                result_map[symbol] = match.copy()
+        
+        # Add symbols that match multiple keywords with boosted scores
+        for symbol, matching_keywords in symbol_keyword_map.items():
+            if len(matching_keywords) >= 2:
+                # Find the best matching result from individual searches
+                best_score = 0
+                best_result = None
+                
+                for word in matching_keywords:
+                    for result in keyword_results[word]:
+                        if result.get('symbol') == symbol:
+                            score = result.get('score', 0)
+                            if score > best_score:
+                                best_score = score
+                                best_result = result.copy()
+                
+                if best_result:
+                    # Boost score based on number of matching keywords
+                    keyword_count = len(matching_keywords)
+                    boost_factor = 1.0 + (0.3 * (keyword_count - 1))  # 1.0, 1.3, 1.6, etc.
+                    boosted_score = best_score * boost_factor
+                    
+                    # Also add confidence bonus based on keyword pair scores
+                    if keyword_count == 2:
+                        pair = tuple(sorted(list(matching_keywords)))
+                        confidence = keyword_pair_scores.get(pair, 0)
+                        boosted_score *= (1.0 + 0.2 * confidence)
+                    
+                    best_result['score'] = boosted_score
+                    result_map[symbol] = best_result
+        
+        # Step 5: Also try searching with best keyword pairs
+        if keyword_pair_scores:
+            sorted_pairs = sorted(keyword_pair_scores.items(), key=lambda x: x[1], reverse=True)
+            # Try top 2-3 pairs
+            for (kw1, kw2), confidence in sorted_pairs[:3]:
+                pair_keywords = ' '.join([kw1, kw2])
+                pair_results = self.search_by_keywords(
+                    pair_keywords,
+                    top_k=top_k,
+                    excluded_keywords=excluded_keywords,
+                    case_sensitive=case_sensitive,
+                    _skip_analysis=True  # Prevent recursion
+                )
+                # Add pair results with confidence boost
+                for result in pair_results:
+                    symbol = result.get('symbol')
+                    if symbol:
+                        # Boost score by confidence
+                        result['score'] = result.get('score', 0) * (1.0 + 0.15 * confidence)
+                        if symbol not in result_map or result['score'] > result_map[symbol].get('score', 0):
+                            result_map[symbol] = result
+        
+        # Convert to list and sort by score
+        final_results = list(result_map.values())
+        final_results.sort(key=lambda x: x.get('score', 0), reverse=True)
+        
+        return final_results[:top_k]
